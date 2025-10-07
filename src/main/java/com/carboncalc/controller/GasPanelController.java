@@ -1,6 +1,7 @@
 package com.carboncalc.controller;
 
 import com.carboncalc.view.GasPanel;
+import com.carboncalc.service.CSVDataService;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
@@ -8,6 +9,7 @@ import java.awt.Component;
 import java.awt.Color;
 import java.awt.CardLayout;
 import java.io.File;
+import java.io.IOException;
 import java.util.ResourceBundle;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -15,9 +17,13 @@ import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import com.carboncalc.model.Cups;
+import com.carboncalc.model.GasColumnMapping;
+import com.carboncalc.util.UIUtils;
 
 public class GasPanelController {
     private final ResourceBundle messages;
+    private final CSVDataService csvDataService;
     private GasPanel view;
     private Workbook providerWorkbook;
     private Workbook erpWorkbook;
@@ -26,10 +32,27 @@ public class GasPanelController {
     
     public GasPanelController(ResourceBundle messages) {
         this.messages = messages;
+        this.csvDataService = new CSVDataService();
     }
     
     public void setView(GasPanel view) {
         this.view = view;
+        loadStoredCups();
+    }
+    
+    /**
+     * Load previously stored CUPS data
+     */
+    private void loadStoredCups() {
+        try {
+            List<Cups> cupsData = csvDataService.loadCups();
+            // Filter for gas-type CUPS
+            cupsData.stream()
+                   .filter(cup -> "GAS".equals(cup.getEnergyType()))
+                   .forEach(cup -> view.addCupsToList(cup.getCups(), cup.getEmissionEntity()));
+        } catch (IOException e) {
+            UIUtils.showErrorDialog(view, messages.getString("error.loading.cups"), e.getMessage());
+        }
     }
     
     public void handleProviderFileSelection() {
@@ -309,6 +332,111 @@ public class GasPanelController {
     }
     
     public void handleSave() {
-        // This method will be implemented when we add the save functionality
+        // First validate the data
+        if (!validateInputs()) {
+            return;
+        }
+
+        try {
+            String cups = view.getSelectedCups();
+            String center = view.getSelectedCenter();
+            String emissionEntity = view.getSelectedEmissionEntity();
+
+            // Save mapping data if enabled
+            if (view.isSaveMappingEnabled()) {
+                saveMappingData(cups, center, emissionEntity);
+            }
+
+            // Generate and save the Excel report
+            generateExcelReport();
+
+            // Update UI with success
+            view.clearSelections();
+            JOptionPane.showMessageDialog(view,
+                messages.getString("success.save"),
+                messages.getString("success.title"),
+                JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.saving") + ": " + e.getMessage(),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private boolean validateInputs() {
+        if (providerWorkbook == null || view.getProviderSheetSelector().getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.no.data"),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        GasColumnMapping columns = view.getSelectedColumns();
+        if (columns.getCupsIndex() == -1 || columns.getConsumptionIndex() == -1) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.missing.columns"),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void saveMappingData(String cups, String center, String emissionEntity) throws IOException {
+        // Save CUPS data
+        csvDataService.saveCups(cups, emissionEntity, "GAS");
+        
+        // Save CUPS-Center mapping if center is provided
+        if (center != null && !center.trim().isEmpty()) {
+            csvDataService.saveCupsData(cups, center);
+        }
+        
+        // Update UI with the new entry
+        view.addCupsToList(cups, emissionEntity);
+    }
+
+    private void generateExcelReport() {
+        try {
+            // Get selected sheet from provider workbook
+            Sheet providerSheet = providerWorkbook.getSheet(
+                (String) view.getProviderSheetSelector().getSelectedItem()
+            );
+            
+            // Get column mappings
+            GasColumnMapping columns = view.getSelectedColumns();
+            
+            // Choose file location to save
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle(messages.getString("excel.save.title"));
+            fileChooser.setFileFilter(new FileNameExtensionFilter("Excel files (*.xlsx)", "xlsx"));
+            
+            if (fileChooser.showSaveDialog(view) != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+            
+            File outputFile = fileChooser.getSelectedFile();
+            if (!outputFile.getName().toLowerCase().endsWith(".xlsx")) {
+                outputFile = new File(outputFile.getAbsolutePath() + ".xlsx");
+            }
+            
+            // Generate the Excel report
+            com.carboncalc.util.ExcelExporter.exportGasData(outputFile.getAbsolutePath());
+            
+            // Show success message
+            JOptionPane.showMessageDialog(view,
+                messages.getString("excel.save.success"),
+                messages.getString("success.title"),
+                JOptionPane.INFORMATION_MESSAGE);
+                
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(view,
+                messages.getString("excel.save.error") + ": " + e.getMessage(),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
 }

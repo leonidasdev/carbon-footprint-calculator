@@ -6,7 +6,6 @@ import com.carboncalc.controller.EmissionFactorsPanelController;
 import com.carboncalc.controller.GasPanelController;
 import com.carboncalc.controller.MainWindowController;
 import com.carboncalc.controller.OptionsPanelController;
-import com.carboncalc.util.UIUtils;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ResourceBundle;

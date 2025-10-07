@@ -1,30 +1,62 @@
 package com.carboncalc.model;
 
-public class CupsCenterMapping {
-    private String cupsCode;
+public class CupsCenterMapping implements Comparable<CupsCenterMapping> {
+    private Long id;
+    private String cups;
     private String centerName;
-    private String abbreviation;
     
     public CupsCenterMapping() {}
     
-    public CupsCenterMapping(String cupsCode, String centerName, String abbreviation) {
-        this.cupsCode = cupsCode;
+    public CupsCenterMapping(String cups, String centerName) {
+        this.cups = cups;
         this.centerName = centerName;
-        this.abbreviation = abbreviation;
     }
     
     // Getters and Setters
-    public String getCupsCode() { return cupsCode; }
-    public void setCupsCode(String cupsCode) { this.cupsCode = cupsCode; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    
+    public String getCups() { return cups; }
+    public void setCups(String cups) { this.cups = cups; }
     
     public String getCenterName() { return centerName; }
     public void setCenterName(String centerName) { this.centerName = centerName; }
     
-    public String getAbbreviation() { return abbreviation; }
-    public void setAbbreviation(String abbreviation) { this.abbreviation = abbreviation; }
+    @Override
+    public int compareTo(CupsCenterMapping other) {
+        if (this.centerName == null || other.centerName == null) {
+            return 0;
+        }
+        return this.centerName.compareToIgnoreCase(other.centerName);
+    }
+    
+    public String getCenter() { return centerName; }
+    public void setCenter(String centerName) { this.centerName = centerName; }
     
     @Override
     public String toString() {
-        return String.format("%s: %s (%s)", cupsCode, centerName, abbreviation);
+        return String.format("%s: %s", cups, centerName);
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        CupsCenterMapping other = (CupsCenterMapping) obj;
+        if (id != null && other.id != null) {
+            return id.equals(other.id);
+        }
+        return cups != null && centerName != null &&
+               cups.equals(other.cups) && centerName.equals(other.centerName);
+    }
+    
+    @Override
+    public int hashCode() {
+        if (id != null) {
+            return id.hashCode();
+        }
+        int result = cups != null ? cups.hashCode() : 0;
+        result = 31 * result + (centerName != null ? centerName.hashCode() : 0);
+        return result;
     }
 }

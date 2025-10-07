@@ -3,7 +3,6 @@ package com.carboncalc.util;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
 import java.awt.*;
 
@@ -139,5 +138,12 @@ public class UIUtils {
             columnNumber = columnNumber / 26 - 1;
         }
         return columnName.toString();
+    }
+    
+    public static void showErrorDialog(Component parent, String title, String message) {
+        JOptionPane.showMessageDialog(parent,
+            message,
+            title,
+            JOptionPane.ERROR_MESSAGE);
     }
 }

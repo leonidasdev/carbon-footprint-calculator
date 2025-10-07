@@ -1,6 +1,7 @@
 package com.carboncalc.view;
 
 import com.carboncalc.controller.GasPanelController;
+import com.carboncalc.model.GasColumnMapping;
 import com.carboncalc.util.UIUtils;
 import javax.swing.*;
 
@@ -204,12 +205,19 @@ public class GasPanel extends BaseModulePanel {
         return panel;
     }
     
+    private JCheckBox saveMappingCheckbox;
+    
     private void setupProviderMappingPanel(JPanel panel) {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.gridx = 0;
         gbc.gridy = 0;
+        
+        // Save Mapping Checkbox
+        saveMappingCheckbox = new JCheckBox(messages.getString("checkbox.save.mapping"));
+        panel.add(saveMappingCheckbox, gbc);
+        gbc.gridy++;
         
         // CUPS
         addColumnMapping(panel, gbc, "label.column.cups", cupsSelector = new JComboBox<>());
@@ -338,8 +346,68 @@ public class GasPanel extends BaseModulePanel {
         return columnConfigPanel;
     }
     
+    public String getSelectedCups() {
+        return (String) cupsSelector.getSelectedItem();
+    }
+    
+    public String getSelectedCenter() {
+        return (String) centerSelector.getSelectedItem();
+    }
+    
+    public String getSelectedEmissionEntity() {
+        return (String) emissionEntitySelector.getSelectedItem();
+    }
+    
+    public void clearSelections() {
+        cupsSelector.setSelectedItem("");
+        centerSelector.setSelectedItem("");
+        emissionEntitySelector.setSelectedItem("");
+    }
+    
+    public void addCupsToList(String cups, String emissionEntity) {
+        // TODO: Add to list when UI component is available
+        System.out.println("Added CUPS: " + cups + " with emission entity: " + emissionEntity);
+    }
+    
+    public boolean isSaveMappingEnabled() {
+        return saveMappingCheckbox != null && saveMappingCheckbox.isSelected();
+    }
+    
     @Override
     protected void onSave() {
         controller.handleSave();
+    }
+    
+    /**
+     * Gets the column mapping information from the currently selected columns.
+     * @return A GasColumnMapping object containing the indexes of the selected columns
+     */
+    public GasColumnMapping getSelectedColumns() {
+        return new GasColumnMapping(
+            getSelectedIndex(cupsSelector),
+            getSelectedIndex(emissionEntitySelector),
+            getSelectedIndex(startDateSelector),
+            getSelectedIndex(endDateSelector),
+            getSelectedIndex(consumptionSelector),
+            getSelectedIndex(centerSelector)
+        );
+    }
+    
+    /**
+     * Gets the selected index from a combo box.
+     * @param comboBox The combo box to get the selected index from
+     * @return The index of the selected item, or -1 if no item is selected
+     */
+    private int getSelectedIndex(JComboBox<String> comboBox) {
+        String selectedItem = (String) comboBox.getSelectedItem();
+        if (selectedItem == null || selectedItem.isEmpty()) {
+            return -1;
+        }
+        for (int i = 0; i < comboBox.getItemCount(); i++) {
+            if (selectedItem.equals(comboBox.getItemAt(i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 }

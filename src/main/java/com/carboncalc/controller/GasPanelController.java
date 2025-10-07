@@ -374,7 +374,13 @@ public class GasPanelController {
         }
 
         GasColumnMapping columns = view.getSelectedColumns();
-        if (columns.getCupsIndex() == -1 || columns.getConsumptionIndex() == -1) {
+        // For Excel export, we need all columns to be selected
+        if (columns.getCupsIndex() == -1 ||
+            columns.getEmissionEntityIndex() == -1 ||
+            columns.getStartDateIndex() == -1 ||
+            columns.getEndDateIndex() == -1 ||
+            columns.getConsumptionIndex() == -1 ||
+            columns.getCenterIndex() == -1) {
             JOptionPane.showMessageDialog(view,
                 messages.getString("error.missing.columns"),
                 messages.getString("error.title"),
@@ -383,6 +389,13 @@ public class GasPanelController {
         }
 
         return true;
+    }
+
+    public void handleApplyAndSaveExcel() {
+        if (!validateInputs()) {
+            return;
+        }
+        generateExcelReport();
     }
 
     private void saveMappingData(String cups, String center, String emissionEntity) throws IOException {

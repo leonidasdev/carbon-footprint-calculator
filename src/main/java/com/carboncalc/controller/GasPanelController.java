@@ -19,8 +19,8 @@ public class GasPanelController {
     private GasPanel view;
     private Workbook providerWorkbook;
     private Workbook erpWorkbook;
-    private File currentProviderFile;
-    private File currentErpFile;
+    private File providerFile;
+    private File erpFile;
     
     public GasPanelController(ResourceBundle messages) {
         this.messages = messages;
@@ -42,11 +42,11 @@ public class GasPanelController {
         
         if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
             try {
-                currentProviderFile = fileChooser.getSelectedFile();
-                FileInputStream fis = new FileInputStream(currentProviderFile);
+                providerFile = fileChooser.getSelectedFile();
+                FileInputStream fis = new FileInputStream(providerFile);
                 providerWorkbook = new XSSFWorkbook(fis);
                 updateProviderSheetList();
-                view.getProviderFileLabel().setText(currentProviderFile.getName());
+                view.getProviderFileLabel().setText(providerFile.getName());
                 fis.close();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
@@ -69,11 +69,11 @@ public class GasPanelController {
         
         if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
             try {
-                currentErpFile = fileChooser.getSelectedFile();
-                FileInputStream fis = new FileInputStream(currentErpFile);
+                erpFile = fileChooser.getSelectedFile();
+                FileInputStream fis = new FileInputStream(erpFile);
                 erpWorkbook = new XSSFWorkbook(fis);
                 updateErpSheetList();
-                view.getErpFileLabel().setText(currentErpFile.getName());
+                view.getErpFileLabel().setText(erpFile.getName());
                 fis.close();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
@@ -88,15 +88,13 @@ public class GasPanelController {
         JComboBox<String> sheetSelector = view.getProviderSheetSelector();
         sheetSelector.removeAllItems();
         
-        if (providerWorkbook != null) {
-            for (int i = 0; i < providerWorkbook.getNumberOfSheets(); i++) {
-                sheetSelector.addItem(providerWorkbook.getSheetName(i));
-            }
-            
-            if (sheetSelector.getItemCount() > 0) {
-                sheetSelector.setSelectedIndex(0);
-                handleProviderSheetSelection();
-            }
+        for (int i = 0; i < providerWorkbook.getNumberOfSheets(); i++) {
+            sheetSelector.addItem(providerWorkbook.getSheetName(i));
+        }
+        
+        if (sheetSelector.getItemCount() > 0) {
+            sheetSelector.setSelectedIndex(0);
+            handleProviderSheetSelection();
         }
     }
     
@@ -104,15 +102,13 @@ public class GasPanelController {
         JComboBox<String> sheetSelector = view.getErpSheetSelector();
         sheetSelector.removeAllItems();
         
-        if (erpWorkbook != null) {
-            for (int i = 0; i < erpWorkbook.getNumberOfSheets(); i++) {
-                sheetSelector.addItem(erpWorkbook.getSheetName(i));
-            }
-            
-            if (sheetSelector.getItemCount() > 0) {
-                sheetSelector.setSelectedIndex(0);
-                handleErpSheetSelection();
-            }
+        for (int i = 0; i < erpWorkbook.getNumberOfSheets(); i++) {
+            sheetSelector.addItem(erpWorkbook.getSheetName(i));
+        }
+        
+        if (sheetSelector.getItemCount() > 0) {
+            sheetSelector.setSelectedIndex(0);
+            handleErpSheetSelection();
         }
     }
     

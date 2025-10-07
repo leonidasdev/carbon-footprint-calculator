@@ -2,6 +2,7 @@ package com.carboncalc.controller;
 
 import com.carboncalc.view.ElectricityPanel;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
 import java.awt.*;
 import java.io.File;
@@ -31,7 +32,14 @@ public class ElectricityPanelController {
     
     public void handleProviderFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Seleccionar archivo de proveedor");
+        fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
+        
+        // Add Excel filter
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(
+            "Archivos Excel (*.xlsx, *.xls)", "xlsx", "xls");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false); // Only show Excel files
+        
         if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
             try {
                 providerFile = fileChooser.getSelectedFile();
@@ -51,7 +59,14 @@ public class ElectricityPanelController {
     
     public void handleErpFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Seleccionar archivo ERP");
+        fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
+        
+        // Add Excel filter
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(
+            "Archivos Excel (*.xlsx, *.xls)", "xlsx", "xls");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false); // Only show Excel files
+        
         if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
             try {
                 erpFile = fileChooser.getSelectedFile();

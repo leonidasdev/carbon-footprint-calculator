@@ -3,7 +3,9 @@ package com.carboncalc;
 import com.carboncalc.controller.MainWindowController;
 import com.formdev.flatlaf.FlatLightLaf;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.Color;
+import java.awt.Font;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -18,12 +20,20 @@ public class App {
         System.setProperty("awt.useSystemAAFontSettings", "on");
         UIManager.put("FileChooser.useSystemIcons", Boolean.TRUE);
         
+        // Set the default file filter for Excel files
+        UIManager.put("FileChooser.defaultFileFilter", new FileNameExtensionFilter(
+            "Archivos Excel (*.xlsx, *.xls)", "xlsx", "xls"));
+            
         // Set up FlatLaf look and feel with custom colors
         FlatLightLaf.setup();
         
         // Enable native file chooser
         UIManager.put("FileChooser.useSystemExtensionHiding", Boolean.TRUE);
         JFileChooser.setDefaultLocale(Locale.getDefault());
+        
+        // Set default font for all components
+        Font defaultFont = new Font("Segoe UI", Font.PLAIN, 12);
+        UIManager.put("defaultFont", defaultFont);
         
         // Apply custom FlatLaf defaults
         UIManager.put("Button.arc", 8);

@@ -2,6 +2,7 @@ package com.carboncalc.controller;
 
 import com.carboncalc.view.GasPanel;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
 import java.awt.*;
 import java.io.File;
@@ -16,8 +17,10 @@ import java.util.Vector;
 public class GasPanelController {
     private final ResourceBundle messages;
     private GasPanel view;
-    private Workbook workbook;
-    private File currentFile;
+    private Workbook providerWorkbook;
+    private Workbook erpWorkbook;
+    private File currentProviderFile;
+    private File currentErpFile;
     
     public GasPanelController(ResourceBundle messages) {
         this.messages = messages;
@@ -27,15 +30,23 @@ public class GasPanelController {
         this.view = view;
     }
     
-    public void handleFileSelection() {
+    public void handleProviderFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
+        
+        // Add Excel filter
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(
+            "Archivos Excel (*.xlsx, *.xls)", "xlsx", "xls");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false); // Only show Excel files
+        
         if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
             try {
-                currentFile = fileChooser.getSelectedFile();
-                FileInputStream fis = new FileInputStream(currentFile);
-                workbook = new XSSFWorkbook(fis);
-                updateSheetList();
+                currentProviderFile = fileChooser.getSelectedFile();
+                FileInputStream fis = new FileInputStream(currentProviderFile);
+                providerWorkbook = new XSSFWorkbook(fis);
+                updateProviderSheetList();
+                view.getProviderFileLabel().setText(currentProviderFile.getName());
                 fis.close();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
@@ -46,33 +57,90 @@ public class GasPanelController {
         }
     }
     
-    private void updateSheetList() {
-        JComboBox<String> sheetSelector = view.getSheetSelector();
-        sheetSelector.removeAllItems();
+    public void handleErpFileSelection() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
         
-        for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-            sheetSelector.addItem(workbook.getSheetName(i));
-        }
+        // Add Excel filter
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(
+            "Archivos Excel (*.xlsx, *.xls)", "xlsx", "xls");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false); // Only show Excel files
         
-        if (sheetSelector.getItemCount() > 0) {
-            sheetSelector.setSelectedIndex(0);
-            handleSheetSelection();
+        if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
+            try {
+                currentErpFile = fileChooser.getSelectedFile();
+                FileInputStream fis = new FileInputStream(currentErpFile);
+                erpWorkbook = new XSSFWorkbook(fis);
+                updateErpSheetList();
+                view.getErpFileLabel().setText(currentErpFile.getName());
+                fis.close();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("error.file.read"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     
-    public void handleSheetSelection() {
-        if (workbook == null) return;
+    private void updateProviderSheetList() {
+        JComboBox<String> sheetSelector = view.getProviderSheetSelector();
+        sheetSelector.removeAllItems();
         
-        JComboBox<String> sheetSelector = view.getSheetSelector();
+        if (providerWorkbook != null) {
+            for (int i = 0; i < providerWorkbook.getNumberOfSheets(); i++) {
+                sheetSelector.addItem(providerWorkbook.getSheetName(i));
+            }
+            
+            if (sheetSelector.getItemCount() > 0) {
+                sheetSelector.setSelectedIndex(0);
+                handleProviderSheetSelection();
+            }
+        }
+    }
+    
+    private void updateErpSheetList() {
+        JComboBox<String> sheetSelector = view.getErpSheetSelector();
+        sheetSelector.removeAllItems();
+        
+        if (erpWorkbook != null) {
+            for (int i = 0; i < erpWorkbook.getNumberOfSheets(); i++) {
+                sheetSelector.addItem(erpWorkbook.getSheetName(i));
+            }
+            
+            if (sheetSelector.getItemCount() > 0) {
+                sheetSelector.setSelectedIndex(0);
+                handleErpSheetSelection();
+            }
+        }
+    }
+    
+    public void handleProviderSheetSelection() {
+        if (providerWorkbook == null) return;
+        
+        JComboBox<String> sheetSelector = view.getProviderSheetSelector();
         String selectedSheet = (String) sheetSelector.getSelectedItem();
         if (selectedSheet == null) return;
         
-        Sheet sheet = workbook.getSheet(selectedSheet);
-        updateColumnSelectors(sheet);
+        Sheet sheet = providerWorkbook.getSheet(selectedSheet);
+        updateProviderColumnSelectors(sheet);
         updatePreviewTable(sheet);
     }
     
-    private void updateColumnSelectors(Sheet sheet) {
+    public void handleErpSheetSelection() {
+        if (erpWorkbook == null) return;
+        
+        JComboBox<String> sheetSelector = view.getErpSheetSelector();
+        String selectedSheet = (String) sheetSelector.getSelectedItem();
+        if (selectedSheet == null) return;
+        
+        Sheet sheet = erpWorkbook.getSheet(selectedSheet);
+        updateErpColumnSelectors(sheet);
+        updatePreviewTable(sheet);
+    }
+    
+    private void updateProviderColumnSelectors(Sheet sheet) {
         if (sheet.getRow(0) == null) return;
         
         List<String> columnHeaders = new ArrayList<>();
@@ -84,11 +152,23 @@ public class GasPanelController {
         
         updateComboBox(view.getCupsSelector(), columnHeaders);
         updateComboBox(view.getInvoiceNumberSelector(), columnHeaders);
-        updateComboBox(view.getIssueDateSelector(), columnHeaders);
         updateComboBox(view.getStartDateSelector(), columnHeaders);
         updateComboBox(view.getEndDateSelector(), columnHeaders);
         updateComboBox(view.getConsumptionSelector(), columnHeaders);
         updateComboBox(view.getCenterSelector(), columnHeaders);
+        updateComboBox(view.getEmissionEntitySelector(), columnHeaders);
+    }
+    
+    private void updateErpColumnSelectors(Sheet sheet) {
+        if (sheet.getRow(0) == null) return;
+        
+        List<String> columnHeaders = new ArrayList<>();
+        Row headerRow = sheet.getRow(0);
+        
+        for (Cell cell : headerRow) {
+            columnHeaders.add(getCellValueAsString(cell));
+        }
+        
         updateComboBox(view.getErpInvoiceNumberSelector(), columnHeaders);
         updateComboBox(view.getConformityDateSelector(), columnHeaders);
     }

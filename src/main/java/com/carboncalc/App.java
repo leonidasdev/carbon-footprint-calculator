@@ -13,8 +13,17 @@ public class App {
         System.setProperty("apple.laf.useScreenMenuBar", "true");
         System.setProperty("apple.awt.application.name", "Carbon Footprint Calculator");
         
+        // Enable native file dialogs
+        System.setProperty("swing.useSystemFontSettings", "true");
+        System.setProperty("awt.useSystemAAFontSettings", "on");
+        UIManager.put("FileChooser.useSystemIcons", Boolean.TRUE);
+        
         // Set up FlatLaf look and feel with custom colors
         FlatLightLaf.setup();
+        
+        // Enable native file chooser
+        UIManager.put("FileChooser.useSystemExtensionHiding", Boolean.TRUE);
+        JFileChooser.setDefaultLocale(Locale.getDefault());
         
         // Apply custom FlatLaf defaults
         UIManager.put("Button.arc", 8);

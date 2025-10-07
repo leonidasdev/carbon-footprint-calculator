@@ -16,8 +16,10 @@ import java.util.Vector;
 public class ElectricityPanelController {
     private final ResourceBundle messages;
     private ElectricityPanel view;
-    private Workbook workbook;
-    private File currentFile;
+    private Workbook providerWorkbook;
+    private Workbook erpWorkbook;
+    private File providerFile;
+    private File erpFile;
     
     public ElectricityPanelController(ResourceBundle messages) {
         this.messages = messages;
@@ -27,15 +29,16 @@ public class ElectricityPanelController {
         this.view = view;
     }
     
-    public void handleFileSelection() {
+    public void handleProviderFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
+        fileChooser.setDialogTitle("Seleccionar archivo de proveedor");
         if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
             try {
-                currentFile = fileChooser.getSelectedFile();
-                FileInputStream fis = new FileInputStream(currentFile);
-                workbook = new XSSFWorkbook(fis);
-                updateSheetList();
+                providerFile = fileChooser.getSelectedFile();
+                FileInputStream fis = new FileInputStream(providerFile);
+                providerWorkbook = new XSSFWorkbook(fis);
+                updateProviderSheetList();
+                view.getProviderFileLabel().setText(providerFile.getName());
                 fis.close();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
@@ -46,33 +49,79 @@ public class ElectricityPanelController {
         }
     }
     
-    private void updateSheetList() {
-        JComboBox<String> sheetSelector = view.getSheetSelector();
+    public void handleErpFileSelection() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Seleccionar archivo ERP");
+        if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
+            try {
+                erpFile = fileChooser.getSelectedFile();
+                FileInputStream fis = new FileInputStream(erpFile);
+                erpWorkbook = new XSSFWorkbook(fis);
+                updateErpSheetList();
+                view.getErpFileLabel().setText(erpFile.getName());
+                fis.close();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("error.file.read"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    private void updateProviderSheetList() {
+        JComboBox<String> sheetSelector = view.getProviderSheetSelector();
         sheetSelector.removeAllItems();
         
-        for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-            sheetSelector.addItem(workbook.getSheetName(i));
+        for (int i = 0; i < providerWorkbook.getNumberOfSheets(); i++) {
+            sheetSelector.addItem(providerWorkbook.getSheetName(i));
         }
         
         if (sheetSelector.getItemCount() > 0) {
             sheetSelector.setSelectedIndex(0);
-            handleSheetSelection();
+            handleProviderSheetSelection();
         }
     }
     
-    public void handleSheetSelection() {
-        if (workbook == null) return;
+    private void updateErpSheetList() {
+        JComboBox<String> sheetSelector = view.getErpSheetSelector();
+        sheetSelector.removeAllItems();
         
-        JComboBox<String> sheetSelector = view.getSheetSelector();
+        for (int i = 0; i < erpWorkbook.getNumberOfSheets(); i++) {
+            sheetSelector.addItem(erpWorkbook.getSheetName(i));
+        }
+        
+        if (sheetSelector.getItemCount() > 0) {
+            sheetSelector.setSelectedIndex(0);
+            handleErpSheetSelection();
+        }
+    }
+    
+    public void handleProviderSheetSelection() {
+        if (providerWorkbook == null) return;
+        
+        JComboBox<String> sheetSelector = view.getProviderSheetSelector();
         String selectedSheet = (String) sheetSelector.getSelectedItem();
         if (selectedSheet == null) return;
         
-        Sheet sheet = workbook.getSheet(selectedSheet);
-        updateColumnSelectors(sheet);
+        Sheet sheet = providerWorkbook.getSheet(selectedSheet);
+        updateProviderColumnSelectors(sheet);
         updatePreviewTable(sheet);
     }
     
-    private void updateColumnSelectors(Sheet sheet) {
+    public void handleErpSheetSelection() {
+        if (erpWorkbook == null) return;
+        
+        JComboBox<String> sheetSelector = view.getErpSheetSelector();
+        String selectedSheet = (String) sheetSelector.getSelectedItem();
+        if (selectedSheet == null) return;
+        
+        Sheet sheet = erpWorkbook.getSheet(selectedSheet);
+        updateErpColumnSelectors(sheet);
+        updatePreviewTable(sheet);
+    }
+    
+    private void updateProviderColumnSelectors(Sheet sheet) {
         if (sheet.getRow(0) == null) return;
         
         List<String> columnHeaders = new ArrayList<>();
@@ -84,12 +133,23 @@ public class ElectricityPanelController {
         
         updateComboBox(view.getCupsSelector(), columnHeaders);
         updateComboBox(view.getInvoiceNumberSelector(), columnHeaders);
-        updateComboBox(view.getIssueDateSelector(), columnHeaders);
         updateComboBox(view.getStartDateSelector(), columnHeaders);
         updateComboBox(view.getEndDateSelector(), columnHeaders);
         updateComboBox(view.getConsumptionSelector(), columnHeaders);
         updateComboBox(view.getCenterSelector(), columnHeaders);
         updateComboBox(view.getEmissionEntitySelector(), columnHeaders);
+    }
+    
+    private void updateErpColumnSelectors(Sheet sheet) {
+        if (sheet.getRow(0) == null) return;
+        
+        List<String> columnHeaders = new ArrayList<>();
+        Row headerRow = sheet.getRow(0);
+        
+        for (Cell cell : headerRow) {
+            columnHeaders.add(getCellValueAsString(cell));
+        }
+        
         updateComboBox(view.getErpInvoiceNumberSelector(), columnHeaders);
         updateComboBox(view.getConformityDateSelector(), columnHeaders);
     }

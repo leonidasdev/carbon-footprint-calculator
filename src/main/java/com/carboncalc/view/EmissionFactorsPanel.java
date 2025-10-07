@@ -26,11 +26,17 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         // Create table
         createTable();
         
+        // Create scroll pane and add table
+        JScrollPane scrollPane = new JScrollPane(factorsTable);
+        
+        // Add row numbers and Excel-style column headers
+        UIUtils.setupPreviewTable(factorsTable);
+        
         // Create buttons panel
         JPanel buttonPanel = createButtonPanel();
         
         // Add components to main panel
-        contentPanel.add(new JScrollPane(factorsTable), BorderLayout.CENTER);
+        contentPanel.add(scrollPane, BorderLayout.CENTER);
         contentPanel.add(buttonPanel, BorderLayout.SOUTH);
         
         setBackground(Color.WHITE);

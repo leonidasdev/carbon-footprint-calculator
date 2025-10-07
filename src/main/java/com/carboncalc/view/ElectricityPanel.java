@@ -1,6 +1,7 @@
 package com.carboncalc.view;
 
 import com.carboncalc.controller.ElectricityPanelController;
+import com.carboncalc.util.UIUtils;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
@@ -164,9 +165,6 @@ public class ElectricityPanel extends BaseModulePanel {
         // Invoice Number
         addColumnMapping(panel, gbc, "label.column.invoice", invoiceNumberSelector = new JComboBox<>());
         
-        // Issue Date
-        addColumnMapping(panel, gbc, "label.column.issue.date", issueDateSelector = new JComboBox<>());
-        
         // Start Date
         addColumnMapping(panel, gbc, "label.column.start.date", startDateSelector = new JComboBox<>());
         
@@ -213,29 +211,19 @@ public class ElectricityPanel extends BaseModulePanel {
         panel.setBackground(Color.WHITE);
         panel.setPreferredSize(new Dimension(0, 400)); // Set minimum height for preview
         
-        // Create the table with a default table model
+        // Create and setup the preview table
         previewTable = new JTable();
         previewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         previewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        UIUtils.styleTable(previewTable);
         
-        // Style the table
-        DefaultTableCellRenderer headerRenderer = new DefaultTableCellRenderer();
-        headerRenderer.setBackground(new Color(0x1B3D6D));
-        headerRenderer.setForeground(Color.WHITE);
-        headerRenderer.setFont(headerRenderer.getFont().deriveFont(Font.BOLD));
-        headerRenderer.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(1, 0, 1, 1, new Color(0x2B4D7D)),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)
-        ));
-        headerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        headerRenderer.setOpaque(true);
-        
-        previewTable.getTableHeader().setDefaultRenderer(headerRenderer);
-        
-        // Wrap the table in a scroll pane
+        // Create scroll pane
         tableScrollPane = new JScrollPane(previewTable);
         tableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         tableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+        
+        // Add row numbers and Excel-style column headers after adding to scroll pane
+        UIUtils.setupPreviewTable(previewTable);
         
         panel.add(tableScrollPane, BorderLayout.CENTER);
         

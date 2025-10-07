@@ -2,6 +2,9 @@ package com.carboncalc.util;
 
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableColumn;
 import java.awt.*;
 
 public class UIUtils {
@@ -89,5 +92,52 @@ public class UIUtils {
     public static void styleComboBox(JComboBox<?> comboBox) {
         comboBox.setBackground(Color.WHITE);
         comboBox.setBorder(BorderFactory.createLineBorder(UPM_BLUE));
+    }
+    
+    public static void setupPreviewTable(JTable table) {
+        // Create row header
+        JTable rowHeader = new JTable(new DefaultTableModel(table.getRowCount(), 1) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+            
+            @Override
+            public Object getValueAt(int row, int column) {
+                return row + 1;
+            }
+        });
+        
+        // Style row header
+        rowHeader.setShowGrid(false);
+        rowHeader.setBackground(new Color(0xF5F5F5));
+        rowHeader.setSelectionBackground(UPM_LIGHTER_BLUE);
+        rowHeader.getColumnModel().getColumn(0).setPreferredWidth(50);
+        rowHeader.setRowHeight(table.getRowHeight());
+        rowHeader.getTableHeader().setReorderingAllowed(false);
+        rowHeader.getTableHeader().setResizingAllowed(false);
+        
+        // Add row header to scroll pane
+        JScrollPane scrollPane = (JScrollPane) table.getParent().getParent();
+        scrollPane.setRowHeaderView(rowHeader);
+        
+        // Set column headers to letters (A, B, C, etc.)
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            TableColumn column = table.getColumnModel().getColumn(i);
+            column.setHeaderValue(getExcelColumnName(i));
+        }
+        
+        // Make sure the table and row header stay synchronized
+        scrollPane.getRowHeader().addChangeListener(e -> 
+            scrollPane.getVerticalScrollBar().setValue(scrollPane.getViewport().getViewPosition().y));
+    }
+    
+    private static String getExcelColumnName(int columnNumber) {
+        StringBuilder columnName = new StringBuilder();
+        while (columnNumber >= 0) {
+            columnName.insert(0, (char) ('A' + columnNumber % 26));
+            columnNumber = columnNumber / 26 - 1;
+        }
+        return columnName.toString();
     }
 }

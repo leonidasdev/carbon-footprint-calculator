@@ -15,6 +15,7 @@ com\carboncalc\util\UIUtils$3.class
 com\carboncalc\util\UIUtils.class
 com\carboncalc\controller\GasPanelController$1.class
 com\carboncalc\view\MainWindow.class
+com\carboncalc\controller\ElectricityPanelController$2.class
 com\carboncalc\model\CupsCenterMapping.class
 com\carboncalc\util\UIUtils$1.class
 com\carboncalc\service\CSVDataService.class

@@ -35,8 +35,10 @@ public class ElectricityPanel extends BaseModulePanel {
     private JComboBox<String> conformityDateSelector;
     
     // Preview Components
-    private JTable previewTable;
-    private JScrollPane tableScrollPane;
+    private JTable providerPreviewTable;
+    private JTable erpPreviewTable;
+    private JScrollPane providerTableScrollPane;
+    private JScrollPane erpTableScrollPane;
     private JPanel columnConfigPanel;
     
     public ElectricityPanel(ElectricityPanelController controller, ResourceBundle messages) {
@@ -104,20 +106,20 @@ public class ElectricityPanel extends BaseModulePanel {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.file.management")));
         panel.setBackground(Color.WHITE);
-        panel.setPreferredSize(new Dimension(300, 350)); // Fixed width and increased height
+        panel.setPreferredSize(new Dimension(300, 350)); // Increased width, same height
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 5, 5, 5);
         
         // Provider File Section
         JPanel providerPanel = new JPanel(new GridBagLayout());
-        providerPanel.setBorder(BorderFactory.createTitledBorder("Archivo Proveedor"));
+        providerPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.provider.file")));
         providerPanel.setBackground(Color.WHITE);
         
         // Provider File Button and Label
         addProviderFileButton = new JButton(messages.getString("button.file.add"));
         addProviderFileButton.addActionListener(e -> controller.handleProviderFileSelection());
-        providerFileLabel = new JLabel("No hay archivo seleccionado");
+        providerFileLabel = new JLabel(messages.getString("label.file.none"));
         providerFileLabel.setForeground(Color.GRAY);
         
         gbc.gridx = 0;
@@ -140,13 +142,13 @@ public class ElectricityPanel extends BaseModulePanel {
         
         // ERP File Section
         JPanel erpPanel = new JPanel(new GridBagLayout());
-        erpPanel.setBorder(BorderFactory.createTitledBorder("Archivo ERP"));
+        erpPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.erp.file")));
         erpPanel.setBackground(Color.WHITE);
         
         // ERP File Button and Label
         addErpFileButton = new JButton(messages.getString("button.file.add"));
         addErpFileButton.addActionListener(e -> controller.handleErpFileSelection());
-        erpFileLabel = new JLabel("No hay archivo seleccionado");
+        erpFileLabel = new JLabel(messages.getString("label.file.none"));
         erpFileLabel.setForeground(Color.GRAY);
         
         gbc.gridx = 0;
@@ -235,32 +237,54 @@ public class ElectricityPanel extends BaseModulePanel {
     }
     
     private JPanel createPreviewPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.preview")));
+        JPanel panel = new JPanel(new GridLayout(1, 2, 10, 0));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         panel.setBackground(Color.WHITE);
-        panel.setPreferredSize(new Dimension(0, 80)); // Much smaller preview height
         
-        // Create and setup the preview table
-        previewTable = new JTable();
-        previewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        previewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        UIUtils.styleTable(previewTable);
+        // Provider Preview Panel
+        JPanel providerPanel = new JPanel(new BorderLayout());
+        providerPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.preview.provider")));
+        providerPanel.setBackground(Color.WHITE);
         
-        // Create scroll pane
-        tableScrollPane = new JScrollPane(previewTable);
-        tableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        tableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+        providerPreviewTable = new JTable();
+        providerPreviewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        providerPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        UIUtils.styleTable(providerPreviewTable);
         
-        // Add row numbers and Excel-style column headers after adding to scroll pane
-        UIUtils.setupPreviewTable(previewTable);
+        providerTableScrollPane = new JScrollPane(providerPreviewTable);
+        providerTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        providerTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         
-        panel.add(tableScrollPane, BorderLayout.CENTER);
+        UIUtils.setupPreviewTable(providerPreviewTable);
+        providerPanel.add(providerTableScrollPane, BorderLayout.CENTER);
+        
+        // ERP Preview Panel
+        JPanel erpPanel = new JPanel(new BorderLayout());
+        erpPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.preview.erp")));
+        erpPanel.setBackground(Color.WHITE);
+        
+        erpPreviewTable = new JTable();
+        erpPreviewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        erpPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        UIUtils.styleTable(erpPreviewTable);
+        
+        erpTableScrollPane = new JScrollPane(erpPreviewTable);
+        erpTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        erpTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+        
+        UIUtils.setupPreviewTable(erpPreviewTable);
+        erpPanel.add(erpTableScrollPane, BorderLayout.CENTER);
+        
+        // Add both panels
+        panel.add(providerPanel);
+        panel.add(erpPanel);
         
         return panel;
     }
     
     // Getters for the controller
-    public JTable getPreviewTable() { return previewTable; }
+    public JTable getProviderPreviewTable() { return providerPreviewTable; }
+    public JTable getErpPreviewTable() { return erpPreviewTable; }
     
     // Provider file getters
     public JLabel getProviderFileLabel() { return providerFileLabel; }

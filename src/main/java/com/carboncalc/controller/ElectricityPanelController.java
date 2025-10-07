@@ -4,7 +4,9 @@ import com.carboncalc.view.ElectricityPanel;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
-import java.awt.*;
+import java.awt.Component;
+import java.awt.Color;
+import java.awt.CardLayout;
 import java.io.File;
 import java.util.ResourceBundle;
 import org.apache.poi.ss.usermodel.*;
@@ -121,7 +123,7 @@ public class ElectricityPanelController {
         
         Sheet sheet = providerWorkbook.getSheet(selectedSheet);
         updateProviderColumnSelectors(sheet);
-        updatePreviewTable(sheet);
+        updatePreviewTable(sheet, true);
     }
     
     public void handleErpSheetSelection() {
@@ -133,7 +135,7 @@ public class ElectricityPanelController {
         
         Sheet sheet = erpWorkbook.getSheet(selectedSheet);
         updateErpColumnSelectors(sheet);
-        updatePreviewTable(sheet);
+        updatePreviewTable(sheet, false);
     }
     
     private void updateProviderColumnSelectors(Sheet sheet) {
@@ -177,20 +179,28 @@ public class ElectricityPanelController {
         }
     }
     
-    private void updatePreviewTable(Sheet sheet) {
-        // Create column headers
+    private void updatePreviewTable(Sheet sheet, boolean isProvider) {
+        // Create column headers with Excel-style letters
         Vector<String> columnHeaders = new Vector<>();
         Row headerRow = sheet.getRow(0);
         if (headerRow == null) return;
         
-        for (Cell cell : headerRow) {
-            columnHeaders.add(getCellValueAsString(cell));
+        for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+            columnHeaders.add(convertToExcelColumn(i));
         }
         
-        // Create data rows
+        // Create data rows starting with header row
         Vector<Vector<String>> data = new Vector<>();
-        int maxRows = Math.min(sheet.getLastRowNum(), 100); // Limit preview to 100 rows
         
+        // Add header row first
+        Vector<String> headerData = new Vector<>();
+        for (Cell cell : headerRow) {
+            headerData.add(getCellValueAsString(cell));
+        }
+        data.add(headerData);
+        
+        // Add data rows
+        int maxRows = Math.min(sheet.getLastRowNum(), 100); // Limit preview to 100 rows
         for (int i = 1; i <= maxRows; i++) {
             Row row = sheet.getRow(i);
             if (row == null) continue;
@@ -203,12 +213,31 @@ public class ElectricityPanelController {
             data.add(rowData);
         }
         
-        DefaultTableModel model = new DefaultTableModel(data, columnHeaders);
-        view.getPreviewTable().setModel(model);
+        DefaultTableModel model = new DefaultTableModel(data, columnHeaders) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Make table read-only
+            }
+        };
+        
+        JTable targetTable = isProvider ? view.getProviderPreviewTable() : view.getErpPreviewTable();
+        targetTable.setModel(model);
+        
+        // Add row numbers
+        targetTable.setRowSelectionAllowed(true);
+        TableRowSorter<TableModel> sorter = new TableRowSorter<>(model);
+        targetTable.setRowSorter(sorter);
+        
+        // Style the table
+        targetTable.getTableHeader().setReorderingAllowed(false);
+        targetTable.getTableHeader().setResizingAllowed(true);
+        targetTable.setRowHeight(25);
+        targetTable.setShowGrid(true);
+        targetTable.setGridColor(Color.LIGHT_GRAY);
         
         // Adjust column widths
-        for (int i = 0; i < view.getPreviewTable().getColumnCount(); i++) {
-            packColumn(view.getPreviewTable(), i, 3);
+        for (int i = 0; i < targetTable.getColumnCount(); i++) {
+            packColumn(targetTable, i, 3);
         }
     }
     
@@ -223,7 +252,7 @@ public class ElectricityPanelController {
             renderer = table.getTableHeader().getDefaultRenderer();
         }
         Component comp = renderer.getTableCellRendererComponent(table, col.getHeaderValue(), false, false, 0, 0);
-        width = comp.getPreferredSize().width;
+        width = Math.max(width, comp.getPreferredSize().width);
         
         // Get maximum width of column data
         for (int r = 0; r < table.getRowCount(); r++) {
@@ -233,7 +262,18 @@ public class ElectricityPanelController {
         }
         
         width += 2 * margin;
+        width = Math.max(width, 40); // Minimum width
         col.setPreferredWidth(width);
+    }
+    
+    private String convertToExcelColumn(int columnNumber) {
+        StringBuilder result = new StringBuilder();
+        while (columnNumber >= 0) {
+            int remainder = columnNumber % 26;
+            result.insert(0, (char) (65 + remainder));
+            columnNumber = (columnNumber / 26) - 1;
+        }
+        return result.toString();
     }
     
     private String getCellValueAsString(Cell cell) {

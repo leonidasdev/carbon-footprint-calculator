@@ -1,8 +1,12 @@
 package com.carboncalc.controller;
 
 import com.carboncalc.model.factors.*;
+import com.carboncalc.model.ElectricityGeneralFactors;
 import com.carboncalc.service.EmissionFactorService;
 import com.carboncalc.service.EmissionFactorServiceImpl;
+import com.carboncalc.service.ElectricityGeneralFactorService;
+import java.io.IOException;
+import java.awt.CardLayout;
 import com.carboncalc.view.EmissionFactorsPanel;
 import com.carboncalc.util.UIUtils;
 import java.util.List;
@@ -24,12 +28,14 @@ public class EmissionFactorsPanelController {
     private Workbook workbook;
     private File currentFile;
     private final EmissionFactorService emissionFactorService;
+    private final ElectricityGeneralFactorService electricityGeneralFactorService;
     private String currentFactorType;
     private int currentYear;
     
     public EmissionFactorsPanelController(ResourceBundle messages) {
         this.messages = messages;
         this.emissionFactorService = new EmissionFactorServiceImpl();
+        this.electricityGeneralFactorService = new ElectricityGeneralFactorService();
         this.currentYear = java.time.Year.now().getValue();
         this.currentFactorType = "ELECTRICITY"; // Default type
     }
@@ -37,6 +43,9 @@ public class EmissionFactorsPanelController {
     public void handleTypeSelection(String type) {
         this.currentFactorType = type;
         loadFactorsForType();
+        
+        // Update panel visibility
+        view.getCardLayout().show(view.getCardsPanel(), "ELECTRICITY".equals(type) ? "ELECTRICITY" : "OTHER");
     }
     
     public void handleYearSelection(int year) {
@@ -49,6 +58,75 @@ public class EmissionFactorsPanelController {
         
         List<? extends EmissionFactor> factors = emissionFactorService.loadEmissionFactors(currentFactorType, currentYear);
         updateFactorsTable(factors);
+        
+        // Load general electricity factors if type is ELECTRICITY
+        if ("ELECTRICITY".equals(currentFactorType)) {
+            try {
+                ElectricityGeneralFactors generalFactors = electricityGeneralFactorService.loadFactors(currentYear);
+                updateGeneralFactors(generalFactors);
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("error.load.general.factors"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    private void updateGeneralFactors(ElectricityGeneralFactors factors) {
+        if (factors != null) {
+            view.getMixSinGdoField().setText(String.format("%.4f", factors.getMixSinGdo()));
+            view.getGdoRenovableField().setText(String.format("%.4f", factors.getGdoRenovable()));
+            view.getGdoCogeneracionField().setText(String.format("%.4f", factors.getGdoCogeneracionAltaEficiencia()));
+        } else {
+            view.getMixSinGdoField().setText("0.0000");
+            view.getGdoRenovableField().setText("0.0000");
+            view.getGdoCogeneracionField().setText("0.0000");
+        }
+    }
+    
+    public void handleSaveElectricityGeneralFactors() {
+        try {
+            ElectricityGeneralFactors factors = new ElectricityGeneralFactors();
+            
+            try {
+                double mixSinGdo = Double.parseDouble(view.getMixSinGdoField().getText());
+                double gdoRenovable = Double.parseDouble(view.getGdoRenovableField().getText());
+                double gdoCogeneracion = Double.parseDouble(view.getGdoCogeneracionField().getText());
+                
+                factors.setMixSinGdo(mixSinGdo);
+                factors.setGdoRenovable(gdoRenovable);
+                factors.setGdoCogeneracionAltaEficiencia(gdoCogeneracion);
+                
+                // Get trading companies from table
+                DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
+                for (int i = 0; i < model.getRowCount(); i++) {
+                    String name = (String) model.getValueAt(i, 0);
+                    double factor = Double.parseDouble(model.getValueAt(i, 1).toString());
+                    String gdoType = (String) model.getValueAt(i, 2);
+                    
+                    factors.addTradingCompany(new ElectricityGeneralFactors.TradingCompany(name, factor, gdoType));
+                }
+                
+                electricityGeneralFactorService.saveFactors(factors, currentYear);
+                
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("message.save.success"),
+                    messages.getString("message.title.success"),
+                    JOptionPane.INFORMATION_MESSAGE);
+                    
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("error.invalid.number"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.save.general.factors"),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void updateFactorsTable(List<? extends EmissionFactor> factors) {
@@ -284,5 +362,68 @@ public class EmissionFactorsPanelController {
             messages.getString("message.save.success"),
             messages.getString("message.title.success"),
             JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public void handleAddTradingCompany() {
+        try {
+            String name = view.getCompanyNameField().getText().trim();
+            if (name.isEmpty()) {
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("error.company.name.required"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            double factor = Double.parseDouble(view.getEmissionFactorField().getText());
+            String gdoType = (String) view.getGdoTypeComboBox().getSelectedItem();
+
+            DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
+            model.addRow(new Object[]{name, factor, gdoType});
+
+            // Clear input fields
+            view.getCompanyNameField().setText("");
+            view.getEmissionFactorField().setText("");
+            view.getGdoTypeComboBox().setSelectedIndex(0);
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.invalid.emission.factor"),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public void handleEditTradingCompany() {
+        int selectedRow = view.getTradingCompaniesTable().getSelectedRow();
+        if (selectedRow == -1) return;
+
+        DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
+        String name = (String) model.getValueAt(selectedRow, 0);
+        double factor = Double.parseDouble(model.getValueAt(selectedRow, 1).toString());
+        String gdoType = (String) model.getValueAt(selectedRow, 2);
+
+        view.getCompanyNameField().setText(name);
+        view.getEmissionFactorField().setText(String.valueOf(factor));
+        view.getGdoTypeComboBox().setSelectedItem(gdoType);
+
+        // Remove the row as it will be re-added when saving
+        model.removeRow(selectedRow);
+    }
+
+    public void handleDeleteTradingCompany() {
+        int selectedRow = view.getTradingCompaniesTable().getSelectedRow();
+        if (selectedRow == -1) return;
+
+        int response = JOptionPane.showConfirmDialog(view,
+            messages.getString("message.confirm.delete.company"),
+            messages.getString("dialog.delete.title"),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+
+        if (response == JOptionPane.YES_OPTION) {
+            DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
+            model.removeRow(selectedRow);
+        }
     }
 }

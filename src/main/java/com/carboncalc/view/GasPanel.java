@@ -25,6 +25,7 @@ public class GasPanel extends BaseModulePanel {
     private JPanel erpMappingPanel;
     private JComboBox<String> cupsSelector;
     private JComboBox<String> invoiceNumberSelector;
+    private JComboBox<String> issueDateSelector;
     private JComboBox<String> startDateSelector;
     private JComboBox<String> endDateSelector;
     private JComboBox<String> consumptionSelector;
@@ -203,30 +204,6 @@ public class GasPanel extends BaseModulePanel {
         return panel;
     }
     
-    private JPanel createColumnConfigPanel() {
-        JPanel panel = new JPanel(new CardLayout());
-        panel.setBackground(Color.WHITE);
-        
-        // Provider mapping panel
-        providerMappingPanel = new JPanel(new GridBagLayout());
-        providerMappingPanel.setBorder(BorderFactory.createTitledBorder(
-            messages.getString("label.provider.mapping")));
-        providerMappingPanel.setBackground(Color.WHITE);
-        setupProviderMappingPanel(providerMappingPanel);
-        
-        // ERP mapping panel
-        erpMappingPanel = new JPanel(new GridBagLayout());
-        erpMappingPanel.setBorder(BorderFactory.createTitledBorder(
-            messages.getString("label.erp.mapping")));
-        erpMappingPanel.setBackground(Color.WHITE);
-        setupErpMappingPanel(erpMappingPanel);
-        
-        panel.add(providerMappingPanel, "provider");
-        panel.add(erpMappingPanel, "erp");
-        
-        return panel;
-    }
-    
     private JCheckBox saveMappingCheckbox;
     
     private void setupProviderMappingPanel(JPanel panel) {
@@ -236,16 +213,14 @@ public class GasPanel extends BaseModulePanel {
         gbc.gridx = 0;
         gbc.gridy = 0;
         
-        // Save Mapping Checkbox
-        saveMappingCheckbox = new JCheckBox(messages.getString("checkbox.save.mapping"));
-        panel.add(saveMappingCheckbox, gbc);
-        gbc.gridy++;
-        
         // CUPS
         addColumnMapping(panel, gbc, "label.column.cups", cupsSelector = new JComboBox<>());
         
         // Invoice Number
         addColumnMapping(panel, gbc, "label.column.invoice", invoiceNumberSelector = new JComboBox<>());
+        
+        // Issue Date
+        addColumnMapping(panel, gbc, "label.column.issue.date", issueDateSelector = new JComboBox<>());
         
         // Start Date
         addColumnMapping(panel, gbc, "label.column.start.date", startDateSelector = new JComboBox<>());
@@ -255,7 +230,7 @@ public class GasPanel extends BaseModulePanel {
         
         // Consumption
         addColumnMapping(panel, gbc, "label.column.consumption", consumptionSelector = new JComboBox<>());
-        
+
         // Center
         addColumnMapping(panel, gbc, "label.column.center", centerSelector = new JComboBox<>());
         
@@ -296,12 +271,7 @@ public class GasPanel extends BaseModulePanel {
     private void updateApplyAndSaveButtonState() {
         if (applyAndSaveExcelButton != null) {
             GasColumnMapping columns = getSelectedColumns();
-            boolean allRequired = columns.getCupsIndex() != -1 && 
-                                columns.getEmissionEntityIndex() != -1 &&
-                                columns.getStartDateIndex() != -1 &&
-                                columns.getEndDateIndex() != -1 &&
-                                columns.getConsumptionIndex() != -1 &&
-                                columns.getCenterIndex() != -1;
+            boolean allRequired = columns.isComplete();
             applyAndSaveExcelButton.setEnabled(allRequired);
         }
     }
@@ -426,11 +396,13 @@ public class GasPanel extends BaseModulePanel {
     public GasColumnMapping getSelectedColumns() {
         return new GasColumnMapping(
             getSelectedIndex(cupsSelector),
-            getSelectedIndex(emissionEntitySelector),
+            getSelectedIndex(invoiceNumberSelector),
+            getSelectedIndex(issueDateSelector),
             getSelectedIndex(startDateSelector),
             getSelectedIndex(endDateSelector),
             getSelectedIndex(consumptionSelector),
-            getSelectedIndex(centerSelector)
+            getSelectedIndex(centerSelector),
+            getSelectedIndex(emissionEntitySelector)
         );
     }
     

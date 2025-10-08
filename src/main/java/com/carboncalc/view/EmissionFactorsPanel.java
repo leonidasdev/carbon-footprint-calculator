@@ -6,6 +6,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ResourceBundle;
+import java.time.Year;
 
 public class EmissionFactorsPanel extends BaseModulePanel {
     private final EmissionFactorsPanelController controller;
@@ -21,6 +22,13 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private JButton addButton;
     private JButton editButton;
     private JButton deleteButton;
+    
+    // Type selection components
+    private JComboBox<String> typeComboBox;
+    private JSpinner yearSpinner;
+    private static final String[] FACTOR_TYPES = {
+        "ELECTRICITY", "GAS", "FUEL", "REFRIGERANT"
+    };
     
     // Preview Components
     private JTable previewTable;
@@ -46,17 +54,23 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         gbc.insets = new Insets(0, 5, 0, 5);
         gbc.weighty = 1.0;
         
-        // Create file management panel (left)
-        JPanel fileManagementPanel = createFileManagementPanel();
+        // Create type selection panel (left)
+        JPanel typeSelectionPanel = createTypeSelectionPanel();
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.weightx = 0.3;
+        topPanel.add(typeSelectionPanel, gbc);
+        
+        // Create file management panel (center)
+        JPanel fileManagementPanel = createFileManagementPanel();
+        gbc.gridx = 1;
         gbc.weightx = 0.3;
         topPanel.add(fileManagementPanel, gbc);
         
         // Create data management panel (right)
         JPanel dataManagementPanel = createDataManagementPanel();
-        gbc.gridx = 1;
-        gbc.weightx = 0.7;
+        gbc.gridx = 2;
+        gbc.weightx = 0.4;
         topPanel.add(dataManagementPanel, gbc);
         
         // Add panels to main panel
@@ -124,6 +138,51 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         buttonPanel.add(applyAndSaveButton);
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
+        return panel;
+    }
+
+    private JPanel createTypeSelectionPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.factor.type")));
+        panel.setBackground(Color.WHITE);
+        panel.setPreferredSize(new Dimension(300, 200));
+
+        // Create main content panel with GridBagLayout
+        JPanel contentPanel = new JPanel(new GridBagLayout());
+        contentPanel.setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Type selection
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        contentPanel.add(new JLabel(messages.getString("label.factor.type.select")), gbc);
+
+        gbc.gridx = 1;
+        typeComboBox = new JComboBox<>(FACTOR_TYPES);
+        typeComboBox.addActionListener(e -> controller.handleTypeSelection((String) typeComboBox.getSelectedItem()));
+        contentPanel.add(typeComboBox, gbc);
+
+        // Year selection
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        contentPanel.add(new JLabel(messages.getString("label.year.select")), gbc);
+
+        gbc.gridx = 1;
+        SpinnerNumberModel yearModel = new SpinnerNumberModel(
+            Year.now().getValue(),
+            1900,
+            2100, // Set upper limit to year 2100 for long-term planning
+            1
+        );
+        yearSpinner = new JSpinner(yearModel);
+        JSpinner.NumberEditor editor = new JSpinner.NumberEditor(yearSpinner, "#");
+        yearSpinner.setEditor(editor);
+        yearSpinner.addChangeListener(e -> controller.handleYearSelection((Integer) yearSpinner.getValue()));
+        contentPanel.add(yearSpinner, gbc);
+
+        panel.add(contentPanel, BorderLayout.CENTER);
         return panel;
     }
 

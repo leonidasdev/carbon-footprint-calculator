@@ -1,78 +1,76 @@
 package com.carboncalc.model;
 
+/**
+ * Represents the mapping of Excel columns for electricity data processing.
+ */
 public class ElectricityColumnMapping {
-    private int cupsColumn;
-    private int supplierColumn;
-    private int startDateColumn;
-    private int endDateColumn;
-    private int consumptionColumn;
-    private int centerColumn;
+    private int cupsIndex;
+    private int invoiceNumberIndex;
+    private int issueDateIndex;
+    private int startDateIndex;
+    private int endDateIndex;
+    private int consumptionIndex;
+    private int centerIndex;
+    private int emissionEntityIndex;
 
     public ElectricityColumnMapping() {
         // Initialize with default values
-        this.cupsColumn = -1;
-        this.supplierColumn = -1;
-        this.startDateColumn = -1;
-        this.endDateColumn = -1;
-        this.consumptionColumn = -1;
-        this.centerColumn = -1;
+        this.cupsIndex = -1;
+        this.invoiceNumberIndex = -1;
+        this.issueDateIndex = -1;
+        this.startDateIndex = -1;
+        this.endDateIndex = -1;
+        this.consumptionIndex = -1;
+        this.centerIndex = -1;
+        this.emissionEntityIndex = -1;
+    }
+
+    public ElectricityColumnMapping(int cupsIndex, int invoiceNumberIndex, int issueDateIndex, 
+            int startDateIndex, int endDateIndex, int consumptionIndex, int centerIndex, 
+            int emissionEntityIndex) {
+        this.cupsIndex = cupsIndex;
+        this.invoiceNumberIndex = invoiceNumberIndex;
+        this.issueDateIndex = issueDateIndex;
+        this.startDateIndex = startDateIndex;
+        this.endDateIndex = endDateIndex;
+        this.consumptionIndex = consumptionIndex;
+        this.centerIndex = centerIndex;
+        this.emissionEntityIndex = emissionEntityIndex;
     }
 
     // Getters and setters
-    public int getCupsColumn() {
-        return cupsColumn;
-    }
+    public int getCupsIndex() { return cupsIndex; }
+    public void setCupsIndex(int index) { this.cupsIndex = index; }
 
-    public void setCupsColumn(int cupsColumn) {
-        this.cupsColumn = cupsColumn;
-    }
+    public int getInvoiceNumberIndex() { return invoiceNumberIndex; }
+    public void setInvoiceNumberIndex(int index) { this.invoiceNumberIndex = index; }
 
-    public int getSupplierColumn() {
-        return supplierColumn;
-    }
+    public int getIssueDateIndex() { return issueDateIndex; }
+    public void setIssueDateIndex(int index) { this.issueDateIndex = index; }
 
-    public void setSupplierColumn(int supplierColumn) {
-        this.supplierColumn = supplierColumn;
-    }
+    public int getStartDateIndex() { return startDateIndex; }
+    public void setStartDateIndex(int index) { this.startDateIndex = index; }
 
-    public int getStartDateColumn() {
-        return startDateColumn;
-    }
+    public int getEndDateIndex() { return endDateIndex; }
+    public void setEndDateIndex(int index) { this.endDateIndex = index; }
 
-    public void setStartDateColumn(int startDateColumn) {
-        this.startDateColumn = startDateColumn;
-    }
+    public int getConsumptionIndex() { return consumptionIndex; }
+    public void setConsumptionIndex(int index) { this.consumptionIndex = index; }
 
-    public int getEndDateColumn() {
-        return endDateColumn;
-    }
+    public int getCenterIndex() { return centerIndex; }
+    public void setCenterIndex(int index) { this.centerIndex = index; }
 
-    public void setEndDateColumn(int endDateColumn) {
-        this.endDateColumn = endDateColumn;
-    }
-
-    public int getConsumptionColumn() {
-        return consumptionColumn;
-    }
-
-    public void setConsumptionColumn(int consumptionColumn) {
-        this.consumptionColumn = consumptionColumn;
-    }
-
-    public int getCenterColumn() {
-        return centerColumn;
-    }
-
-    public void setCenterColumn(int centerColumn) {
-        this.centerColumn = centerColumn;
-    }
+    public int getEmissionEntityIndex() { return emissionEntityIndex; }
+    public void setEmissionEntityIndex(int index) { this.emissionEntityIndex = index; }
 
     public boolean isComplete() {
-        return cupsColumn != -1 && 
-               supplierColumn != -1 && 
-               startDateColumn != -1 && 
-               endDateColumn != -1 && 
-               consumptionColumn != -1 && 
-               centerColumn != -1;
+        return cupsIndex != -1 && 
+               invoiceNumberIndex != -1 && 
+               issueDateIndex != -1 &&
+               startDateIndex != -1 && 
+               endDateIndex != -1 && 
+               consumptionIndex != -1 &&
+               centerIndex != -1 &&
+               emissionEntityIndex != -1;
     }
 }

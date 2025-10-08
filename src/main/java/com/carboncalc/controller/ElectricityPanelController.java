@@ -334,31 +334,13 @@ public class ElectricityPanelController {
             return;
         }
 
-        try {
-            String cups = view.getSelectedCups();
-            String center = view.getSelectedCenter();
-            String emissionEntity = view.getSelectedEmissionEntity();
+        generateExcelReport();
 
-            // Save mapping data if enabled
-            if (view.isSaveMappingEnabled()) {
-                saveMappingData(cups, center, emissionEntity);
-            }
-
-            // Generate Excel report
-            generateExcelReport();
-
-            // Update UI with success message
-            JOptionPane.showMessageDialog(view,
-                messages.getString("success.save"),
-                messages.getString("success.title"),
-                JOptionPane.INFORMATION_MESSAGE);
-
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(view,
-                messages.getString("error.saving") + ": " + e.getMessage(),
-                messages.getString("error.title"),
-                JOptionPane.ERROR_MESSAGE);
-        }
+        // Update UI with success message
+        JOptionPane.showMessageDialog(view,
+            messages.getString("success.save"),
+            messages.getString("success.title"),
+            JOptionPane.INFORMATION_MESSAGE);
     }
 
     private boolean validateInputs() {
@@ -389,23 +371,8 @@ public class ElectricityPanelController {
         generateExcelReport();
     }
 
-    private void saveMappingData(String cups, String center, String emissionEntity) throws IOException {
-        // Save CUPS data
-        csvDataService.saveCups(cups, emissionEntity, "ELECTRICITY");
-        
-        // Save CUPS-Center mapping if center is provided
-        if (center != null && !center.trim().isEmpty()) {
-            csvDataService.saveCupsData(cups, center);
-        }
-    }
-
     private void generateExcelReport() {
         try {
-            // Get selected sheet from provider workbook
-            Sheet providerSheet = providerWorkbook.getSheet(
-                (String) view.getProviderSheetSelector().getSelectedItem()
-            );
-            
             // Choose file location to save
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle(messages.getString("excel.save.title"));

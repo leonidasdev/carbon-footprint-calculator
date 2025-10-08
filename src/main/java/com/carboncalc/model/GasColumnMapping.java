@@ -4,33 +4,64 @@ package com.carboncalc.model;
  * Represents the mapping of Excel columns for gas data processing.
  */
 public class GasColumnMapping {
-    private final int cupsIndex;
-    private final int emissionEntityIndex;
-    private final int startDateIndex;
-    private final int endDateIndex;
-    private final int consumptionIndex;
-    private final int centerIndex;
+    private int cupsIndex;
+    private int invoiceNumberIndex;
+    private int issueDateIndex;
+    private int startDateIndex;
+    private int endDateIndex;
+    private int consumptionIndex;
+    private int centerIndex;
+    private int emissionEntityIndex;
+
+    public GasColumnMapping() {
+        // Initialize with default values
+        this.cupsIndex = -1;
+        this.invoiceNumberIndex = -1;
+        this.issueDateIndex = -1;
+        this.startDateIndex = -1;
+        this.endDateIndex = -1;
+        this.consumptionIndex = -1;
+        this.centerIndex = -1;
+        this.emissionEntityIndex = -1;
+    }
     
     public GasColumnMapping(
-        int cupsIndex, 
-        int emissionEntityIndex, 
-        int startDateIndex, 
-        int endDateIndex, 
-        int consumptionIndex, 
-        int centerIndex
+        int cupsIndex,
+        int invoiceNumberIndex,
+        int issueDateIndex,
+        int startDateIndex,
+        int endDateIndex,
+        int consumptionIndex,
+        int centerIndex,
+        int emissionEntityIndex
     ) {
         this.cupsIndex = cupsIndex;
-        this.emissionEntityIndex = emissionEntityIndex;
+        this.invoiceNumberIndex = invoiceNumberIndex;
+        this.issueDateIndex = issueDateIndex;
         this.startDateIndex = startDateIndex;
         this.endDateIndex = endDateIndex;
         this.consumptionIndex = consumptionIndex;
         this.centerIndex = centerIndex;
+        this.emissionEntityIndex = emissionEntityIndex;
     }
     
     public int getCupsIndex() { return cupsIndex; }
-    public int getEmissionEntityIndex() { return emissionEntityIndex; }
+    public int getInvoiceNumberIndex() { return invoiceNumberIndex; }
+    public int getIssueDateIndex() { return issueDateIndex; }
     public int getStartDateIndex() { return startDateIndex; }
     public int getEndDateIndex() { return endDateIndex; }
     public int getConsumptionIndex() { return consumptionIndex; }
     public int getCenterIndex() { return centerIndex; }
+    public int getEmissionEntityIndex() { return emissionEntityIndex; }
+
+    public boolean isComplete() {
+        return cupsIndex != -1 && 
+               invoiceNumberIndex != -1 && 
+               issueDateIndex != -1 &&
+               startDateIndex != -1 && 
+               endDateIndex != -1 && 
+               consumptionIndex != -1 &&
+               centerIndex != -1 &&
+               emissionEntityIndex != -1;
+    }
 }

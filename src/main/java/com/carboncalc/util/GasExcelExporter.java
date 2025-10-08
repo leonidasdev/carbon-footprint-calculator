@@ -8,14 +8,8 @@ import java.io.IOException;
 
 public class GasExcelExporter {
     private static final String[] DETAILED_HEADERS = {
-        "CUPS", "Sociedad Emisora", "Fecha Inicio Suministro", "Fecha Fin Suministro",
-        "Consumo kWh", "Consumo kWh Aplicable (TODO)", 
-        "Emisiones tCO2 Market Based (TODO)", "Emisiones tCO2 Location Based (TODO)",
-        "Centro"
-    };
-
-    private static final String[] CENTER_HEADERS = {
-        "Centro", "Consumo kWh",
+        "Nº Factura", "Fecha Inicio Suministro", "Fecha Fin Suministro",
+        "Consumo kWh", "Consumo kWh Aplicable",
         "Emisiones tCO2 Market Based", "Emisiones tCO2 Location Based"
     };
 
@@ -29,7 +23,6 @@ public class GasExcelExporter {
         try (Workbook workbook = new XSSFWorkbook()) {
             // Create sheets
             Sheet detailedSheet = workbook.createSheet("Extendido");
-            Sheet centerSheet = workbook.createSheet("Por Centro");
             Sheet totalSheet = workbook.createSheet("Total");
 
             // Create header styles
@@ -37,9 +30,6 @@ public class GasExcelExporter {
 
             // Setup Detailed sheet
             createDetailedSheet(detailedSheet, headerStyle);
-
-            // Setup Center sheet
-            createCenterSheet(centerSheet, headerStyle);
 
             // Setup Total sheet
             createTotalSheet(totalSheet, headerStyle);
@@ -56,16 +46,6 @@ public class GasExcelExporter {
         for (int i = 0; i < DETAILED_HEADERS.length; i++) {
             Cell cell = headerRow.createCell(i);
             cell.setCellValue(DETAILED_HEADERS[i]);
-            cell.setCellStyle(headerStyle);
-            sheet.autoSizeColumn(i);
-        }
-    }
-
-    private static void createCenterSheet(Sheet sheet, CellStyle headerStyle) {
-        Row headerRow = sheet.createRow(0);
-        for (int i = 0; i < CENTER_HEADERS.length; i++) {
-            Cell cell = headerRow.createCell(i);
-            cell.setCellValue(CENTER_HEADERS[i]);
             cell.setCellStyle(headerStyle);
             sheet.autoSizeColumn(i);
         }

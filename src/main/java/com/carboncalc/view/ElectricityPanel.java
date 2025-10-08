@@ -26,6 +26,7 @@ public class ElectricityPanel extends BaseModulePanel {
     private JPanel erpMappingPanel;
     private JComboBox<String> cupsSelector;
     private JComboBox<String> invoiceNumberSelector;
+    private JComboBox<String> issueDateSelector;
     private JComboBox<String> startDateSelector;
     private JComboBox<String> endDateSelector;
     private JComboBox<String> consumptionSelector;
@@ -129,6 +130,9 @@ public class ElectricityPanel extends BaseModulePanel {
         providerFileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         providerFileLabel.setForeground(Color.GRAY);
         
+        // Issue Date Selector
+        issueDateSelector = new JComboBox<>();
+        
         // Provider Sheet Selection
         JLabel providerSheetLabel = new JLabel(messages.getString("label.sheet.select"));
         providerSheetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -213,17 +217,14 @@ public class ElectricityPanel extends BaseModulePanel {
         gbc.gridx = 0;
         gbc.gridy = 0;
         
-        // Save Mapping Checkbox
-        saveMappingCheckBox = new JCheckBox(messages.getString("checkbox.save.mapping"));
-        saveMappingCheckBox.setSelected(true);
-        panel.add(saveMappingCheckBox, gbc);
-        gbc.gridy++;
-        
         // CUPS
         addColumnMapping(panel, gbc, "label.column.cups", cupsSelector = new JComboBox<>());
         
         // Invoice Number
         addColumnMapping(panel, gbc, "label.column.invoice", invoiceNumberSelector = new JComboBox<>());
+        
+        // Issue Date
+        addColumnMapping(panel, gbc, "label.column.issue.date", issueDateSelector = new JComboBox<>());
         
         // Start Date
         addColumnMapping(panel, gbc, "label.column.start.date", startDateSelector = new JComboBox<>());
@@ -233,7 +234,7 @@ public class ElectricityPanel extends BaseModulePanel {
         
         // Consumption
         addColumnMapping(panel, gbc, "label.column.consumption", consumptionSelector = new JComboBox<>());
-        
+
         // Center
         addColumnMapping(panel, gbc, "label.column.center", centerSelector = new JComboBox<>());
         
@@ -274,12 +275,7 @@ public class ElectricityPanel extends BaseModulePanel {
     private void updateApplyAndSaveButtonState() {
         if (applyAndSaveExcelButton != null) {
             ElectricityColumnMapping columns = getSelectedColumns();
-            boolean allRequired = columns.getCupsColumn() != -1 && 
-                                columns.getSupplierColumn() != -1 &&
-                                columns.getStartDateColumn() != -1 &&
-                                columns.getEndDateColumn() != -1 &&
-                                columns.getConsumptionColumn() != -1 &&
-                                columns.getCenterColumn() != -1;
+            boolean allRequired = columns.isComplete();
             applyAndSaveExcelButton.setEnabled(allRequired);
         }
     }
@@ -384,14 +380,17 @@ public class ElectricityPanel extends BaseModulePanel {
     }
 
     public ElectricityColumnMapping getSelectedColumns() {
-        ElectricityColumnMapping columns = new ElectricityColumnMapping();
-        columns.setCupsColumn(getSelectedIndex(cupsSelector));
-        columns.setSupplierColumn(getSelectedIndex(emissionEntitySelector));
-        columns.setStartDateColumn(getSelectedIndex(startDateSelector));
-        columns.setEndDateColumn(getSelectedIndex(endDateSelector));
-        columns.setConsumptionColumn(getSelectedIndex(consumptionSelector));
-        columns.setCenterColumn(getSelectedIndex(centerSelector));
-        return columns;
+        int cupsIndex = getSelectedIndex(cupsSelector);
+        int invoiceIndex = getSelectedIndex(invoiceNumberSelector);
+        int issueDateIndex = getSelectedIndex(issueDateSelector);
+        int startDateIndex = getSelectedIndex(startDateSelector);
+        int endDateIndex = getSelectedIndex(endDateSelector);
+        int consumptionIndex = getSelectedIndex(consumptionSelector);
+        int centerIndex = getSelectedIndex(centerSelector);
+        int emissionEntityIndex = getSelectedIndex(emissionEntitySelector);
+        
+        return new ElectricityColumnMapping(cupsIndex, invoiceIndex, issueDateIndex, startDateIndex, 
+            endDateIndex, consumptionIndex, centerIndex, emissionEntityIndex);
     }
 
     private int getSelectedIndex(JComboBox<String> comboBox) {

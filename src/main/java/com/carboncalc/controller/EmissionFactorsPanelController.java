@@ -1,7 +1,11 @@
 package com.carboncalc.controller;
 
+import com.carboncalc.model.factors.*;
+import com.carboncalc.service.EmissionFactorService;
+import com.carboncalc.service.EmissionFactorServiceImpl;
 import com.carboncalc.view.EmissionFactorsPanel;
 import com.carboncalc.util.UIUtils;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
@@ -19,9 +23,46 @@ public class EmissionFactorsPanelController {
     private EmissionFactorsPanel view;
     private Workbook workbook;
     private File currentFile;
+    private final EmissionFactorService emissionFactorService;
+    private String currentFactorType;
+    private int currentYear;
     
     public EmissionFactorsPanelController(ResourceBundle messages) {
         this.messages = messages;
+        this.emissionFactorService = new EmissionFactorServiceImpl();
+        this.currentYear = java.time.Year.now().getValue();
+        this.currentFactorType = "ELECTRICITY"; // Default type
+    }
+    
+    public void handleTypeSelection(String type) {
+        this.currentFactorType = type;
+        loadFactorsForType();
+    }
+    
+    public void handleYearSelection(int year) {
+        this.currentYear = year;
+        loadFactorsForType();
+    }
+    
+    private void loadFactorsForType() {
+        if (currentFactorType == null) return;
+        
+        List<? extends EmissionFactor> factors = emissionFactorService.loadEmissionFactors(currentFactorType, currentYear);
+        updateFactorsTable(factors);
+    }
+    
+    private void updateFactorsTable(List<? extends EmissionFactor> factors) {
+        DefaultTableModel model = (DefaultTableModel) view.getFactorsTable().getModel();
+        model.setRowCount(0);
+        
+        for (EmissionFactor factor : factors) {
+            model.addRow(new Object[]{
+                factor.getEntity(),
+                factor.getYear(),
+                factor.getBaseFactor(),
+                factor.getUnit()
+            });
+        }
     }
     
     public void setView(EmissionFactorsPanel view) {

@@ -1,6 +1,7 @@
 package com.carboncalc.view;
 
 import com.carboncalc.controller.ElectricityPanelController;
+import com.carboncalc.model.ElectricityColumnMapping;
 import com.carboncalc.util.UIUtils;
 import javax.swing.*;
 
@@ -13,17 +14,18 @@ public class ElectricityPanel extends BaseModulePanel {
     // File Management Components
     private JButton addProviderFileButton;
     private JButton addErpFileButton;
+    private JButton applyAndSaveExcelButton;
     private JComboBox<String> providerSheetSelector;
     private JComboBox<String> erpSheetSelector;
     private JLabel providerFileLabel;
     private JLabel erpFileLabel;
+    private JCheckBox saveMappingCheckBox;
     
     // Column Configuration Components
     private JPanel providerMappingPanel;
     private JPanel erpMappingPanel;
     private JComboBox<String> cupsSelector;
     private JComboBox<String> invoiceNumberSelector;
-    private JComboBox<String> issueDateSelector;
     private JComboBox<String> startDateSelector;
     private JComboBox<String> endDateSelector;
     private JComboBox<String> consumptionSelector;
@@ -103,80 +105,101 @@ public class ElectricityPanel extends BaseModulePanel {
     }
     
     private JPanel createFileManagementPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
+        JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.file.management")));
         panel.setBackground(Color.WHITE);
-        panel.setPreferredSize(new Dimension(300, 350)); // Increased width, same height
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 5, 5, 5);
+        panel.setPreferredSize(new Dimension(300, 200)); // Reduced height
+        
+        // Create a panel for the file sections in horizontal layout
+        JPanel filesPanel = new JPanel(new GridLayout(1, 2, 5, 0));
+        filesPanel.setBackground(Color.WHITE);
         
         // Provider File Section
-        JPanel providerPanel = new JPanel(new GridBagLayout());
+        JPanel providerPanel = new JPanel();
+        providerPanel.setLayout(new BoxLayout(providerPanel, BoxLayout.Y_AXIS));
         providerPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.provider.file")));
         providerPanel.setBackground(Color.WHITE);
         
         // Provider File Button and Label
         addProviderFileButton = new JButton(messages.getString("button.file.add"));
+        addProviderFileButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         addProviderFileButton.addActionListener(e -> controller.handleProviderFileSelection());
+        
         providerFileLabel = new JLabel(messages.getString("label.file.none"));
+        providerFileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         providerFileLabel.setForeground(Color.GRAY);
-        
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 1;
-        providerPanel.add(addProviderFileButton, gbc);
-        
-        gbc.gridy = 1;
-        providerPanel.add(providerFileLabel, gbc);
         
         // Provider Sheet Selection
         JLabel providerSheetLabel = new JLabel(messages.getString("label.sheet.select"));
+        providerSheetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
         providerSheetSelector = new JComboBox<>();
+        providerSheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
+        providerSheetSelector.setMaximumSize(new Dimension(150, 25));
         providerSheetSelector.addActionListener(e -> controller.handleProviderSheetSelection());
         
-        gbc.gridy = 2;
-        providerPanel.add(providerSheetLabel, gbc);
-        gbc.gridy = 3;
-        providerPanel.add(providerSheetSelector, gbc);
+        // Add components to provider panel with some spacing
+        providerPanel.add(Box.createVerticalStrut(5));
+        providerPanel.add(addProviderFileButton);
+        providerPanel.add(Box.createVerticalStrut(5));
+        providerPanel.add(providerFileLabel);
+        providerPanel.add(Box.createVerticalStrut(5));
+        providerPanel.add(providerSheetLabel);
+        providerPanel.add(Box.createVerticalStrut(5));
+        providerPanel.add(providerSheetSelector);
         
         // ERP File Section
-        JPanel erpPanel = new JPanel(new GridBagLayout());
+        JPanel erpPanel = new JPanel();
+        erpPanel.setLayout(new BoxLayout(erpPanel, BoxLayout.Y_AXIS));
         erpPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.erp.file")));
         erpPanel.setBackground(Color.WHITE);
         
         // ERP File Button and Label
         addErpFileButton = new JButton(messages.getString("button.file.add"));
+        addErpFileButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         addErpFileButton.addActionListener(e -> controller.handleErpFileSelection());
+        
         erpFileLabel = new JLabel(messages.getString("label.file.none"));
+        erpFileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         erpFileLabel.setForeground(Color.GRAY);
-        
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        erpPanel.add(addErpFileButton, gbc);
-        
-        gbc.gridy = 1;
-        erpPanel.add(erpFileLabel, gbc);
         
         // ERP Sheet Selection
         JLabel erpSheetLabel = new JLabel(messages.getString("label.sheet.select"));
+        erpSheetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
         erpSheetSelector = new JComboBox<>();
+        erpSheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
+        erpSheetSelector.setMaximumSize(new Dimension(150, 25));
         erpSheetSelector.addActionListener(e -> controller.handleErpSheetSelection());
         
-        gbc.gridy = 2;
-        erpPanel.add(erpSheetLabel, gbc);
-        gbc.gridy = 3;
-        erpPanel.add(erpSheetSelector, gbc);
+        // Add components to ERP panel with some spacing
+        erpPanel.add(Box.createVerticalStrut(5));
+        erpPanel.add(addErpFileButton);
+        erpPanel.add(Box.createVerticalStrut(5));
+        erpPanel.add(erpFileLabel);
+        erpPanel.add(Box.createVerticalStrut(5));
+        erpPanel.add(erpSheetLabel);
+        erpPanel.add(Box.createVerticalStrut(5));
+        erpPanel.add(erpSheetSelector);
         
-        // Add sections to main panel
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.insets = new Insets(10, 5, 20, 5); // Increased vertical spacing
-        panel.add(providerPanel, gbc);
+        // Add file panels to horizontal layout
+        filesPanel.add(providerPanel);
+        filesPanel.add(erpPanel);
         
-        gbc.gridy = 1;
-        gbc.weighty = 1.0; // Make ERP panel take extra vertical space
-        panel.add(erpPanel, gbc);
+        // Add files panel to the main panel
+        panel.add(filesPanel, BorderLayout.CENTER);
+        
+        // Create button panel for the Apply and Save Excel button
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.setBackground(Color.WHITE);
+        
+        // Configure Apply and Save Excel button
+        applyAndSaveExcelButton = new JButton(messages.getString("button.apply.save.excel"));
+        applyAndSaveExcelButton.setEnabled(false); // Initially disabled
+        applyAndSaveExcelButton.addActionListener(e -> controller.handleApplyAndSaveExcel());
+        
+        buttonPanel.add(applyAndSaveExcelButton);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
         
         return panel;
     }
@@ -189,6 +212,12 @@ public class ElectricityPanel extends BaseModulePanel {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.gridx = 0;
         gbc.gridy = 0;
+        
+        // Save Mapping Checkbox
+        saveMappingCheckBox = new JCheckBox(messages.getString("checkbox.save.mapping"));
+        saveMappingCheckBox.setSelected(true);
+        panel.add(saveMappingCheckBox, gbc);
+        gbc.gridy++;
         
         // CUPS
         addColumnMapping(panel, gbc, "label.column.cups", cupsSelector = new JComboBox<>());
@@ -233,52 +262,72 @@ public class ElectricityPanel extends BaseModulePanel {
         gbc.gridx = 0;
         gbc.gridy++;
         
-        comboBox.addActionListener(e -> controller.handleColumnSelection());
+        comboBox.addActionListener(e -> {
+            controller.handleColumnSelection();
+            updateApplyAndSaveButtonState();
+        });
+    }
+
+    /**
+     * Updates the enabled state of the Apply and Save Excel button based on whether all required columns are selected
+     */
+    private void updateApplyAndSaveButtonState() {
+        if (applyAndSaveExcelButton != null) {
+            ElectricityColumnMapping columns = getSelectedColumns();
+            boolean allRequired = columns.getCupsColumn() != -1 && 
+                                columns.getSupplierColumn() != -1 &&
+                                columns.getStartDateColumn() != -1 &&
+                                columns.getEndDateColumn() != -1 &&
+                                columns.getConsumptionColumn() != -1 &&
+                                columns.getCenterColumn() != -1;
+            applyAndSaveExcelButton.setEnabled(allRequired);
+        }
     }
     
     private JPanel createPreviewPanel() {
         JPanel panel = new JPanel(new GridLayout(1, 2, 10, 0));
         panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         panel.setBackground(Color.WHITE);
-        
+        panel.setPreferredSize(new Dimension(0, 400)); // Set minimum height for preview
+
         // Provider Preview Panel
         JPanel providerPanel = new JPanel(new BorderLayout());
         providerPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.preview.provider")));
         providerPanel.setBackground(Color.WHITE);
-        
+
         providerPreviewTable = new JTable();
         providerPreviewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         providerPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         UIUtils.styleTable(providerPreviewTable);
-        
+
         providerTableScrollPane = new JScrollPane(providerPreviewTable);
         providerTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         providerTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-        
+
         UIUtils.setupPreviewTable(providerPreviewTable);
         providerPanel.add(providerTableScrollPane, BorderLayout.CENTER);
-        
+
         // ERP Preview Panel
         JPanel erpPanel = new JPanel(new BorderLayout());
         erpPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.preview.erp")));
         erpPanel.setBackground(Color.WHITE);
-        
+
         erpPreviewTable = new JTable();
         erpPreviewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         erpPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         UIUtils.styleTable(erpPreviewTable);
-        
+
         erpTableScrollPane = new JScrollPane(erpPreviewTable);
         erpTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         erpTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-        
+
         UIUtils.setupPreviewTable(erpPreviewTable);
         erpPanel.add(erpTableScrollPane, BorderLayout.CENTER);
-        
+
         // Add both panels
         panel.add(providerPanel);
         panel.add(erpPanel);
-        
+
         return panel;
     }
     
@@ -315,7 +364,53 @@ public class ElectricityPanel extends BaseModulePanel {
     public JPanel getColumnConfigPanel() {
         return columnConfigPanel;
     }
+
+
+
+    public boolean isSaveMappingEnabled() {
+        return saveMappingCheckBox.isSelected();
+    }
     
+    public String getSelectedCups() {
+        return cupsSelector.getSelectedItem() != null ? cupsSelector.getSelectedItem().toString() : "";
+    }
+
+    public String getSelectedCenter() {
+        return centerSelector.getSelectedItem() != null ? centerSelector.getSelectedItem().toString() : "";
+    }
+
+    public String getSelectedEmissionEntity() {
+        return emissionEntitySelector.getSelectedItem() != null ? emissionEntitySelector.getSelectedItem().toString() : "";
+    }
+
+    public ElectricityColumnMapping getSelectedColumns() {
+        ElectricityColumnMapping columns = new ElectricityColumnMapping();
+        columns.setCupsColumn(getSelectedIndex(cupsSelector));
+        columns.setSupplierColumn(getSelectedIndex(emissionEntitySelector));
+        columns.setStartDateColumn(getSelectedIndex(startDateSelector));
+        columns.setEndDateColumn(getSelectedIndex(endDateSelector));
+        columns.setConsumptionColumn(getSelectedIndex(consumptionSelector));
+        columns.setCenterColumn(getSelectedIndex(centerSelector));
+        return columns;
+    }
+
+    private int getSelectedIndex(JComboBox<String> comboBox) {
+        String selectedItem = (String) comboBox.getSelectedItem();
+        if (selectedItem == null || selectedItem.isEmpty()) {
+            return -1;
+        }
+        for (int i = 0; i < comboBox.getItemCount(); i++) {
+            if (selectedItem.equals(comboBox.getItemAt(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public void addCupsToList(String cups, String emissionEntity) {
+        // TODO: Implement this when we add CUPS list functionality
+    }
+
     @Override
     protected void onSave() {
         controller.handleSave();

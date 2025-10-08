@@ -1,6 +1,10 @@
 package com.carboncalc.controller;
 
 import com.carboncalc.view.ElectricityPanel;
+import com.carboncalc.model.Cups;
+import com.carboncalc.model.ElectricityColumnMapping;
+import com.carboncalc.service.CSVDataService;
+import com.carboncalc.util.UIUtils;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
@@ -15,9 +19,11 @@ import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import java.io.IOException;
 
 public class ElectricityPanelController {
     private final ResourceBundle messages;
+    private final CSVDataService csvDataService;
     private ElectricityPanel view;
     private Workbook providerWorkbook;
     private Workbook erpWorkbook;
@@ -26,10 +32,24 @@ public class ElectricityPanelController {
     
     public ElectricityPanelController(ResourceBundle messages) {
         this.messages = messages;
+        this.csvDataService = new CSVDataService();
     }
     
     public void setView(ElectricityPanel view) {
         this.view = view;
+        loadStoredCups();
+    }
+    
+    private void loadStoredCups() {
+        try {
+            List<Cups> cupsData = csvDataService.loadCups();
+            // Filter for electricity-type CUPS
+            cupsData.stream()
+                   .filter(cup -> "ELECTRICITY".equals(cup.getEnergyType()))
+                   .forEach(cup -> view.addCupsToList(cup.getCups(), cup.getEmissionEntity()));
+        } catch (IOException e) {
+            UIUtils.showErrorDialog(view, messages.getString("error.loading.cups"), e.getMessage());
+        }
     }
     
     public void handleProviderFileSelection() {
@@ -310,6 +330,111 @@ public class ElectricityPanelController {
     }
     
     public void handleSave() {
-        // This method will be implemented when we add the save functionality
+        if (!validateInputs()) {
+            return;
+        }
+
+        try {
+            String cups = view.getSelectedCups();
+            String center = view.getSelectedCenter();
+            String emissionEntity = view.getSelectedEmissionEntity();
+
+            // Save mapping data if enabled
+            if (view.isSaveMappingEnabled()) {
+                saveMappingData(cups, center, emissionEntity);
+            }
+
+            // Generate Excel report
+            generateExcelReport();
+
+            // Update UI with success message
+            JOptionPane.showMessageDialog(view,
+                messages.getString("success.save"),
+                messages.getString("success.title"),
+                JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.saving") + ": " + e.getMessage(),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private boolean validateInputs() {
+        if (providerWorkbook == null || view.getProviderSheetSelector().getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.no.data"),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        ElectricityColumnMapping columns = view.getSelectedColumns();
+        if (!columns.isComplete()) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.missing.columns"),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        return true;
+    }
+
+    public void handleApplyAndSaveExcel() {
+        if (!validateInputs()) {
+            return;
+        }
+        generateExcelReport();
+    }
+
+    private void saveMappingData(String cups, String center, String emissionEntity) throws IOException {
+        // Save CUPS data
+        csvDataService.saveCups(cups, emissionEntity, "ELECTRICITY");
+        
+        // Save CUPS-Center mapping if center is provided
+        if (center != null && !center.trim().isEmpty()) {
+            csvDataService.saveCupsData(cups, center);
+        }
+    }
+
+    private void generateExcelReport() {
+        try {
+            // Get selected sheet from provider workbook
+            Sheet providerSheet = providerWorkbook.getSheet(
+                (String) view.getProviderSheetSelector().getSelectedItem()
+            );
+            
+            // Choose file location to save
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle(messages.getString("excel.save.title"));
+            fileChooser.setFileFilter(new FileNameExtensionFilter("Excel files (*.xlsx)", "xlsx"));
+            
+            if (fileChooser.showSaveDialog(view) != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+            
+            File outputFile = fileChooser.getSelectedFile();
+            if (!outputFile.getName().toLowerCase().endsWith(".xlsx")) {
+                outputFile = new File(outputFile.getAbsolutePath() + ".xlsx");
+            }
+            
+            // Generate the Excel report
+            com.carboncalc.util.ElectricityExcelExporter.exportElectricityData(outputFile.getAbsolutePath());
+            
+            // Show success message
+            JOptionPane.showMessageDialog(view,
+                messages.getString("excel.save.success"),
+                messages.getString("success.title"),
+                JOptionPane.INFORMATION_MESSAGE);
+                
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(view,
+                messages.getString("excel.save.error") + ": " + e.getMessage(),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
 }

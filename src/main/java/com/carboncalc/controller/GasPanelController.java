@@ -436,7 +436,7 @@ public class GasPanelController {
             }
             
             // Generate the Excel report
-            com.carboncalc.util.ExcelExporter.exportGasData(outputFile.getAbsolutePath());
+            com.carboncalc.util.GasExcelExporter.exportGasData(outputFile.getAbsolutePath());
             
             // Show success message
             JOptionPane.showMessageDialog(view,

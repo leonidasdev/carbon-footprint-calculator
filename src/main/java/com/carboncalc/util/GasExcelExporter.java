@@ -5,8 +5,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-//TODO change to Electricity excel exporter
-public class ExcelExporter {
+
+public class GasExcelExporter {
     private static final String[] DETAILED_HEADERS = {
         "CUPS", "Sociedad Emisora", "Fecha Inicio Suministro", "Fecha Fin Suministro",
         "Consumo kWh", "Consumo kWh Aplicable (TODO)", 

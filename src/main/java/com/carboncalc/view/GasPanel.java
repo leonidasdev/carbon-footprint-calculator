@@ -43,8 +43,10 @@ public class GasPanel extends BaseModulePanel {
     // Preview Components
     private JTable providerPreviewTable;
     private JTable erpPreviewTable;
+    private JTable resultPreviewTable;
     private JScrollPane providerTableScrollPane;
     private JScrollPane erpTableScrollPane;
+    private JScrollPane resultTableScrollPane;
     private JPanel columnConfigPanel;
     
     public GasPanel(GasPanelController controller, ResourceBundle messages) {
@@ -196,19 +198,7 @@ public class GasPanel extends BaseModulePanel {
         // Add files panel to the main panel
         panel.add(filesPanel, BorderLayout.CENTER);
         
-        // Create button panel for the Apply and Save Excel button
-    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-    buttonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        
-        // Configure Apply and Save Excel button
-    applyAndSaveExcelButton = new JButton(messages.getString("button.apply.save.excel"));
-        applyAndSaveExcelButton.setEnabled(false); // Initially disabled
-        applyAndSaveExcelButton.addActionListener(e -> controller.handleApplyAndSaveExcel());
-    UIUtils.styleButton(applyAndSaveExcelButton);
-        
-        buttonPanel.add(applyAndSaveExcelButton);
-        panel.add(buttonPanel, BorderLayout.SOUTH);
-        
+        // Note: apply/save button will be placed under the result preview in the preview area
         return panel;
     }
     
@@ -287,7 +277,8 @@ public class GasPanel extends BaseModulePanel {
     }
     
     private JPanel createPreviewPanel() {
-    JPanel panel = new JPanel(new GridLayout(1, 2, 10, 0));
+    // Three columns: provider, ERP, result
+    JPanel panel = new JPanel(new GridLayout(1, 3, 10, 0));
     panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
     panel.setBackground(UIUtils.CONTENT_BACKGROUND);
     panel.setPreferredSize(new Dimension(0, 400));  // Set minimum height for preview
@@ -326,9 +317,37 @@ public class GasPanel extends BaseModulePanel {
         UIUtils.setupPreviewTable(erpPreviewTable);
         erpPanel.add(erpTableScrollPane, BorderLayout.CENTER);
 
-        // Add both panels
+        // Result Preview Panel
+        JPanel resultPanel = new JPanel(new BorderLayout());
+    resultPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.preview.result")));
+    resultPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+
+        resultPreviewTable = new JTable();
+        resultPreviewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        resultPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        UIUtils.styleTable(resultPreviewTable);
+
+        resultTableScrollPane = new JScrollPane(resultPreviewTable);
+        resultTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        resultTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+
+        UIUtils.setupPreviewTable(resultPreviewTable);
+        resultPanel.add(resultTableScrollPane, BorderLayout.CENTER);
+
+        // Add Apply & Save button under result preview
+        JPanel resultButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    resultButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+    applyAndSaveExcelButton = new JButton(messages.getString("button.apply.save.excel"));
+    applyAndSaveExcelButton.setEnabled(false);
+    applyAndSaveExcelButton.addActionListener(e -> controller.handleApplyAndSaveExcel());
+    UIUtils.styleButton(applyAndSaveExcelButton);
+    resultButtonPanel.add(applyAndSaveExcelButton);
+    resultPanel.add(resultButtonPanel, BorderLayout.SOUTH);
+
+        // Add all three panels
         panel.add(providerPanel);
         panel.add(erpPanel);
+        panel.add(resultPanel);
 
         return panel;
     }

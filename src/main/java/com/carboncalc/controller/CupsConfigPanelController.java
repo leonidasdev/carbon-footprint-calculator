@@ -1,5 +1,6 @@
 package com.carboncalc.controller;
 
+import com.carboncalc.model.CenterData;
 import com.carboncalc.model.CupsCenterMapping;
 import com.carboncalc.view.CupsConfigPanel;
 import org.apache.poi.ss.usermodel.*;
@@ -135,9 +136,67 @@ public class CupsConfigPanelController {
         // TODO: Implement export functionality
     }
     
+    public void handleAddCenter(CenterData centerData) {
+        if (!validateCenterData(centerData)) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.validation.required.fields"),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
+        model.addRow(new Object[]{
+            centerData.getCups(),
+            centerData.getCenterName(),
+            centerData.getCenterAcronym(),
+            centerData.getEnergyType(),
+            centerData.getStreet(),
+            centerData.getPostalCode(),
+            centerData.getCity(),
+            centerData.getProvince()
+        });
+        
+        clearManualInputFields();
+    }
+    
+    public void handleEditCenter() {
+        int selectedRow = view.getCentersTable().getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.no.selection"),
+                messages.getString("error.title"),
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        // TODO: Implement edit functionality
+    }
+    
+    public void handleDeleteCenter() {
+        int selectedRow = view.getCentersTable().getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.no.selection"),
+                messages.getString("error.title"),
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        int confirm = JOptionPane.showConfirmDialog(view,
+            messages.getString("confirm.delete.center"),
+            messages.getString("confirm.title"),
+            JOptionPane.YES_NO_OPTION);
+            
+        if (confirm == JOptionPane.YES_OPTION) {
+            DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
+            model.removeRow(selectedRow);
+        }
+    }
+
     public void handleSave() {
         try {
-            List<CupsCenterMapping> mappings = extractCupsMappings();
+            List<CenterData> centers = extractCentersFromTable();
             // TODO: Save to CSV using CSVDataService
             JOptionPane.showMessageDialog(view,
                 messages.getString("message.save.success"),
@@ -151,9 +210,41 @@ public class CupsConfigPanelController {
         }
     }
     
-    private List<CupsCenterMapping> extractCupsMappings() {
-        List<CupsCenterMapping> mappings = new ArrayList<>();
-        // TODO: Extract data from the current sheet using the selected columns
-        return mappings;
+    private boolean validateCenterData(CenterData data) {
+        return data.getCups() != null && !data.getCups().trim().isEmpty() &&
+               data.getCenterName() != null && !data.getCenterName().trim().isEmpty() &&
+               data.getCenterAcronym() != null && !data.getCenterAcronym().trim().isEmpty() &&
+               data.getEnergyType() != null;
+    }
+    
+    private void clearManualInputFields() {
+        view.getCupsField().setText("");
+        view.getCenterNameField().setText("");
+        view.getCenterAcronymField().setText("");
+        view.getEnergyTypeCombo().setSelectedIndex(0);
+        view.getStreetField().setText("");
+        view.getPostalCodeField().setText("");
+        view.getCityField().setText("");
+        view.getProvinceField().setText("");
+    }
+    
+    private List<CenterData> extractCentersFromTable() {
+        List<CenterData> centers = new ArrayList<>();
+        DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
+        
+        for (int i = 0; i < model.getRowCount(); i++) {
+            centers.add(new CenterData(
+                (String) model.getValueAt(i, 0), // CUPS
+                (String) model.getValueAt(i, 1), // Center Name
+                (String) model.getValueAt(i, 2), // Center Acronym
+                (String) model.getValueAt(i, 3), // Energy Type
+                (String) model.getValueAt(i, 4), // Street
+                (String) model.getValueAt(i, 5), // Postal Code
+                (String) model.getValueAt(i, 6), // City
+                (String) model.getValueAt(i, 7)  // Province
+            ));
+        }
+        
+        return centers;
     }
 }

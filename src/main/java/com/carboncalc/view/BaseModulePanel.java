@@ -8,7 +8,7 @@ import java.util.ResourceBundle;
 public abstract class BaseModulePanel extends JPanel {
     protected final ResourceBundle messages;
     protected final JPanel contentPanel;
-    
+
     public BaseModulePanel(ResourceBundle messages) {
         this.messages = messages;
         this.contentPanel = new JPanel(new BorderLayout());
@@ -16,9 +16,15 @@ public abstract class BaseModulePanel extends JPanel {
         add(contentPanel, BorderLayout.CENTER);
         UIUtils.stylePanel(this);
         UIUtils.stylePanel(contentPanel);
-        initializeComponents();
+        // Defer initialization until after construction finishes and callers have a
+        // chance
+        // to wire dependencies (e.g., controller.setView(panel)). This avoids
+        // subclasses
+        // observing partially-constructed state during initializeComponents().
+        SwingUtilities.invokeLater(this::initializeComponents);
     }
-    
+
     protected abstract void initializeComponents();
+
     protected abstract void onSave();
 }

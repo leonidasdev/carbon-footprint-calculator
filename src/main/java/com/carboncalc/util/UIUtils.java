@@ -74,6 +74,19 @@ public class UIUtils {
             BorderFactory.createEmptyBorder(10, 10, 10, 10)
         );
     }
+
+    /**
+     * A lighter group border with a softer gray line for less visual weight.
+     */
+    public static Border createLightGroupBorder(String title) {
+        return BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(0xC8D7E6)),
+                title
+            ),
+            BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        );
+    }
     
     public static void styleTable(JTable table) {
         table.setSelectionBackground(UPM_LIGHTER_BLUE);

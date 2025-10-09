@@ -82,10 +82,10 @@ public class CupsConfigPanel extends BaseModulePanel {
         outer.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // Create a grouped box to hold the manual input form
-    JPanel box = new JPanel(new GridBagLayout());
-    box.setBackground(Color.WHITE);
-    // Use a standard titled border (thin) to match the other panels and the requested style
-    box.setBorder(BorderFactory.createEmptyBorder());
+        JPanel box = new JPanel(new GridBagLayout());
+        box.setBackground(Color.WHITE);
+        // Use the lighter group border to reduce visual weight
+        box.setBorder(UIUtils.createLightGroupBorder(messages.getString("tab.manual.input")));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -178,6 +178,8 @@ public class CupsConfigPanel extends BaseModulePanel {
         box.add(btnPanel, gbc);
 
         outer.add(box, BorderLayout.CENTER);
+        // Keep the manual input area compact so the preview/centers table gets more vertical space
+        outer.setPreferredSize(new Dimension(0, 260));
         return outer;
     }
 
@@ -186,15 +188,25 @@ public class CupsConfigPanel extends BaseModulePanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // File Selection and Preview Panel
+        // File Selection and Column Mapping Panel (compact)
         JPanel topPanel = new JPanel(new GridLayout(1, 2, 10, 0));
         topPanel.setBackground(Color.WHITE);
+        // Make the top area compact so preview below gets more space
+        topPanel.setPreferredSize(new Dimension(0, 260));
 
-        // File Management Section
-        topPanel.add(createFileManagementPanel());
+        // File Management Section (keep compact)
+        JPanel fileMgmt = createFileManagementPanel();
+        fileMgmt.setPreferredSize(new Dimension(0, 160));
+        topPanel.add(fileMgmt);
 
-        // Column Mapping Section
-        topPanel.add(createColumnMappingPanel());
+        // Column Mapping Section: wrap in a scroll pane with a controlled height
+        JPanel colMap = createColumnMappingPanel();
+        JScrollPane colScroll = new JScrollPane(colMap);
+        colScroll.setBorder(BorderFactory.createEmptyBorder());
+        colScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        colScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        colScroll.setPreferredSize(new Dimension(0, 240));
+        topPanel.add(colScroll);
 
         panel.add(topPanel, BorderLayout.CENTER);
         return panel;
@@ -202,7 +214,8 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     private JPanel createColumnMappingPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder());
+    // Put the column mapping controls inside a boxed group for CUPS Data Mapping
+    panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.cups.data.mapping")));
         panel.setBackground(Color.WHITE);
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -225,8 +238,11 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     private JPanel createFileManagementPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder());
+    // wrap file management controls in a lighter group border to match style
+    panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.file.management")));
         panel.setBackground(Color.WHITE);
+        // keep this top-left file controls compact vertically
+        panel.setPreferredSize(new Dimension(0, 160));
 
         // File management controls panel
         JPanel controlsPanel = new JPanel(new GridBagLayout());
@@ -275,8 +291,9 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     private JPanel createColumnConfigPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder());
-        panel.setBackground(Color.WHITE);
+        // Group the column mapping selectors using the lighter border and the CUPS data mapping title
+        panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.cups.data.mapping")));
+            panel.setBackground(Color.WHITE);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 5, 5, 5);

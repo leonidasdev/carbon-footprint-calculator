@@ -63,6 +63,7 @@ public class OptionsPanel extends BaseModulePanel {
         
         // Add some padding around the content
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        setBackground(Color.WHITE);
     }
     
     @Override

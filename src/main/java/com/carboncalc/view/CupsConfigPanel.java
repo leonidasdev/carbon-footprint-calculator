@@ -74,6 +74,7 @@ public class CupsConfigPanel extends BaseModulePanel {
         contentPanel.setBackground(Color.WHITE);
         contentPanel.add(tabbedPane, BorderLayout.CENTER);
         contentPanel.add(tablePanel, BorderLayout.SOUTH);
+        setBackground(Color.WHITE);
     }
 
     private JPanel createManualInputPanel() {

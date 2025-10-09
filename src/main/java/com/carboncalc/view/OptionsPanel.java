@@ -2,9 +2,14 @@ package com.carboncalc.view;
 
 import com.carboncalc.controller.OptionsPanelController;
 import javax.swing.*;
+import com.carboncalc.util.UIUtils;
 import java.awt.*;
 import java.util.ResourceBundle;
 
+/**
+ * Small options/settings panel for changing language and theme.
+ * Uses centralized UI colors and styling helpers in {@link UIUtils}.
+ */
 public class OptionsPanel extends BaseModulePanel {
     private final OptionsPanelController controller;
     private JComboBox<String> languageSelector;
@@ -17,8 +22,8 @@ public class OptionsPanel extends BaseModulePanel {
     
     @Override
     protected void initializeComponents() {
-        contentPanel.setLayout(new GridBagLayout());
-        contentPanel.setBackground(Color.WHITE);
+    contentPanel.setLayout(new GridBagLayout());
+    contentPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -35,6 +40,7 @@ public class OptionsPanel extends BaseModulePanel {
             messages.getString("language.spanish")
         });
         languageSelector.addActionListener(e -> controller.handleLanguageChange());
+        UIUtils.styleComboBox(languageSelector);
         gbc.gridx = 1;
         contentPanel.add(languageSelector, gbc);
         
@@ -49,12 +55,14 @@ public class OptionsPanel extends BaseModulePanel {
             messages.getString("theme.dark")
         });
         themeSelector.addActionListener(e -> controller.handleThemeChange());
+        UIUtils.styleComboBox(themeSelector);
         gbc.gridx = 1;
         contentPanel.add(themeSelector, gbc);
         
         // About button
-        JButton aboutButton = new JButton(messages.getString("button.about"));
-        aboutButton.addActionListener(e -> controller.handleAboutRequest());
+    JButton aboutButton = new JButton(messages.getString("button.about"));
+    aboutButton.addActionListener(e -> controller.handleAboutRequest());
+    UIUtils.styleButton(aboutButton);
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.gridwidth = 2;
@@ -63,7 +71,7 @@ public class OptionsPanel extends BaseModulePanel {
         
         // Add some padding around the content
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        setBackground(Color.WHITE);
+        setBackground(UIUtils.CONTENT_BACKGROUND);
     }
     
     @Override

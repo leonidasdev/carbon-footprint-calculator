@@ -7,9 +7,16 @@ import com.carboncalc.controller.GasPanelController;
 import com.carboncalc.controller.MainWindowController;
 import com.carboncalc.controller.OptionsPanelController;
 import javax.swing.*;
+import com.carboncalc.util.UIUtils;
 import java.awt.*;
 import java.util.ResourceBundle;
 
+/**
+ * Main application window. Holds the navigation bar and a card-based
+ * content area where each module panel (electricity, gas, cups, etc.) is shown.
+ *
+ * UI colors and minor behavioral styling are centralized in {@link UIUtils}.
+ */
 public class MainWindow extends JFrame {
     private final ResourceBundle messages;
     private final CardLayout cardLayout;
@@ -32,19 +39,19 @@ public class MainWindow extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(0, 0));
         
-        // Set main window background
-        getContentPane().setBackground(Color.WHITE);
+    // Set main window background using centralized constant
+    getContentPane().setBackground(UIUtils.CONTENT_BACKGROUND);
         
         // Setup main navigation container with dark blue background
         mainNavContainer = new JPanel(new BorderLayout());
         mainNavContainer.setPreferredSize(new Dimension(250, 0));
-        mainNavContainer.setBackground(new Color(0x1B3D6D));
+    mainNavContainer.setBackground(UIUtils.UPM_BLUE);
         mainNavContainer.setOpaque(true);
         mainNavContainer.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
         
         // Create the inner navigation panel that will hold the buttons
-        navigationPanel = new JPanel(new GridLayout(0, 1, 5, 5));
-        navigationPanel.setBackground(new Color(0x1B3D6D));
+    navigationPanel = new JPanel(new GridLayout(0, 1, 5, 5));
+    navigationPanel.setBackground(UIUtils.UPM_BLUE);
         navigationPanel.setOpaque(true);
         
         mainNavContainer.add(navigationPanel, BorderLayout.NORTH);
@@ -60,17 +67,16 @@ public class MainWindow extends JFrame {
     }
     
     private void setupNavigation() {
-        // Style the navigation panel
-        navigationPanel.setBackground(new Color(0x1B3D6D));
-        navigationPanel.setBorder(null);
+    // Style the navigation panel
+    navigationPanel.setBorder(null);
         
-        // Add main title
-        JLabel titleLabel = new JLabel("Carbon Calculator");
-        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 20));
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 10));
-        titleLabel.setHorizontalAlignment(SwingConstants.LEFT);
-        navigationPanel.add(titleLabel);
+    // Add main title (localized)
+    JLabel titleLabel = new JLabel(messages.getString("application.title"));
+    titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 20));
+    titleLabel.setForeground(UIUtils.GENERAL_BACKGROUND);
+    titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 10));
+    titleLabel.setHorizontalAlignment(SwingConstants.LEFT);
+    navigationPanel.add(titleLabel);
         
         // Reporting modules
         addNavigationButton("module.electricity", "electricity");
@@ -81,8 +87,8 @@ public class MainWindow extends JFrame {
         
         // Add a separator
         navigationPanel.add(Box.createVerticalStrut(20));
-        JSeparator separator = new JSeparator();
-        separator.setForeground(new Color(0x4A90E2)); // Light blue separator
+    JSeparator separator = new JSeparator();
+    separator.setForeground(UIUtils.UPM_LIGHT_BLUE); // Light blue separator
         navigationPanel.add(separator);
         navigationPanel.add(Box.createVerticalStrut(20));
         
@@ -165,6 +171,7 @@ public class MainWindow extends JFrame {
             button.setSelected(true);
         }
         
+        // Use centralized color constants for navigation buttons
         styleNavigationButton(button);
         button.addActionListener(e -> {
             cardLayout.show(contentPanel, cardName);
@@ -173,25 +180,26 @@ public class MainWindow extends JFrame {
     }
     
     private void styleNavigationButton(AbstractButton button) {
-        button.setBackground(new Color(0x1B3D6D)); // Default background
-        button.setForeground(Color.WHITE);
+        // Basic appearance using UIUtils color constants
+        button.setBackground(UIUtils.UPM_BLUE);
+        button.setForeground(UIUtils.GENERAL_BACKGROUND);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setFont(button.getFont().deriveFont(Font.PLAIN, 13));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setOpaque(true);
-        button.setPreferredSize(new Dimension(200, 30)); // Make buttons smaller
-        button.setMargin(new Insets(2, 10, 2, 10)); // Add some padding
-        
-        // Selected and hover effects
+        button.setPreferredSize(new Dimension(200, 30));
+        button.setMargin(new Insets(2, 10, 2, 10));
+
+        // Selected and hover effects using UIUtils colors
         button.addChangeListener(e -> {
             if (button.isSelected()) {
-                button.setBackground(new Color(0x4A90E2)); // Lighter blue when selected
+                button.setBackground(UIUtils.UPM_LIGHT_BLUE);
             } else if (button.getModel().isRollover()) {
-                button.setBackground(new Color(0x2B4D7D)); // Medium blue on hover
+                button.setBackground(UIUtils.UPM_LIGHT_BLUE.darker());
             } else {
-                button.setBackground(new Color(0x1B3D6D)); // Dark blue by default
+                button.setBackground(UIUtils.UPM_BLUE);
             }
         });
     }

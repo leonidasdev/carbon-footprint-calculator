@@ -1,6 +1,7 @@
 package com.carboncalc;
 
 import com.carboncalc.controller.MainWindowController;
+import com.carboncalc.util.UIUtils;
 import com.formdev.flatlaf.FlatLightLaf;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -11,60 +12,65 @@ import java.util.ResourceBundle;
 
 public class App {
     public static void main(String[] args) {
-        // Set system look and feel properties
+        // Load language resources early so we can use localized strings in system
+        // properties
+        ResourceBundle messages = ResourceBundle.getBundle("Messages", Locale.getDefault());
+
+        // Set system look and feel properties (macOS menu integration uses the
+        // localized app title)
         System.setProperty("apple.laf.useScreenMenuBar", "true");
-        System.setProperty("apple.awt.application.name", "Carbon Footprint Calculator");
-        
-        // Enable native file dialogs
+        System.setProperty("apple.awt.application.name", messages.getString("application.title"));
+
+        // Enable native font rendering hints and file dialogs
         System.setProperty("swing.useSystemFontSettings", "true");
         System.setProperty("awt.useSystemAAFontSettings", "on");
         UIManager.put("FileChooser.useSystemIcons", Boolean.TRUE);
-        
-        // Set the default file filter for Excel files
+
+        // Set the default file filter for Excel files (label remains literal; can be
+        // localized if desired)
         UIManager.put("FileChooser.defaultFileFilter", new FileNameExtensionFilter(
-            "Archivos Excel (*.xlsx, *.xls)", "xlsx", "xls"));
-            
-        // Set up FlatLaf look and feel with custom colors
+                "Excel files (*.xlsx, *.xls)", "xlsx", "xls"));
+
+        // Initialize FlatLaf look and feel
         FlatLightLaf.setup();
-        
-        // Enable native file chooser
+
+        // File chooser locale and behavior
         UIManager.put("FileChooser.useSystemExtensionHiding", Boolean.TRUE);
         JFileChooser.setDefaultLocale(Locale.getDefault());
-        
-        // Set default font for all components
+
+        // Default UI font
         Font defaultFont = new Font("Segoe UI", Font.PLAIN, 12);
         UIManager.put("defaultFont", defaultFont);
-        
-        // Apply custom FlatLaf defaults
+
+        // Small shape radii for modern look
         UIManager.put("Button.arc", 8);
         UIManager.put("Component.arc", 8);
         UIManager.put("ProgressBar.arc", 8);
         UIManager.put("TextComponent.arc", 8);
-        
-        // Set global colors
-        UIManager.put("Panel.background", new Color(0xF5F5F5));
-        UIManager.put("Button.background", new Color(0x1B3D6D));
+
+        // Use shared color constants from UIUtils instead of hard-coded hex colors
+        UIManager.put("Panel.background", UIUtils.CONTENT_BACKGROUND);
+        UIManager.put("Button.background", UIUtils.UPM_BLUE);
         UIManager.put("Button.foreground", Color.WHITE);
-        UIManager.put("Button.hoverBackground", new Color(0x4A90E2));
-        UIManager.put("Button.pressedBackground", new Color(0x15305A));
-        
-        // Load language resources (default to English)
-        ResourceBundle messages = ResourceBundle.getBundle("Messages", Locale.getDefault());
-        
-        // Schedule GUI creation on EDT
+        UIManager.put("Button.hoverBackground", UIUtils.UPM_LIGHT_BLUE);
+        // pressed color: slightly darker variant of primary
+        UIManager.put("Button.pressedBackground", UIUtils.UPM_BLUE.darker());
+
+        // Schedule GUI creation on EDT using localized messages
         SwingUtilities.invokeLater(() -> {
             try {
                 createAndShowGUI(messages);
             } catch (Exception e) {
                 e.printStackTrace();
+                // Show a localized error dialog
                 JOptionPane.showMessageDialog(null,
-                    "Error starting application: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+                        messages.getString("error.starting") + ": " + e.getMessage(),
+                        messages.getString("error.title"),
+                        JOptionPane.ERROR_MESSAGE);
             }
         });
     }
-    
+
     private static void createAndShowGUI(ResourceBundle messages) {
         MainWindowController controller = new MainWindowController(messages);
         controller.showWindow();

@@ -8,6 +8,13 @@ import java.awt.*;
 import java.util.ResourceBundle;
 import java.time.Year;
 
+/**
+ * Panel to manage emission factors. Contains controls to import Excel files,
+ * select factor type/year, edit factor entries and preview imported data.
+ *
+ * Styling and strings are centralized: colors in {@link com.carboncalc.util.UIUtils}
+ * and texts from the resource bundle passed to the base class.
+ */
 public class EmissionFactorsPanel extends BaseModulePanel {
     private final EmissionFactorsPanelController controller;
     private JPanel cardsPanel;
@@ -46,11 +53,11 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         // Main layout with three sections
         JPanel mainPanel = new JPanel(new BorderLayout(5, 5));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        mainPanel.setBackground(Color.WHITE);
+    mainPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         // Top Panel - Contains type and year selection
         JPanel topPanel = new JPanel(new GridBagLayout());
-        topPanel.setBackground(Color.WHITE);
+    topPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
         gbc.insets = new Insets(0, 5, 0, 5);
@@ -68,16 +75,17 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         
         // Create cards panel for different factor types
         cardLayout = new CardLayout();
-        cardsPanel = new JPanel(cardLayout);
-        cardsPanel.setBackground(Color.WHITE);
+    cardsPanel = new JPanel(cardLayout);
+    cardsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         // Add electricity general factors panel
         JPanel electricityPanel = createElectricityGeneralFactorsPanel();
         cardsPanel.add(electricityPanel, "ELECTRICITY");
         
-        // Add other panels for different types (gas, fuel, etc)
-        JPanel otherPanel = new JPanel(new BorderLayout());
-        otherPanel.setBackground(Color.WHITE);
+    // Add other panels for different types (gas, fuel, etc)
+    JPanel otherPanel = new JPanel(new BorderLayout());
+    // Use shared content background for consistency
+    otherPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         otherPanel.add(createFileManagementPanel(), BorderLayout.NORTH);
         otherPanel.add(createDataManagementPanel(), BorderLayout.CENTER);
         otherPanel.add(createPreviewPanel(), BorderLayout.SOUTH);
@@ -87,26 +95,28 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         mainPanel.add(cardsPanel, BorderLayout.CENTER);
         
         // Setup the content panel
-        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         contentPanel.add(mainPanel, BorderLayout.CENTER);
-        setBackground(Color.WHITE);
+        setBackground(UIUtils.CONTENT_BACKGROUND);
     }
 
     private JPanel createFileManagementPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.file.management")));
-        panel.setBackground(Color.WHITE);
+    // Use a lighter group border to reduce visual weight
+    panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.file.management")));
+    panel.setBackground(UIUtils.CONTENT_BACKGROUND);
         panel.setPreferredSize(new Dimension(300, 200));
 
         // Create main content panel with BoxLayout
         JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(Color.WHITE);
+    contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+    contentPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // File Selection Section
-        addFileButton = new JButton(messages.getString("button.file.add"));
+    addFileButton = new JButton(messages.getString("button.file.add"));
         addFileButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         addFileButton.addActionListener(e -> controller.handleFileSelection());
+    UIUtils.styleButton(addFileButton);
 
         fileLabel = new JLabel(messages.getString("label.file.none"));
         fileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -116,10 +126,11 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         JLabel sheetLabel = new JLabel(messages.getString("label.sheet.select"));
         sheetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        sheetSelector = new JComboBox<>();
-        sheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sheetSelector.setMaximumSize(new Dimension(150, 25));
-        sheetSelector.addActionListener(e -> controller.handleSheetSelection());
+    sheetSelector = new JComboBox<>();
+    sheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
+    sheetSelector.setMaximumSize(new Dimension(150, 25));
+    sheetSelector.addActionListener(e -> controller.handleSheetSelection());
+    UIUtils.styleComboBox(sheetSelector);
 
         // Add components with spacing
         contentPanel.add(Box.createVerticalStrut(5));
@@ -135,12 +146,13 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         panel.add(contentPanel, BorderLayout.CENTER);
 
         // Add button panel at the bottom
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.setBackground(Color.WHITE);
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    buttonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
-        applyAndSaveButton = new JButton(messages.getString("button.apply.save.excel"));
+    applyAndSaveButton = new JButton(messages.getString("button.apply.save.excel"));
         applyAndSaveButton.setEnabled(false);
         applyAndSaveButton.addActionListener(e -> controller.handleApplyAndSave());
+    UIUtils.styleButton(applyAndSaveButton);
 
         buttonPanel.add(applyAndSaveButton);
         panel.add(buttonPanel, BorderLayout.SOUTH);
@@ -150,26 +162,27 @@ public class EmissionFactorsPanel extends BaseModulePanel {
 
     private JPanel createTypeSelectionPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.factor.type")));
-        panel.setBackground(Color.WHITE);
+    panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.factor.type")));
+    panel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Create main content panel with FlowLayout for horizontal alignment
-        JPanel contentPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
-        contentPanel.setBackground(Color.WHITE);
+    JPanel contentPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
+    contentPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Type selection
-        JPanel typePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        typePanel.setBackground(Color.WHITE);
-        typePanel.add(new JLabel(messages.getString("label.factor.type.select")));
-        typeComboBox = new JComboBox<>(FACTOR_TYPES);
+    JPanel typePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+    typePanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+    typePanel.add(new JLabel(messages.getString("label.factor.type.select")));
+    typeComboBox = new JComboBox<>(FACTOR_TYPES);
         typeComboBox.setPreferredSize(new Dimension(150, 25));
         typeComboBox.addActionListener(e -> controller.handleTypeSelection((String) typeComboBox.getSelectedItem()));
         typePanel.add(typeComboBox);
+    UIUtils.styleComboBox(typeComboBox);
         contentPanel.add(typePanel);
 
         // Year selection
-        JPanel yearPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        yearPanel.setBackground(Color.WHITE);
+    JPanel yearPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+    yearPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         yearPanel.add(new JLabel(messages.getString("label.year.select")));
         SpinnerNumberModel yearModel = new SpinnerNumberModel(
             Year.now().getValue(),
@@ -197,13 +210,13 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private JPanel electricityGeneralFactorsPanel;
 
     private JPanel createDataManagementPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.data.management")));
-        panel.setBackground(Color.WHITE);
+    JPanel panel = new JPanel(new BorderLayout());
+    panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.data.management")));
+    panel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Create main panel with card layout to switch between factor types
-        JPanel mainPanel = new JPanel(new CardLayout());
-        mainPanel.setBackground(Color.WHITE);
+    JPanel mainPanel = new JPanel(new CardLayout());
+    mainPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Create electricity general factors panel
         electricityGeneralFactorsPanel = createElectricityGeneralFactorsPanel();
@@ -235,8 +248,8 @@ public class EmissionFactorsPanel extends BaseModulePanel {
             panel.add(scrollPane, BorderLayout.CENTER);
 
         // Add button panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(Color.WHITE);
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    buttonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         addButton = new JButton(messages.getString("button.add"));
         editButton = new JButton(messages.getString("button.edit"));
@@ -279,17 +292,17 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     };
 
     private JPanel createElectricityGeneralFactorsPanel() {
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(Color.WHITE);
+    JPanel mainPanel = new JPanel(new BorderLayout());
+    mainPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Create factors input panel
-        JPanel factorsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
-        factorsPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.general.factors")));
-        factorsPanel.setBackground(Color.WHITE);
+    JPanel factorsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
+    factorsPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.general.factors")));
+    factorsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Mix sin GdO
-        JPanel mixPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        mixPanel.setBackground(Color.WHITE);
+    JPanel mixPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+    mixPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         JLabel mixLabel = new JLabel(messages.getString("label.mix.sin.gdo") + ":");
         mixLabel.setFont(mixLabel.getFont().deriveFont(Font.BOLD));
         mixPanel.add(mixLabel);
@@ -299,8 +312,8 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         factorsPanel.add(mixPanel);
 
         // GdO Renovable
-        JPanel renovablePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        renovablePanel.setBackground(Color.WHITE);
+    JPanel renovablePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+    renovablePanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         JLabel renovableLabel = new JLabel(messages.getString("label.gdo.renovable") + ":");
         renovableLabel.setFont(renovableLabel.getFont().deriveFont(Font.BOLD));
         renovablePanel.add(renovableLabel);
@@ -310,8 +323,8 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         factorsPanel.add(renovablePanel);
 
         // GdO Cogeneración Alta Eficiencia
-        JPanel cogeneracionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        cogeneracionPanel.setBackground(Color.WHITE);
+    JPanel cogeneracionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+    cogeneracionPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         JLabel cogeneracionLabel = new JLabel(messages.getString("label.gdo.cogeneracion") + ":");
         cogeneracionLabel.setFont(cogeneracionLabel.getFont().deriveFont(Font.BOLD));
         cogeneracionPanel.add(cogeneracionLabel);
@@ -321,13 +334,13 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         factorsPanel.add(cogeneracionPanel);
 
         // Create a wrapper panel for centering
-        JPanel wrapperPanel = new JPanel(new BorderLayout());
-        wrapperPanel.setBackground(Color.WHITE);
+    JPanel wrapperPanel = new JPanel(new BorderLayout());
+    wrapperPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         wrapperPanel.add(factorsPanel, BorderLayout.NORTH);
         
         // Create input panel for new trading company
-        JPanel inputPanel = new JPanel(new GridLayout(3, 2, 5, 5));
-        inputPanel.setBackground(Color.WHITE);
+    JPanel inputPanel = new JPanel(new GridLayout(3, 2, 5, 5));
+    inputPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         inputPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         // Company name field
@@ -344,26 +357,28 @@ public class EmissionFactorsPanel extends BaseModulePanel {
 
         // GdO type combo box
         inputPanel.add(new JLabel(messages.getString("label.gdo.type") + ":"));
-        gdoTypeComboBox = new JComboBox<>(GDO_TYPES);
-        inputPanel.add(gdoTypeComboBox);
+    gdoTypeComboBox = new JComboBox<>(GDO_TYPES);
+    UIUtils.styleComboBox(gdoTypeComboBox);
+    inputPanel.add(gdoTypeComboBox);
 
         // Add button panel for manual input
-        JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        addButtonPanel.setBackground(Color.WHITE);
-        JButton addCompanyButton = new JButton(messages.getString("button.add.company"));
-        addCompanyButton.addActionListener(e -> controller.handleAddTradingCompany());
-        addButtonPanel.add(addCompanyButton);
+    JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    addButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+    JButton addCompanyButton = new JButton(messages.getString("button.add.company"));
+    addCompanyButton.addActionListener(e -> controller.handleAddTradingCompany());
+    UIUtils.styleButton(addCompanyButton);
+    addButtonPanel.add(addCompanyButton);
 
         // Create wrapper panel to combine input and button
-        JPanel inputWrapperPanel = new JPanel(new BorderLayout());
-        inputWrapperPanel.setBackground(Color.WHITE);
+    JPanel inputWrapperPanel = new JPanel(new BorderLayout());
+    inputWrapperPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         inputWrapperPanel.add(inputPanel, BorderLayout.CENTER);
         inputWrapperPanel.add(addButtonPanel, BorderLayout.SOUTH);
 
         // Put manual inputs inside a titled 'Manual Input' box
-        JPanel manualInputBox = new JPanel(new BorderLayout());
-        manualInputBox.setBackground(Color.WHITE);
-        manualInputBox.setBorder(BorderFactory.createTitledBorder(messages.getString("tab.manual.input")));
+    JPanel manualInputBox = new JPanel(new BorderLayout());
+    manualInputBox.setBackground(UIUtils.CONTENT_BACKGROUND);
+        manualInputBox.setBorder(UIUtils.createLightGroupBorder(messages.getString("tab.manual.input")));
         manualInputBox.add(inputWrapperPanel, BorderLayout.CENTER);
 
         // Create table for trading companies (preview)
@@ -391,7 +406,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
 
         // Button panel for table actions
         JPanel tradingCompanyButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        tradingCompanyButtonPanel.setBackground(Color.WHITE);
+        tradingCompanyButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         JButton editButton = new JButton(messages.getString("button.edit.company"));
         JButton deleteButton = new JButton(messages.getString("button.delete.company"));
@@ -399,18 +414,21 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         editButton.addActionListener(e -> controller.handleEditTradingCompany());
         deleteButton.addActionListener(e -> controller.handleDeleteTradingCompany());
         
-    tradingCompanyButtonPanel.add(editButton);
-    tradingCompanyButtonPanel.add(deleteButton);
+        UIUtils.styleButton(editButton);
+        UIUtils.styleButton(deleteButton);
+        tradingCompanyButtonPanel.add(editButton);
+        tradingCompanyButtonPanel.add(deleteButton);
 
     // Save button to the right of Delete (inside the trading companies box)
     saveGeneralFactorsButton = new JButton(messages.getString("button.save"));
     saveGeneralFactorsButton.addActionListener(e -> controller.handleSaveElectricityGeneralFactors());
+    UIUtils.styleButton(saveGeneralFactorsButton);
     tradingCompanyButtonPanel.add(saveGeneralFactorsButton);
 
         // Create trading companies panel (preview only)
         JPanel tradingPanel = new JPanel(new BorderLayout(10, 10));
-        tradingPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.trading.companies")));
-        tradingPanel.setBackground(Color.WHITE);
+    tradingPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.trading.companies")));
+    tradingPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         tradingPanel.add(scrollPane, BorderLayout.CENTER);
         tradingPanel.add(tradingCompanyButtonPanel, BorderLayout.SOUTH);
 
@@ -423,9 +441,9 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     }
 
     private JPanel createPreviewPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.preview")));
-        panel.setBackground(Color.WHITE);
+    JPanel panel = new JPanel(new BorderLayout());
+    panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.preview")));
+    panel.setBackground(UIUtils.CONTENT_BACKGROUND);
         panel.setPreferredSize(new Dimension(0, 400)); // Set minimum height for preview
 
         // Create preview table

@@ -8,6 +8,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ResourceBundle;
 
+/**
+ * Panel to manage gas provider/ERP imports, column mappings and preview data.
+ * Uses centralized UI styles and resource bundle strings.
+ */
 public class GasPanel extends BaseModulePanel {
     private final GasPanelController controller;
     
@@ -53,11 +57,11 @@ public class GasPanel extends BaseModulePanel {
         // Main layout with two rows
         JPanel mainPanel = new JPanel(new BorderLayout(5, 5));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         // Top Panel - Contains all controls in a horizontal layout
-        JPanel topPanel = new JPanel(new GridBagLayout());
-        topPanel.setBackground(Color.WHITE);
+    JPanel topPanel = new JPanel(new GridBagLayout());
+    topPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
         gbc.insets = new Insets(0, 5, 0, 5);
@@ -72,15 +76,13 @@ public class GasPanel extends BaseModulePanel {
         
         // Create mapping panels
         providerMappingPanel = new JPanel(new GridBagLayout());
-        providerMappingPanel.setBorder(BorderFactory.createTitledBorder(
-            messages.getString("label.provider.mapping")));
-        providerMappingPanel.setBackground(Color.WHITE);
+        providerMappingPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.provider.mapping")));
+        providerMappingPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         setupProviderMappingPanel(providerMappingPanel);
         
         erpMappingPanel = new JPanel(new GridBagLayout());
-        erpMappingPanel.setBorder(BorderFactory.createTitledBorder(
-            messages.getString("label.erp.mapping")));
-        erpMappingPanel.setBackground(Color.WHITE);
+        erpMappingPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.erp.mapping")));
+        erpMappingPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         setupErpMappingPanel(erpMappingPanel);
         
         // Add provider mapping panel (center)
@@ -99,33 +101,35 @@ public class GasPanel extends BaseModulePanel {
         // Bottom Row - Preview Table
         mainPanel.add(createPreviewPanel(), BorderLayout.CENTER);
         
-        contentPanel.setBackground(Color.WHITE);
+        // Use centralized content background
+        contentPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         contentPanel.add(mainPanel, BorderLayout.CENTER);
-        setBackground(Color.WHITE);
+        setBackground(UIUtils.CONTENT_BACKGROUND);
     }
     
     private JPanel createFileManagementPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.file.management")));
-        panel.setBackground(Color.WHITE);
-        panel.setPreferredSize(new Dimension(300, 200)); // Reduced height
+    JPanel panel = new JPanel(new BorderLayout());
+    panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.file.management")));
+    panel.setBackground(UIUtils.CONTENT_BACKGROUND);
+    panel.setPreferredSize(new Dimension(300, 200)); // Reduced height
         
         // Create a panel for the file sections in horizontal layout
-        JPanel filesPanel = new JPanel(new GridLayout(1, 2, 5, 0));
-        filesPanel.setBackground(Color.WHITE);
+    JPanel filesPanel = new JPanel(new GridLayout(1, 2, 5, 0));
+    filesPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         // Provider File Section
-        JPanel providerPanel = new JPanel();
+    JPanel providerPanel = new JPanel();
         providerPanel.setLayout(new BoxLayout(providerPanel, BoxLayout.Y_AXIS));
-        providerPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.provider.file")));
-        providerPanel.setBackground(Color.WHITE);
+    providerPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.provider.file")));
+    providerPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         // Provider File Button and Label
-        addProviderFileButton = new JButton(messages.getString("button.file.add"));
+    addProviderFileButton = new JButton(messages.getString("button.file.add"));
         addProviderFileButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         addProviderFileButton.addActionListener(e -> controller.handleProviderFileSelection());
+    UIUtils.styleButton(addProviderFileButton);
         
-        providerFileLabel = new JLabel(messages.getString("label.file.none"));
+    providerFileLabel = new JLabel(messages.getString("label.file.none"));
         providerFileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         providerFileLabel.setForeground(Color.GRAY);
         
@@ -133,10 +137,11 @@ public class GasPanel extends BaseModulePanel {
         JLabel providerSheetLabel = new JLabel(messages.getString("label.sheet.select"));
         providerSheetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        providerSheetSelector = new JComboBox<>();
+    providerSheetSelector = new JComboBox<>();
         providerSheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
         providerSheetSelector.setMaximumSize(new Dimension(150, 25));
         providerSheetSelector.addActionListener(e -> controller.handleProviderSheetSelection());
+    UIUtils.styleComboBox(providerSheetSelector);
         
         // Add components to provider panel with some spacing
         providerPanel.add(Box.createVerticalStrut(5));
@@ -149,17 +154,18 @@ public class GasPanel extends BaseModulePanel {
         providerPanel.add(providerSheetSelector);
         
         // ERP File Section
-        JPanel erpPanel = new JPanel();
+    JPanel erpPanel = new JPanel();
         erpPanel.setLayout(new BoxLayout(erpPanel, BoxLayout.Y_AXIS));
-        erpPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.erp.file")));
-        erpPanel.setBackground(Color.WHITE);
+    erpPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.erp.file")));
+    erpPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         // ERP File Button and Label
-        addErpFileButton = new JButton(messages.getString("button.file.add"));
+    addErpFileButton = new JButton(messages.getString("button.file.add"));
         addErpFileButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         addErpFileButton.addActionListener(e -> controller.handleErpFileSelection());
+    UIUtils.styleButton(addErpFileButton);
         
-        erpFileLabel = new JLabel(messages.getString("label.file.none"));
+    erpFileLabel = new JLabel(messages.getString("label.file.none"));
         erpFileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         erpFileLabel.setForeground(Color.GRAY);
         
@@ -167,10 +173,11 @@ public class GasPanel extends BaseModulePanel {
         JLabel erpSheetLabel = new JLabel(messages.getString("label.sheet.select"));
         erpSheetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        erpSheetSelector = new JComboBox<>();
+    erpSheetSelector = new JComboBox<>();
         erpSheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
         erpSheetSelector.setMaximumSize(new Dimension(150, 25));
         erpSheetSelector.addActionListener(e -> controller.handleErpSheetSelection());
+    UIUtils.styleComboBox(erpSheetSelector);
         
         // Add components to ERP panel with some spacing
         erpPanel.add(Box.createVerticalStrut(5));
@@ -190,13 +197,14 @@ public class GasPanel extends BaseModulePanel {
         panel.add(filesPanel, BorderLayout.CENTER);
         
         // Create button panel for the Apply and Save Excel button
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.setBackground(Color.WHITE);
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    buttonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         // Configure Apply and Save Excel button
-        applyAndSaveExcelButton = new JButton(messages.getString("button.apply.save.excel"));
+    applyAndSaveExcelButton = new JButton(messages.getString("button.apply.save.excel"));
         applyAndSaveExcelButton.setEnabled(false); // Initially disabled
         applyAndSaveExcelButton.addActionListener(e -> controller.handleApplyAndSaveExcel());
+    UIUtils.styleButton(applyAndSaveExcelButton);
         
         buttonPanel.add(applyAndSaveExcelButton);
         panel.add(buttonPanel, BorderLayout.SOUTH);
@@ -214,25 +222,25 @@ public class GasPanel extends BaseModulePanel {
         gbc.gridy = 0;
         
         // CUPS
-        addColumnMapping(panel, gbc, "label.column.cups", cupsSelector = new JComboBox<>());
+    addColumnMapping(panel, gbc, "label.column.cups", cupsSelector = new JComboBox<>());
         
         // Invoice Number
-        addColumnMapping(panel, gbc, "label.column.invoice", invoiceNumberSelector = new JComboBox<>());
+    addColumnMapping(panel, gbc, "label.column.invoice", invoiceNumberSelector = new JComboBox<>());
         
         // Issue Date
-        addColumnMapping(panel, gbc, "label.column.issue.date", issueDateSelector = new JComboBox<>());
+    addColumnMapping(panel, gbc, "label.column.issue.date", issueDateSelector = new JComboBox<>());
         
         // Start Date
-        addColumnMapping(panel, gbc, "label.column.start.date", startDateSelector = new JComboBox<>());
+    addColumnMapping(panel, gbc, "label.column.start.date", startDateSelector = new JComboBox<>());
         
         // End Date
-        addColumnMapping(panel, gbc, "label.column.end.date", endDateSelector = new JComboBox<>());
+    addColumnMapping(panel, gbc, "label.column.end.date", endDateSelector = new JComboBox<>());
         
         // Consumption
-        addColumnMapping(panel, gbc, "label.column.consumption", consumptionSelector = new JComboBox<>());
+    addColumnMapping(panel, gbc, "label.column.consumption", consumptionSelector = new JComboBox<>());
 
         // Center
-        addColumnMapping(panel, gbc, "label.column.center", centerSelector = new JComboBox<>());
+    addColumnMapping(panel, gbc, "label.column.center", centerSelector = new JComboBox<>());
         
         // Emission Entity
         addColumnMapping(panel, gbc, "label.column.emission.entity", emissionEntitySelector = new JComboBox<>());
@@ -263,6 +271,8 @@ public class GasPanel extends BaseModulePanel {
             controller.handleColumnSelection();
             updateApplyAndSaveButtonState();
         });
+        // Style mapping combo boxes to match app look-and-feel
+        UIUtils.styleComboBox(comboBox);
     }
 
     /**
@@ -277,15 +287,15 @@ public class GasPanel extends BaseModulePanel {
     }
     
     private JPanel createPreviewPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, 2, 10, 0));
-        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        panel.setBackground(Color.WHITE);
-        panel.setPreferredSize(new Dimension(0, 400));  // Set minimum height for preview
+    JPanel panel = new JPanel(new GridLayout(1, 2, 10, 0));
+    panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+    panel.setBackground(UIUtils.CONTENT_BACKGROUND);
+    panel.setPreferredSize(new Dimension(0, 400));  // Set minimum height for preview
 
         // Provider Preview Panel
-        JPanel providerPanel = new JPanel(new BorderLayout());
-        providerPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.preview.provider")));
-        providerPanel.setBackground(Color.WHITE);
+    JPanel providerPanel = new JPanel(new BorderLayout());
+    providerPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.preview.provider")));
+    providerPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         providerPreviewTable = new JTable();
         providerPreviewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
@@ -300,9 +310,9 @@ public class GasPanel extends BaseModulePanel {
         providerPanel.add(providerTableScrollPane, BorderLayout.CENTER);
 
         // ERP Preview Panel
-        JPanel erpPanel = new JPanel(new BorderLayout());
-        erpPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.preview.erp")));
-        erpPanel.setBackground(Color.WHITE);
+    JPanel erpPanel = new JPanel(new BorderLayout());
+    erpPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.preview.erp")));
+    erpPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         erpPreviewTable = new JTable();
         erpPreviewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);

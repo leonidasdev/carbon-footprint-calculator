@@ -9,6 +9,13 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ResourceBundle;
 
+/**
+ * CupsConfigPanel
+ *
+ * Panel that allows configuring CUPS centers either via manual input or
+ * importing an Excel file. All visible strings come from the resource
+ * bundle and styling should use UIUtils constants/helpers.
+ */
 public class CupsConfigPanel extends BaseModulePanel {
     private final CupsConfigPanelController controller;
 
@@ -21,6 +28,7 @@ public class CupsConfigPanel extends BaseModulePanel {
     private JTextField postalCodeField;
     private JTextField cityField;
     private JTextField provinceField;
+    // energy types come from resource bundle at runtime
 
     // File Management Components
     private JButton addFileButton;
@@ -46,10 +54,8 @@ public class CupsConfigPanel extends BaseModulePanel {
     private JTable previewTable;
     private JScrollPane previewScrollPane;
 
-    private static final String[] ENERGY_TYPES = {"Electricidad", "Gas Natural"};
-    private static final String[] TABLE_COLUMNS = {
-            "CUPS", "Centro", "Acrónimo", "Energía", "Calle", "C.P.", "Localidad", "Provincia"
-    };
+    // Energy types and table column names are loaded from the resource bundle
+    // at runtime to keep the UI fully localizable.
 
     public CupsConfigPanel(CupsConfigPanelController controller, ResourceBundle messages) {
         super(messages);
@@ -60,7 +66,7 @@ public class CupsConfigPanel extends BaseModulePanel {
     protected void initializeComponents() {
         setLayout(new BorderLayout());
         JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.setBackground(Color.WHITE);
+        tabbedPane.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Manual Input Tab
         tabbedPane.addTab(messages.getString("tab.manual.input"), createManualInputPanel());
@@ -71,23 +77,29 @@ public class CupsConfigPanel extends BaseModulePanel {
         // Centers Table Panel (common to both tabs)
         JPanel tablePanel = createCentersTablePanel();
 
-        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         contentPanel.add(tabbedPane, BorderLayout.CENTER);
         contentPanel.add(tablePanel, BorderLayout.SOUTH);
-        setBackground(Color.WHITE);
+        setBackground(UIUtils.CONTENT_BACKGROUND);
     }
 
     private JPanel createManualInputPanel() {
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(Color.WHITE);
+        /**
+         * Manual input tab content.
+         * Contains a boxed form for entering a single CUPS/center manually.
+         * Fields are vertically aligned and the Add button is right-aligned.
+         */
+    JPanel outer = new JPanel(new BorderLayout());
+    outer.setBackground(UIUtils.CONTENT_BACKGROUND);
         outer.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Create a grouped box to hold the manual input form
-        JPanel box = new JPanel(new GridBagLayout());
-        box.setBackground(Color.WHITE);
-        // Use the lighter group border to reduce visual weight
-        box.setBorder(UIUtils.createLightGroupBorder(messages.getString("tab.manual.input")));
+        // Create a titled group box using the centralized helper (keeps border color
+        // and padding consistent)
+        JPanel box = createGroupPanel("tab.manual.input");
 
+        // Form panel holds the label/field rows using GridBagLayout
+    JPanel form = new JPanel(new GridBagLayout());
+    form.setBackground(UIUtils.CONTENT_BACKGROUND);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(8, 8, 8, 8);
@@ -97,101 +109,112 @@ public class CupsConfigPanel extends BaseModulePanel {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 1;
-        box.add(new JLabel(messages.getString("label.cups") + ":"), gbc);
+        form.add(new JLabel(messages.getString("label.cups") + ":"), gbc);
         gbc.gridx = 1;
         cupsField = new JTextField(20);
-        box.add(cupsField, gbc);
+        form.add(cupsField, gbc);
 
         // Row 1: Center Name
         gbc.gridx = 0;
         gbc.gridy = 1;
-        box.add(new JLabel(messages.getString("label.center.name") + ":"), gbc);
+        form.add(new JLabel(messages.getString("label.center.name") + ":"), gbc);
         gbc.gridx = 1;
         centerNameField = new JTextField(20);
-        box.add(centerNameField, gbc);
+        form.add(centerNameField, gbc);
 
         // Row 2: Center Acronym
         gbc.gridx = 0;
         gbc.gridy = 2;
-        box.add(new JLabel(messages.getString("label.center.acronym") + ":"), gbc);
+        form.add(new JLabel(messages.getString("label.center.acronym") + ":"), gbc);
         gbc.gridx = 1;
         centerAcronymField = new JTextField(20);
-        box.add(centerAcronymField, gbc);
+        form.add(centerAcronymField, gbc);
 
         // Row 3: Energy Type
         gbc.gridx = 0;
         gbc.gridy = 3;
-        box.add(new JLabel(messages.getString("label.energy.type") + ":"), gbc);
+        form.add(new JLabel(messages.getString("label.energy.type") + ":"), gbc);
         gbc.gridx = 1;
-        energyTypeCombo = new JComboBox<>(ENERGY_TYPES);
-        // Use the same border as text fields so the combo matches other inputs
+        // Load energy type options from resource bundle for localization
+        String[] energyOptions = new String[] {
+                messages.getString("energy.type.electricity"),
+                messages.getString("energy.type.gas")
+        };
+        energyTypeCombo = new JComboBox<>(energyOptions);
         Border tfBorder = UIManager.getBorder("TextField.border");
-        if (tfBorder != null) {
+        if (tfBorder != null)
             energyTypeCombo.setBorder(tfBorder);
-        }
-        energyTypeCombo.setBackground(Color.WHITE);
-        box.add(energyTypeCombo, gbc);
+        UIUtils.styleComboBox(energyTypeCombo);
+        form.add(energyTypeCombo, gbc);
 
         // Row 4: Street
         gbc.gridx = 0;
         gbc.gridy = 4;
-        box.add(new JLabel(messages.getString("label.street") + ":"), gbc);
+        form.add(new JLabel(messages.getString("label.street") + ":"), gbc);
         gbc.gridx = 1;
         streetField = new JTextField(30);
-        box.add(streetField, gbc);
+        form.add(streetField, gbc);
 
         // Row 5: Postal Code
         gbc.gridx = 0;
         gbc.gridy = 5;
-        box.add(new JLabel(messages.getString("label.postal.code") + ":"), gbc);
+        form.add(new JLabel(messages.getString("label.postal.code") + ":"), gbc);
         gbc.gridx = 1;
         postalCodeField = new JTextField(8);
-        box.add(postalCodeField, gbc);
+        form.add(postalCodeField, gbc);
 
         // Row 6: City
         gbc.gridx = 0;
         gbc.gridy = 6;
-        box.add(new JLabel(messages.getString("label.city") + ":"), gbc);
+        form.add(new JLabel(messages.getString("label.city") + ":"), gbc);
         gbc.gridx = 1;
         cityField = new JTextField(20);
-        box.add(cityField, gbc);
+        form.add(cityField, gbc);
 
         // Row 7: Province
         gbc.gridx = 0;
         gbc.gridy = 7;
-        box.add(new JLabel(messages.getString("label.province") + ":"), gbc);
+        form.add(new JLabel(messages.getString("label.province") + ":"), gbc);
         gbc.gridx = 1;
         provinceField = new JTextField(20);
-        box.add(provinceField, gbc);
+        form.add(provinceField, gbc);
 
         // Row 8: Add button (inside the box, right aligned)
         gbc.gridx = 0;
         gbc.gridy = 8;
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.EAST;
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btnPanel.setBackground(Color.WHITE);
+    JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    btnPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         JButton addButton = new JButton(messages.getString("button.add.center"));
+        UIUtils.styleButton(addButton);
         addButton.addActionListener(e -> {
-            if (controller != null) controller.handleAddCenter(getManualInputData());
+            if (controller != null)
+                controller.handleAddCenter(getManualInputData());
         });
         btnPanel.add(addButton);
-        box.add(btnPanel, gbc);
+        form.add(btnPanel, gbc);
 
+        box.add(form, BorderLayout.CENTER);
         outer.add(box, BorderLayout.CENTER);
-        // Keep the manual input area compact so the preview/centers table gets more vertical space
+        // Keep the manual input area compact so the preview/centers table gets more
+        // vertical space
         outer.setPreferredSize(new Dimension(0, 260));
         return outer;
     }
 
     private JPanel createExcelImportPanel() {
+        /**
+         * Excel import tab content.
+         * Top area contains file management and column mapping; preview lives below.
+         */
         JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(UIUtils.CONTENT_BACKGROUND);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // File Selection and Column Mapping Panel (compact)
         JPanel topPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        topPanel.setBackground(Color.WHITE);
+        topPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         // Make the top area compact so preview below gets more space
         topPanel.setPreferredSize(new Dimension(0, 260));
 
@@ -214,10 +237,14 @@ public class CupsConfigPanel extends BaseModulePanel {
     }
 
     private JPanel createColumnMappingPanel() {
+        /**
+         * Column mapping controls used by the Excel import tab.
+         * Each mapping row contains a localized label and a combo to pick the column.
+         */
         JPanel panel = new JPanel(new GridBagLayout());
-    // Put the column mapping controls inside a boxed group for CUPS Data Mapping
-    panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.cups.data.mapping")));
-        panel.setBackground(Color.WHITE);
+        // Put the column mapping controls inside a boxed group for CUPS Data Mapping
+        panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.cups.data.mapping")));
+        panel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -233,28 +260,44 @@ public class CupsConfigPanel extends BaseModulePanel {
         addColumnSelector(panel, gbc, row++, "label.column.postal", postalCodeColumnSelector = new JComboBox<>());
         addColumnSelector(panel, gbc, row++, "label.column.city", cityColumnSelector = new JComboBox<>());
         addColumnSelector(panel, gbc, row++, "label.column.province", provinceColumnSelector = new JComboBox<>());
+        
+        // Style all mapping combo boxes to match visual design
+        UIUtils.styleComboBox(cupsColumnSelector);
+        UIUtils.styleComboBox(centerNameColumnSelector);
+        UIUtils.styleComboBox(centerAcronymColumnSelector);
+        UIUtils.styleComboBox(energyTypeColumnSelector);
+        UIUtils.styleComboBox(streetColumnSelector);
+        UIUtils.styleComboBox(postalCodeColumnSelector);
+        UIUtils.styleComboBox(cityColumnSelector);
+        UIUtils.styleComboBox(provinceColumnSelector);
 
         return panel;
     }
 
     private JPanel createFileManagementPanel() {
+        /**
+         * File management controls: add file, sheet selector and preview/import actions.
+         */
         JPanel panel = new JPanel(new BorderLayout());
-    // wrap file management controls in a lighter group border to match style
-    panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.file.management")));
-        panel.setBackground(Color.WHITE);
+        // wrap file management controls in a lighter group border to match style
+        panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.file.management")));
+        panel.setBackground(UIUtils.CONTENT_BACKGROUND);
         // keep this top-left file controls compact vertically
         panel.setPreferredSize(new Dimension(0, 160));
 
         // File management controls panel
         JPanel controlsPanel = new JPanel(new GridBagLayout());
-        controlsPanel.setBackground(Color.WHITE);
+        controlsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 5, 5, 5);
 
         // Add Excel File Button
         addFileButton = new JButton(messages.getString("button.file.add"));
-        addFileButton.addActionListener(e -> { if (controller != null) controller.handleFileSelection(); });
+        addFileButton.addActionListener(e -> {
+            if (controller != null)
+                controller.handleFileSelection();
+        });
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
@@ -267,22 +310,32 @@ public class CupsConfigPanel extends BaseModulePanel {
         controlsPanel.add(sheetLabel, gbc);
 
         sheetSelector = new JComboBox<>();
-        sheetSelector.addActionListener(e -> { if (controller != null) controller.handleSheetSelection(); });
+        sheetSelector.addActionListener(e -> {
+            if (controller != null)
+                controller.handleSheetSelection();
+        });
         gbc.gridx = 1;
         controlsPanel.add(sheetSelector, gbc);
+        UIUtils.styleComboBox(sheetSelector);
 
         panel.add(controlsPanel, BorderLayout.NORTH);
 
         // Button Panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         importButton = new JButton(messages.getString("button.import"));
-        importButton.addActionListener(e -> { if (controller != null) controller.handleExportRequest(); });
+        importButton.addActionListener(e -> {
+            if (controller != null)
+                controller.handleExportRequest();
+        });
         buttonPanel.add(importButton);
 
         previewButton = new JButton(messages.getString("button.preview"));
-        previewButton.addActionListener(e -> { if (controller != null) controller.handlePreviewRequest(); });
+        previewButton.addActionListener(e -> {
+            if (controller != null)
+                controller.handlePreviewRequest();
+        });
         buttonPanel.add(previewButton);
 
         panel.add(buttonPanel, BorderLayout.SOUTH);
@@ -291,10 +344,15 @@ public class CupsConfigPanel extends BaseModulePanel {
     }
 
     private JPanel createColumnConfigPanel() {
+        /**
+         * Column configuration helper panel (unused by default UI but available
+         * as a small reusable component for advanced layouts).
+         */
         JPanel panel = new JPanel(new GridBagLayout());
-        // Group the column mapping selectors using the lighter border and the CUPS data mapping title
+        // Group the column mapping selectors using the lighter border and the CUPS data
+        // mapping title
         panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.cups.data.mapping")));
-            panel.setBackground(Color.WHITE);
+        panel.setBackground(UIUtils.CONTENT_BACKGROUND);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -306,7 +364,10 @@ public class CupsConfigPanel extends BaseModulePanel {
         panel.add(cupsLabel, gbc);
 
         cupsColumnSelector = new JComboBox<>();
-        cupsColumnSelector.addActionListener(e -> { if (controller != null) controller.handleColumnSelection(); });
+        cupsColumnSelector.addActionListener(e -> {
+            if (controller != null)
+                controller.handleColumnSelection();
+        });
         gbc.gridx = 1;
         panel.add(cupsColumnSelector, gbc);
 
@@ -317,14 +378,17 @@ public class CupsConfigPanel extends BaseModulePanel {
         panel.add(centerLabel, gbc);
 
         centerNameColumnSelector = new JComboBox<>();
-        centerNameColumnSelector.addActionListener(e -> { if (controller != null) controller.handleColumnSelection(); });
+        centerNameColumnSelector.addActionListener(e -> {
+            if (controller != null)
+                controller.handleColumnSelection();
+        });
         gbc.gridx = 1;
         panel.add(centerNameColumnSelector, gbc);
 
         // Range Configuration
         JPanel rangePanel = new JPanel(new GridLayout(2, 2, 5, 5));
-    rangePanel.setBorder(BorderFactory.createEmptyBorder());
-        rangePanel.setBackground(Color.WHITE);
+        rangePanel.setBorder(BorderFactory.createEmptyBorder());
+        rangePanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         rangePanel.add(new JLabel(messages.getString("label.row.start")));
         startRowField = new JTextField("2");
@@ -348,9 +412,13 @@ public class CupsConfigPanel extends BaseModulePanel {
     }
 
     private JPanel createPreviewPanel() {
+        /**
+         * Creates the preview area that shows imported Excel rows in a table.
+         * The preview table is wrapped in a scroll pane with both axes enabled.
+         */
         JPanel panel = new JPanel(new BorderLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder());
-        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder());
+        panel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Create the table with a default table model
         previewTable = new JTable();
@@ -382,12 +450,28 @@ public class CupsConfigPanel extends BaseModulePanel {
     }
 
     private JPanel createCentersTablePanel() {
+        /**
+         * Panel that displays the current list of centers and action buttons
+         * (Edit / Delete / Save). Uses localized column headers.
+         */
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.centers.list")));
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Create table with custom model
-        DefaultTableModel model = new DefaultTableModel(TABLE_COLUMNS, 0) {
+        // Create table with custom model. Column headers are localized via resource bundle.
+    String[] tableColumns = new String[] {
+        messages.getString("label.cups"),
+        messages.getString("label.center"),
+        messages.getString("label.acronym"),
+        messages.getString("label.energy"),
+        messages.getString("label.street"),
+        messages.getString("label.postal"),
+        messages.getString("label.city"),
+        messages.getString("label.province")
+    };
+
+        DefaultTableModel model = new DefaultTableModel(tableColumns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -406,15 +490,24 @@ public class CupsConfigPanel extends BaseModulePanel {
 
         // Add buttons panel
         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonsPanel.setBackground(Color.WHITE);
+        buttonsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         JButton editButton = new JButton(messages.getString("button.edit"));
         JButton deleteButton = new JButton(messages.getString("button.delete"));
         JButton saveButton = new JButton(messages.getString("button.save"));
 
-        editButton.addActionListener(e -> { if (controller != null) controller.handleEditCenter(); });
-        deleteButton.addActionListener(e -> { if (controller != null) controller.handleDeleteCenter(); });
-        saveButton.addActionListener(e -> { if (controller != null) controller.handleSave(); });
+        editButton.addActionListener(e -> {
+            if (controller != null)
+                controller.handleEditCenter();
+        });
+        deleteButton.addActionListener(e -> {
+            if (controller != null)
+                controller.handleDeleteCenter();
+        });
+        saveButton.addActionListener(e -> {
+            if (controller != null)
+                controller.handleSave();
+        });
 
         buttonsPanel.add(editButton);
         buttonsPanel.add(deleteButton);
@@ -432,7 +525,10 @@ public class CupsConfigPanel extends BaseModulePanel {
 
         gbc.gridx = 1;
         selector.setPreferredSize(new Dimension(150, 25));
-        selector.addActionListener(e -> { if (controller != null) controller.handleColumnSelection(); });
+        selector.addActionListener(e -> {
+            if (controller != null)
+                controller.handleColumnSelection();
+        });
         panel.add(selector, gbc);
     }
 
@@ -528,6 +624,7 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     @Override
     protected void onSave() {
-        if (controller != null) controller.handleSave();
+        if (controller != null)
+            controller.handleSave();
     }
 }

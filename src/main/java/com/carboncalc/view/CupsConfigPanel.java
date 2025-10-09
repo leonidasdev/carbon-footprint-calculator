@@ -85,7 +85,7 @@ public class CupsConfigPanel extends BaseModulePanel {
     JPanel box = new JPanel(new GridBagLayout());
     box.setBackground(Color.WHITE);
     // Use a standard titled border (thin) to match the other panels and the requested style
-    box.setBorder(BorderFactory.createTitledBorder(messages.getString("tab.manual.input")));
+    box.setBorder(BorderFactory.createEmptyBorder());
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -202,7 +202,7 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     private JPanel createColumnMappingPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.column.mapping")));
+    panel.setBorder(BorderFactory.createEmptyBorder());
         panel.setBackground(Color.WHITE);
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -225,7 +225,7 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     private JPanel createFileManagementPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.file.management")));
+    panel.setBorder(BorderFactory.createEmptyBorder());
         panel.setBackground(Color.WHITE);
 
         // File management controls panel
@@ -275,7 +275,7 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     private JPanel createColumnConfigPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.column.config")));
+    panel.setBorder(BorderFactory.createEmptyBorder());
         panel.setBackground(Color.WHITE);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -305,8 +305,7 @@ public class CupsConfigPanel extends BaseModulePanel {
 
         // Range Configuration
         JPanel rangePanel = new JPanel(new GridLayout(2, 2, 5, 5));
-        rangePanel.setBorder(BorderFactory.createTitledBorder(
-                messages.getString("label.range.config")));
+    rangePanel.setBorder(BorderFactory.createEmptyBorder());
         rangePanel.setBackground(Color.WHITE);
 
         rangePanel.add(new JLabel(messages.getString("label.row.start")));
@@ -332,7 +331,7 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     private JPanel createPreviewPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.preview")));
+    panel.setBorder(BorderFactory.createEmptyBorder());
         panel.setBackground(Color.WHITE);
 
         // Create the table with a default table model

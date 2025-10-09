@@ -229,9 +229,10 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         factorsTable.getTableHeader().setReorderingAllowed(false);
         UIUtils.styleTable(factorsTable);
         
-        // Add table to scroll pane
-        JScrollPane scrollPane = new JScrollPane(factorsTable);
-        panel.add(scrollPane, BorderLayout.CENTER);
+            // Add table to scroll pane with no borders
+            JScrollPane scrollPane = new JScrollPane(factorsTable);
+            scrollPane.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+            panel.add(scrollPane, BorderLayout.CENTER);
 
         // Add button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -324,11 +325,6 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         wrapperPanel.setBackground(Color.WHITE);
         wrapperPanel.add(factorsPanel, BorderLayout.NORTH);
         
-        // Create trading companies panel
-        JPanel tradingPanel = new JPanel(new BorderLayout(10, 10));
-        tradingPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.trading.companies")));
-        tradingPanel.setBackground(Color.WHITE);
-
         // Create input panel for new trading company
         JPanel inputPanel = new JPanel(new GridLayout(3, 2, 5, 5));
         inputPanel.setBackground(Color.WHITE);
@@ -351,7 +347,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         gdoTypeComboBox = new JComboBox<>(GDO_TYPES);
         inputPanel.add(gdoTypeComboBox);
 
-        // Add button panel
+        // Add button panel for manual input
         JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         addButtonPanel.setBackground(Color.WHITE);
         JButton addCompanyButton = new JButton(messages.getString("button.add.company"));
@@ -364,7 +360,13 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         inputWrapperPanel.add(inputPanel, BorderLayout.CENTER);
         inputWrapperPanel.add(addButtonPanel, BorderLayout.SOUTH);
 
-        // Create table for trading companies
+        // Put manual inputs inside a titled 'Manual Input' box
+        JPanel manualInputBox = new JPanel(new BorderLayout());
+        manualInputBox.setBackground(Color.WHITE);
+        manualInputBox.setBorder(BorderFactory.createTitledBorder(messages.getString("tab.manual.input")));
+        manualInputBox.add(inputWrapperPanel, BorderLayout.CENTER);
+
+        // Create table for trading companies (preview)
         String[] columnNames = {
             messages.getString("table.header.company"),
             messages.getString("table.header.factor"),
@@ -383,8 +385,9 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         tradingCompaniesTable.getTableHeader().setReorderingAllowed(false);
         UIUtils.styleTable(tradingCompaniesTable);
 
-        JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
-        scrollPane.setPreferredSize(new Dimension(0, 200));
+    JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
+    // Increase preferred height so the table takes more vertical space and buttons sit closer
+    scrollPane.setPreferredSize(new Dimension(0, 300));
 
         // Button panel for table actions
         JPanel tradingCompanyButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -396,30 +399,27 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         editButton.addActionListener(e -> controller.handleEditTradingCompany());
         deleteButton.addActionListener(e -> controller.handleDeleteTradingCompany());
         
-        tradingCompanyButtonPanel.add(editButton);
-        tradingCompanyButtonPanel.add(deleteButton);
+    tradingCompanyButtonPanel.add(editButton);
+    tradingCompanyButtonPanel.add(deleteButton);
 
-        tradingPanel.add(inputWrapperPanel, BorderLayout.NORTH);
+    // Save button to the right of Delete (inside the trading companies box)
+    saveGeneralFactorsButton = new JButton(messages.getString("button.save"));
+    saveGeneralFactorsButton.addActionListener(e -> controller.handleSaveElectricityGeneralFactors());
+    tradingCompanyButtonPanel.add(saveGeneralFactorsButton);
+
+        // Create trading companies panel (preview only)
+        JPanel tradingPanel = new JPanel(new BorderLayout(10, 10));
+        tradingPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.trading.companies")));
+        tradingPanel.setBackground(Color.WHITE);
         tradingPanel.add(scrollPane, BorderLayout.CENTER);
         tradingPanel.add(tradingCompanyButtonPanel, BorderLayout.SOUTH);
 
+        // Add manual input box above trading companies preview
+        wrapperPanel.add(manualInputBox, BorderLayout.NORTH);
         wrapperPanel.add(tradingPanel, BorderLayout.CENTER);
         mainPanel.add(wrapperPanel, BorderLayout.CENTER);
 
-        // Save button panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.setBackground(Color.WHITE);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 20, 0));
-        
-        saveGeneralFactorsButton = new JButton(messages.getString("button.save.general.factors"));
-        saveGeneralFactorsButton.setPreferredSize(new Dimension(200, 35));
-        saveGeneralFactorsButton.setFont(saveGeneralFactorsButton.getFont().deriveFont(Font.BOLD));
-        saveGeneralFactorsButton.addActionListener(e -> controller.handleSaveElectricityGeneralFactors());
-        buttonPanel.add(saveGeneralFactorsButton);
-
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        return mainPanel;
+    return mainPanel;
     }
 
     private JPanel createPreviewPanel() {

@@ -118,6 +118,17 @@ public class MainWindow extends JFrame {
         OptionsPanelController panelController = new OptionsPanelController(messages);
         OptionsPanel panel = new OptionsPanel(panelController, messages);
         panelController.setView(panel);
+        // Preselect language in options based on currently loaded messages bundle.
+        // initializeComponents() in BaseModulePanel is invoked later on the EDT,
+        // so schedule the selection to run after that initialization completes.
+        SwingUtilities.invokeLater(() -> {
+            try {
+                String lang = messages.getLocale().getLanguage();
+                if ("es".equals(lang)) panel.setSelectedLanguage(messages.getString("language.spanish"));
+                else panel.setSelectedLanguage(messages.getString("language.english"));
+            } catch (Exception ignored) {
+            }
+        });
         return panel;
     }
     

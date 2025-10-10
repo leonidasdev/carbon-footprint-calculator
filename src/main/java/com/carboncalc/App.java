@@ -9,12 +9,26 @@ import java.awt.Color;
 import java.awt.Font;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import com.carboncalc.util.Settings;
+import java.io.IOException;
 
 public class App {
     public static void main(String[] args) {
+        // Load persisted language code (if any) and create appropriate Locale
+        Locale locale = Locale.getDefault();
+        try {
+            String code = Settings.loadLanguageCode();
+            if (code != null && !code.isBlank()) {
+                if (code.equals("es")) locale = new Locale("es");
+                else if (code.equals("en")) locale = new Locale("en");
+            }
+        } catch (IOException e) {
+            // ignore and proceed with system default
+        }
+
         // Load language resources early so we can use localized strings in system
         // properties
-        ResourceBundle messages = ResourceBundle.getBundle("Messages", Locale.getDefault());
+        ResourceBundle messages = ResourceBundle.getBundle("Messages", locale);
 
         // Set system look and feel properties (macOS menu integration uses the
         // localized app title)

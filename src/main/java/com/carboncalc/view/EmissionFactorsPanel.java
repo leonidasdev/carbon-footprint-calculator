@@ -195,7 +195,6 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private JTextField gdoRenovableField;
     private JTextField gdoCogeneracionField;
     private JButton saveGeneralFactorsButton;
-    private JButton editGeneralFactorsButton;
     private JPanel electricityGeneralFactorsPanel;
 
     private JPanel createDataManagementPanel() {
@@ -318,7 +317,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     mixSinGdoField.setPreferredSize(new Dimension(140, 26));
     mixSinGdoField.setMargin(new Insets(5,5,5,5));
     mixSinGdoField.setHorizontalAlignment(JTextField.RIGHT);
-    mixSinGdoField.setEditable(false);
+    mixSinGdoField.setEditable(true);
         UIUtils.styleTextField(mixSinGdoField); // harmless if method supports JTextField
     factorsPanel.add(mixSinGdoField, fgbc);
 
@@ -337,7 +336,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     gdoRenovableField.setPreferredSize(new Dimension(140, 26));
     gdoRenovableField.setMargin(new Insets(5,5,5,5));
     gdoRenovableField.setHorizontalAlignment(JTextField.RIGHT);
-    gdoRenovableField.setEditable(false);
+    gdoRenovableField.setEditable(true);
         UIUtils.styleTextField(gdoRenovableField);
     factorsPanel.add(gdoRenovableField, fgbc);
 
@@ -356,7 +355,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     gdoCogeneracionField.setPreferredSize(new Dimension(140, 26));
     gdoCogeneracionField.setMargin(new Insets(5,5,5,5));
     gdoCogeneracionField.setHorizontalAlignment(JTextField.RIGHT);
-    gdoCogeneracionField.setEditable(false);
+    gdoCogeneracionField.setEditable(true);
         UIUtils.styleTextField(gdoCogeneracionField);
     factorsPanel.add(gdoCogeneracionField, fgbc);
 
@@ -372,22 +371,10 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     JPanel localFactorsButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
     localFactorsButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
-    editGeneralFactorsButton = new JButton(messages.getString("button.edit"));
-    saveGeneralFactorsButton = new JButton(messages.getString("button.save"));
-    saveGeneralFactorsButton.setEnabled(false);
-
-    editGeneralFactorsButton.addActionListener(e -> {
-        boolean editing = !mixSinGdoField.isEditable();
-        setGeneralFactorsEditable(editing);
-        saveGeneralFactorsButton.setEnabled(editing);
-        editGeneralFactorsButton.setText(editing ? messages.getString("button.cancel") : messages.getString("button.edit"));
-    });
-
+    saveGeneralFactorsButton = new JButton(messages.getString("button.apply"));
+    saveGeneralFactorsButton.setEnabled(true);
     saveGeneralFactorsButton.addActionListener(e -> controller.handleSaveElectricityGeneralFactors());
-
-    UIUtils.styleButton(editGeneralFactorsButton);
     UIUtils.styleButton(saveGeneralFactorsButton);
-    localFactorsButtonPanel.add(editGeneralFactorsButton);
     localFactorsButtonPanel.add(saveGeneralFactorsButton);
 
     factorsPanel.add(localFactorsButtonPanel, fgbc);
@@ -564,19 +551,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     public JTextField getEmissionFactorField() { return emissionFactorField; }
     public JComboBox<String> getGdoTypeComboBox() { return gdoTypeComboBox; }
     
-    /**
-     * Toggle the editable state of the general factors fields. When editable is
-     * true the fields become editable and the UI styling is updated accordingly.
-     */
-    private void setGeneralFactorsEditable(boolean editable) {
-        mixSinGdoField.setEditable(editable);
-        gdoRenovableField.setEditable(editable);
-        gdoCogeneracionField.setEditable(editable);
-    // Apply the shared text field style to keep look consistent
-    UIUtils.styleTextField(mixSinGdoField);
-    UIUtils.styleTextField(gdoRenovableField);
-    UIUtils.styleTextField(gdoCogeneracionField);
-    }
+    // General factors are editable by default now; edit button removed.
     
     @Override
     protected void onSave() {

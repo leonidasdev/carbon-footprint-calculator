@@ -13,8 +13,12 @@ import java.util.ResourceBundle;
 public class OptionsPanel extends BaseModulePanel {
     private final OptionsPanelController controller;
     private JComboBox<String> languageSelector;
-    private JComboBox<String> themeSelector;
-    
+    // When programmatically setting combo selection (e.g. on startup), set
+    // this flag to true to avoid triggering the action listener which would
+    // save settings and show dialogs. Only user-initiated changes should
+    // notify the controller.
+    private boolean suppressLanguageEvents = false;
+
     public OptionsPanel(OptionsPanelController controller, ResourceBundle messages) {
         super(messages);
         this.controller = controller;
@@ -39,32 +43,19 @@ public class OptionsPanel extends BaseModulePanel {
             messages.getString("language.english"),
             messages.getString("language.spanish")
         });
-        languageSelector.addActionListener(e -> controller.handleLanguageChange());
+        languageSelector.addActionListener(e -> {
+            if (!suppressLanguageEvents) controller.handleLanguageChange();
+        });
         UIUtils.styleComboBox(languageSelector);
         gbc.gridx = 1;
         contentPanel.add(languageSelector, gbc);
         
-        // Theme selection
-        JLabel themeLabel = new JLabel(messages.getString("label.theme"));
+        // About button
+        JButton aboutButton = new JButton(messages.getString("button.about"));
+        aboutButton.addActionListener(e -> controller.handleAboutRequest());
+        UIUtils.styleButton(aboutButton);
         gbc.gridx = 0;
         gbc.gridy = 1;
-        contentPanel.add(themeLabel, gbc);
-        
-        themeSelector = new JComboBox<>(new String[] {
-            messages.getString("theme.light"),
-            messages.getString("theme.dark")
-        });
-        themeSelector.addActionListener(e -> controller.handleThemeChange());
-        UIUtils.styleComboBox(themeSelector);
-        gbc.gridx = 1;
-        contentPanel.add(themeSelector, gbc);
-        
-        // About button
-    JButton aboutButton = new JButton(messages.getString("button.about"));
-    aboutButton.addActionListener(e -> controller.handleAboutRequest());
-    UIUtils.styleButton(aboutButton);
-        gbc.gridx = 0;
-        gbc.gridy = 2;
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
         contentPanel.add(aboutButton, gbc);
@@ -84,15 +75,12 @@ public class OptionsPanel extends BaseModulePanel {
         return (String) languageSelector.getSelectedItem();
     }
     
-    public String getSelectedTheme() {
-        return (String) themeSelector.getSelectedItem();
-    }
-    
     public void setSelectedLanguage(String language) {
-        languageSelector.setSelectedItem(language);
-    }
-    
-    public void setSelectedTheme(String theme) {
-        themeSelector.setSelectedItem(theme);
+        suppressLanguageEvents = true;
+        try {
+            languageSelector.setSelectedItem(language);
+        } finally {
+            suppressLanguageEvents = false;
+        }
     }
 }

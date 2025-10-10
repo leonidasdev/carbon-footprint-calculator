@@ -27,6 +27,15 @@ public class App {
      * - Start the Swing UI on the EDT using localized messages.
      */
     public static void main(String[] args) {
+        // Ensure workspace data folders exist before any settings IO
+        try {
+            com.carboncalc.util.DataInitializer.ensureDataFolders();
+        } catch (IOException e) {
+            // If directory creation fails we continue; Settings will also throw
+            // a clearer IOException if attempted. We avoid hard-failing the
+            // application startup here to keep the UI available for debugging.
+        }
+
         // Load persisted language code (if any) and create appropriate Locale
         Locale locale = Locale.getDefault();
         try {

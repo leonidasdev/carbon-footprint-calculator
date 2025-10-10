@@ -65,10 +65,12 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         
         // Create type selection panel (left)
         JPanel typeSelectionPanel = createTypeSelectionPanel();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weightx = 0.5;
-        topPanel.add(typeSelectionPanel, gbc);
+    gbc.gridx = 0;
+    gbc.gridy = 0;
+    // Give the type selection a smaller width so the general factors
+    // area (in the cards) can have more vertical space.
+    gbc.weightx = 0.25;
+    topPanel.add(typeSelectionPanel, gbc);
         
         // Add panels to main panel
         mainPanel.add(topPanel, BorderLayout.NORTH);
@@ -180,23 +182,9 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     UIUtils.styleComboBox(typeComboBox);
         contentPanel.add(typePanel);
 
-        // Year selection
-    JPanel yearPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-    yearPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        yearPanel.add(new JLabel(messages.getString("label.year.select")));
-        SpinnerNumberModel yearModel = new SpinnerNumberModel(
-            Year.now().getValue(),
-            1900,
-            2100,
-            1
-        );
-        yearSpinner = new JSpinner(yearModel);
-        yearSpinner.setPreferredSize(new Dimension(80, 25));
-        JSpinner.NumberEditor editor = new JSpinner.NumberEditor(yearSpinner, "#");
-        yearSpinner.setEditor(editor);
-        yearSpinner.addChangeListener(e -> controller.handleYearSelection((Integer) yearSpinner.getValue()));
-        yearPanel.add(yearSpinner);
-        contentPanel.add(yearPanel);
+        // Note: year selector moved into the General Factors area so it is
+        // visually associated with the editable controls. This keeps the
+        // top type selector compact.
 
         panel.add(contentPanel, BorderLayout.CENTER);
         return panel;
@@ -305,7 +293,22 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     fgbc.fill = GridBagConstraints.HORIZONTAL;
 
         // Mix sin GdO (label, input, unit)
+    // Year selector row inside the general factors box
     fgbc.gridx = 0; fgbc.gridy = 0; fgbc.weightx = 0.0; fgbc.anchor = GridBagConstraints.WEST;
+    JLabel yearLabel = new JLabel(messages.getString("label.year.select") + ":");
+    factorsPanel.add(yearLabel, fgbc);
+
+    fgbc.gridx = 1; fgbc.weightx = 0.6;
+    SpinnerNumberModel yearModel = new SpinnerNumberModel(Year.now().getValue(), 1900, 2100, 1);
+    yearSpinner = new JSpinner(yearModel);
+    yearSpinner.setPreferredSize(new Dimension(80, 25));
+    JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "#");
+    yearSpinner.setEditor(yearEditor);
+    yearSpinner.addChangeListener(e -> controller.handleYearSelection((Integer) yearSpinner.getValue()));
+    factorsPanel.add(yearSpinner, fgbc);
+
+    // Mix sin GdO (label, input, unit) - move to next row
+    fgbc.gridx = 0; fgbc.gridy = 1; fgbc.weightx = 0.0; fgbc.anchor = GridBagConstraints.WEST;
     JLabel mixLabel = new JLabel(messages.getString("label.mix.sin.gdo") + ":");
     // keep normal font to match manual input labels
     factorsPanel.add(mixLabel, fgbc);
@@ -325,7 +328,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     factorsPanel.add(mixUnit, fgbc);
 
         // GdO Renovable
-    fgbc.gridx = 0; fgbc.gridy = 1; fgbc.weightx = 0.0;
+    fgbc.gridx = 0; fgbc.gridy = 2; fgbc.weightx = 0.0;
     JLabel renovableLabel = new JLabel(messages.getString("label.gdo.renovable") + ":");
     factorsPanel.add(renovableLabel, fgbc);
 
@@ -344,7 +347,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     factorsPanel.add(renovUnit, fgbc);
 
         // GdO Cogeneración Alta Eficiencia
-    fgbc.gridx = 0; fgbc.gridy = 2; fgbc.weightx = 0.0;
+    fgbc.gridx = 0; fgbc.gridy = 3; fgbc.weightx = 0.0;
     JLabel cogLabel = new JLabel(messages.getString("label.gdo.cogeneracion") + ":");
     factorsPanel.add(cogLabel, fgbc);
 
@@ -363,7 +366,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     factorsPanel.add(cogUnit, fgbc);
 
     // Add Edit/Save buttons inside the general factors box (new row)
-    fgbc.gridx = 0; fgbc.gridy = 3; fgbc.gridwidth = 3; fgbc.weightx = 1.0;
+    fgbc.gridx = 0; fgbc.gridy = 4; fgbc.gridwidth = 3; fgbc.weightx = 1.0;
     fgbc.anchor = GridBagConstraints.EAST;
     fgbc.fill = GridBagConstraints.NONE;
     JPanel localFactorsButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -497,7 +500,9 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         JPanel rightContainer = new JPanel(new BorderLayout());
         rightContainer.setBackground(UIUtils.CONTENT_BACKGROUND);
         // Put factorsPanel in CENTER so it expands to match the left column height
-        rightContainer.add(factorsPanel, BorderLayout.CENTER);
+            // Put the factors panel in the center of the right container so
+            // it expands to match the left column height.
+            rightContainer.add(factorsPanel, BorderLayout.CENTER);
         // Try to match the visual height of the manual input box to avoid clipping
         Dimension leftPref = manualInputBox.getPreferredSize();
         if (leftPref != null) {

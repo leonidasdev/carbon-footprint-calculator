@@ -207,6 +207,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private JTextField gdoRenovableField;
     private JTextField gdoCogeneracionField;
     private JButton saveGeneralFactorsButton;
+    private JButton editGeneralFactorsButton;
     private JPanel electricityGeneralFactorsPanel;
 
     private JPanel createDataManagementPanel() {
@@ -295,48 +296,103 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     JPanel mainPanel = new JPanel(new BorderLayout());
     mainPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
-        // Create factors input panel
-    JPanel factorsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
+        // Create factors input panel (3-column grid: label | input | unit)
+    JPanel factorsPanel = new JPanel(new GridBagLayout());
     factorsPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.general.factors")));
     factorsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+    GridBagConstraints fgbc = new GridBagConstraints();
+    fgbc.insets = new Insets(6, 8, 6, 8);
+    fgbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Mix sin GdO
-    JPanel mixPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-    mixPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        JLabel mixLabel = new JLabel(messages.getString("label.mix.sin.gdo") + ":");
-        mixLabel.setFont(mixLabel.getFont().deriveFont(Font.BOLD));
-        mixPanel.add(mixLabel);
-        mixSinGdoField = new JTextField(8);
-        mixSinGdoField.setMargin(new Insets(5, 5, 5, 5));
-        mixPanel.add(mixSinGdoField);
-        factorsPanel.add(mixPanel);
+        // Mix sin GdO (label, input, unit)
+    fgbc.gridx = 0; fgbc.gridy = 0; fgbc.weightx = 0.0; fgbc.anchor = GridBagConstraints.WEST;
+    JLabel mixLabel = new JLabel(messages.getString("label.mix.sin.gdo") + ":");
+    // keep normal font to match manual input labels
+    factorsPanel.add(mixLabel, fgbc);
+
+    fgbc.gridx = 1; fgbc.weightx = 0.6; 
+    mixSinGdoField = new JTextField();
+    mixSinGdoField.setPreferredSize(new Dimension(140, 26));
+    mixSinGdoField.setMargin(new Insets(5,5,5,5));
+    mixSinGdoField.setHorizontalAlignment(JTextField.RIGHT);
+    mixSinGdoField.setEditable(false);
+        UIUtils.styleTextField(mixSinGdoField); // harmless if method supports JTextField
+    factorsPanel.add(mixSinGdoField, fgbc);
+
+    fgbc.gridx = 2; fgbc.weightx = 0.0; 
+    JLabel mixUnit = new JLabel("kg CO2e/kWh");
+    mixUnit.setForeground(Color.GRAY);
+    factorsPanel.add(mixUnit, fgbc);
 
         // GdO Renovable
-    JPanel renovablePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-    renovablePanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        JLabel renovableLabel = new JLabel(messages.getString("label.gdo.renovable") + ":");
-        renovableLabel.setFont(renovableLabel.getFont().deriveFont(Font.BOLD));
-        renovablePanel.add(renovableLabel);
-        gdoRenovableField = new JTextField(8);
-        gdoRenovableField.setMargin(new Insets(5, 5, 5, 5));
-        renovablePanel.add(gdoRenovableField);
-        factorsPanel.add(renovablePanel);
+    fgbc.gridx = 0; fgbc.gridy = 1; fgbc.weightx = 0.0;
+    JLabel renovableLabel = new JLabel(messages.getString("label.gdo.renovable") + ":");
+    factorsPanel.add(renovableLabel, fgbc);
+
+    fgbc.gridx = 1; fgbc.weightx = 0.6;
+    gdoRenovableField = new JTextField();
+    gdoRenovableField.setPreferredSize(new Dimension(140, 26));
+    gdoRenovableField.setMargin(new Insets(5,5,5,5));
+    gdoRenovableField.setHorizontalAlignment(JTextField.RIGHT);
+    gdoRenovableField.setEditable(false);
+        UIUtils.styleTextField(gdoRenovableField);
+    factorsPanel.add(gdoRenovableField, fgbc);
+
+    fgbc.gridx = 2; fgbc.weightx = 0.0;
+    JLabel renovUnit = new JLabel("kg CO2/kWh");
+    renovUnit.setForeground(Color.GRAY);
+    factorsPanel.add(renovUnit, fgbc);
 
         // GdO Cogeneración Alta Eficiencia
-    JPanel cogeneracionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-    cogeneracionPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        JLabel cogeneracionLabel = new JLabel(messages.getString("label.gdo.cogeneracion") + ":");
-        cogeneracionLabel.setFont(cogeneracionLabel.getFont().deriveFont(Font.BOLD));
-        cogeneracionPanel.add(cogeneracionLabel);
-        gdoCogeneracionField = new JTextField(8);
-        gdoCogeneracionField.setMargin(new Insets(5, 5, 5, 5));
-        cogeneracionPanel.add(gdoCogeneracionField);
-        factorsPanel.add(cogeneracionPanel);
+    fgbc.gridx = 0; fgbc.gridy = 2; fgbc.weightx = 0.0;
+    JLabel cogLabel = new JLabel(messages.getString("label.gdo.cogeneracion") + ":");
+    factorsPanel.add(cogLabel, fgbc);
 
-        // Create a wrapper panel for centering
-    JPanel wrapperPanel = new JPanel(new BorderLayout());
-    wrapperPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        wrapperPanel.add(factorsPanel, BorderLayout.NORTH);
+    fgbc.gridx = 1; fgbc.weightx = 0.6;
+    gdoCogeneracionField = new JTextField();
+    gdoCogeneracionField.setPreferredSize(new Dimension(140, 26));
+    gdoCogeneracionField.setMargin(new Insets(5,5,5,5));
+    gdoCogeneracionField.setHorizontalAlignment(JTextField.RIGHT);
+    gdoCogeneracionField.setEditable(false);
+        UIUtils.styleTextField(gdoCogeneracionField);
+    factorsPanel.add(gdoCogeneracionField, fgbc);
+
+    fgbc.gridx = 2; fgbc.weightx = 0.0;
+    JLabel cogUnit = new JLabel("kg CO2/kWh");
+    cogUnit.setForeground(Color.GRAY);
+    factorsPanel.add(cogUnit, fgbc);
+
+    // Add Edit/Save buttons inside the general factors box (new row)
+    fgbc.gridx = 0; fgbc.gridy = 3; fgbc.gridwidth = 3; fgbc.weightx = 1.0;
+    fgbc.anchor = GridBagConstraints.EAST;
+    fgbc.fill = GridBagConstraints.NONE;
+    JPanel localFactorsButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    localFactorsButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+
+    editGeneralFactorsButton = new JButton(messages.getString("button.edit"));
+    saveGeneralFactorsButton = new JButton(messages.getString("button.save"));
+    saveGeneralFactorsButton.setEnabled(false);
+
+    editGeneralFactorsButton.addActionListener(e -> {
+        boolean editing = !mixSinGdoField.isEditable();
+        setGeneralFactorsEditable(editing);
+        saveGeneralFactorsButton.setEnabled(editing);
+        editGeneralFactorsButton.setText(editing ? messages.getString("button.cancel") : messages.getString("button.edit"));
+    });
+
+    saveGeneralFactorsButton.addActionListener(e -> controller.handleSaveElectricityGeneralFactors());
+
+    UIUtils.styleButton(editGeneralFactorsButton);
+    UIUtils.styleButton(saveGeneralFactorsButton);
+    localFactorsButtonPanel.add(editGeneralFactorsButton);
+    localFactorsButtonPanel.add(saveGeneralFactorsButton);
+
+    factorsPanel.add(localFactorsButtonPanel, fgbc);
+
+        // Create a wrapper panel which will hold a top two-column area and
+        // the trading companies panel below (spanning full width)
+        JPanel wrapperPanel = new JPanel(new BorderLayout());
+        wrapperPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
         // Create input panel for new trading company
     JPanel inputPanel = new JPanel(new GridLayout(3, 2, 5, 5));
@@ -419,11 +475,10 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         tradingCompanyButtonPanel.add(editButton);
         tradingCompanyButtonPanel.add(deleteButton);
 
-    // Save button to the right of Delete (inside the trading companies box)
-    saveGeneralFactorsButton = new JButton(messages.getString("button.save"));
-    saveGeneralFactorsButton.addActionListener(e -> controller.handleSaveElectricityGeneralFactors());
-    UIUtils.styleButton(saveGeneralFactorsButton);
-    tradingCompanyButtonPanel.add(saveGeneralFactorsButton);
+        // Note: general factors Save button will be placed in the right column
+        // next to the general factors panel so it is visually associated with
+        // the editable controls. Keep the trading company buttons limited to
+        // company actions (edit/delete).
 
         // Create trading companies panel (preview only)
         JPanel tradingPanel = new JPanel(new BorderLayout(10, 10));
@@ -432,10 +487,30 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         tradingPanel.add(scrollPane, BorderLayout.CENTER);
         tradingPanel.add(tradingCompanyButtonPanel, BorderLayout.SOUTH);
 
-        // Add manual input box above trading companies preview
-        wrapperPanel.add(manualInputBox, BorderLayout.NORTH);
-        wrapperPanel.add(tradingPanel, BorderLayout.CENTER);
-        mainPanel.add(wrapperPanel, BorderLayout.CENTER);
+    // Build a top two-column panel: left = manual input, right = general factors
+    JPanel topPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+    topPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+    // Left: manual input box
+    topPanel.add(manualInputBox);
+    // Right: place the factorsPanel at the top of a right container so it
+    // aligns vertically with the manual input box
+        JPanel rightContainer = new JPanel(new BorderLayout());
+        rightContainer.setBackground(UIUtils.CONTENT_BACKGROUND);
+        // Put factorsPanel in CENTER so it expands to match the left column height
+        rightContainer.add(factorsPanel, BorderLayout.CENTER);
+        // Try to match the visual height of the manual input box to avoid clipping
+        Dimension leftPref = manualInputBox.getPreferredSize();
+        if (leftPref != null) {
+            rightContainer.setPreferredSize(new Dimension(Math.max(300, leftPref.width), leftPref.height));
+            rightContainer.setMinimumSize(new Dimension(200, leftPref.height));
+        }
+    topPanel.add(rightContainer);
+
+    // Add the top two-column area at the top and the trading companies panel
+    // below it so the trading panel spans the full width
+    wrapperPanel.add(topPanel, BorderLayout.NORTH);
+    wrapperPanel.add(tradingPanel, BorderLayout.CENTER);
+    mainPanel.add(wrapperPanel, BorderLayout.CENTER);
 
     return mainPanel;
     }
@@ -483,6 +558,20 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     public JTextField getCompanyNameField() { return companyNameField; }
     public JTextField getEmissionFactorField() { return emissionFactorField; }
     public JComboBox<String> getGdoTypeComboBox() { return gdoTypeComboBox; }
+    
+    /**
+     * Toggle the editable state of the general factors fields. When editable is
+     * true the fields become editable and the UI styling is updated accordingly.
+     */
+    private void setGeneralFactorsEditable(boolean editable) {
+        mixSinGdoField.setEditable(editable);
+        gdoRenovableField.setEditable(editable);
+        gdoCogeneracionField.setEditable(editable);
+    // Apply the shared text field style to keep look consistent
+    UIUtils.styleTextField(mixSinGdoField);
+    UIUtils.styleTextField(gdoRenovableField);
+    UIUtils.styleTextField(gdoCogeneracionField);
+    }
     
     @Override
     protected void onSave() {

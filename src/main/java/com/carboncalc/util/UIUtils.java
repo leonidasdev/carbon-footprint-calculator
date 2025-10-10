@@ -102,6 +102,15 @@ public class UIUtils {
         comboBox.setBorder(BorderFactory.createLineBorder(UPM_BLUE));
     }
 
+    /**
+     * Apply consistent styling to text fields used across the UI.
+     */
+    public static void styleTextField(JTextField textField) {
+        textField.setBackground(GENERAL_BACKGROUND);
+        textField.setBorder(BorderFactory.createLineBorder(UPM_BLUE));
+        // keep right alignment for numeric fields where set by caller
+    }
+
     public static void setupPreviewTable(JTable table) {
         // Create row header
         JTable rowHeader = new JTable(new DefaultTableModel(table.getRowCount(), 1) {

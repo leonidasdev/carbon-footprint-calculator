@@ -1,0 +1,36 @@
+# Java / Maven defaults
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Eclipse/IntelliJ/VSCode
+.project
+.classpath
+.settings/
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Gradle
+.gradle/
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Project-specific
+# Ignore all data files
+data/
+
+# Keep gitignore
+!.gitignore

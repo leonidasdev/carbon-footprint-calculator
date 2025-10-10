@@ -12,7 +12,8 @@ import java.nio.file.Path;
  * multiple places.
  */
 public final class DataInitializer {
-    private DataInitializer() {}
+    private DataInitializer() {
+    }
 
     /**
      * Ensure common data folders exist. Creates directories if missing.
@@ -24,9 +25,18 @@ public final class DataInitializer {
         Path language = base.resolve("language");
         Path cups = base.resolve("cups_center");
         Path emission = base.resolve("emission_factors");
+        Path year = base.resolve("year");
 
         Files.createDirectories(language);
         Files.createDirectories(cups);
         Files.createDirectories(emission);
+        Files.createDirectories(year);
+
+        // If there is no persisted current year file, create one with the system year
+        Path currentYearFile = year.resolve("current_year.txt");
+        if (!Files.exists(currentYearFile)) {
+            String yearStr = String.valueOf(java.time.Year.now().getValue());
+            Files.writeString(currentYearFile, yearStr);
+        }
     }
 }

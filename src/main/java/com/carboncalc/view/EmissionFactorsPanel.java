@@ -298,11 +298,18 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     factorsPanel.add(yearLabel, fgbc);
 
     fgbc.gridx = 1; fgbc.weightx = 0.6;
-    SpinnerNumberModel yearModel = new SpinnerNumberModel(Year.now().getValue(), 1900, 2100, 1);
+    int currentYear = controller.getCurrentYear();
+    SpinnerNumberModel yearModel = new SpinnerNumberModel(currentYear, 1900, 2100, 1);
     yearSpinner = new JSpinner(yearModel);
     yearSpinner.setPreferredSize(new Dimension(80, 25));
     JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "#");
     yearSpinner.setEditor(yearEditor);
+    // Ensure the spinner's text field commits its value on focus lost so
+    // typed values are parsed into the model before listeners read them.
+    try {
+        javax.swing.JFormattedTextField tf = yearEditor.getTextField();
+        tf.setFocusLostBehavior(javax.swing.JFormattedTextField.COMMIT);
+    } catch (Exception ignored) {}
     yearSpinner.addChangeListener(e -> controller.handleYearSelection((Integer) yearSpinner.getValue()));
     factorsPanel.add(yearSpinner, fgbc);
 
@@ -544,6 +551,9 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     // Getters for card layout management
     public CardLayout getCardLayout() { return cardLayout; }
     public JPanel getCardsPanel() { return cardsPanel; }
+
+    // Getter for the year selector used by controllers for validation and saving
+    public JSpinner getYearSpinner() { return yearSpinner; }
 
     // Getters for trading companies
     public JTable getTradingCompaniesTable() { return tradingCompaniesTable; }

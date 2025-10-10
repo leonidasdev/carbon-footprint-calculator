@@ -17,6 +17,14 @@ import java.util.ResourceBundle;
  *
  * UI colors and minor behavioral styling are centralized in {@link UIUtils}.
  */
+/**
+ * MainWindow
+ *
+ * Top-level application window. Holds navigation on the left and a card
+ * layout content area on the right. This class focuses on wiring panels
+ * together and styling; individual panels are responsible for their own
+ * content and behavior.
+ */
 public class MainWindow extends JFrame {
     private final ResourceBundle messages;
     private final CardLayout cardLayout;
@@ -49,7 +57,7 @@ public class MainWindow extends JFrame {
         mainNavContainer.setOpaque(true);
         mainNavContainer.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
         
-        // Create the inner navigation panel that will hold the buttons
+    // Create the inner navigation panel that will hold the buttons
     navigationPanel = new JPanel(new GridLayout(0, 1, 5, 5));
     navigationPanel.setBackground(UIUtils.UPM_BLUE);
         navigationPanel.setOpaque(true);

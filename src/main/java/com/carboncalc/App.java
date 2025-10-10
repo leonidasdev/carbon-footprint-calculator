@@ -13,6 +13,19 @@ import com.carboncalc.util.Settings;
 import java.io.IOException;
 
 public class App {
+    // Application version. This will be used by About dialogs and may be
+    // replaced at build-time when packaging into a JAR with a proper
+    // manifest or via resource filtering.
+    public static final String VERSION = "1.0";
+
+    /**
+     * Application entry point.
+     *
+     * Responsibilities performed here:
+     * - Load persisted language preference (via {@link com.carboncalc.util.Settings}).
+     * - Configure a small set of UI defaults and look-and-feel settings.
+     * - Start the Swing UI on the EDT using localized messages.
+     */
     public static void main(String[] args) {
         // Load persisted language code (if any) and create appropriate Locale
         Locale locale = Locale.getDefault();

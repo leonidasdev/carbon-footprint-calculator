@@ -34,24 +34,28 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
                 lines = Files.readAllLines(filePath);
             }
 
-            // Map existing rows by entity to allow upsert
+            // Map existing rows by entity (parsed) to allow upsert
             Map<String, String> existingByEntity = new LinkedHashMap<>();
             if (!lines.isEmpty()) {
                 // assume first line is header; skip it
                 for (int i = 1; i < lines.size(); i++) {
                     String ln = lines.get(i);
                     if (ln == null || ln.isBlank()) continue;
-                    String[] parts = ln.split(",", -1);
-                    if (parts.length >= 4) {
-                        existingByEntity.put(parts[0], ln);
+                    List<String> parts = parseCsvLine(ln);
+                    if (parts.size() >= 4) {
+                        String entityKey = parts.get(0);
+                        existingByEntity.put(entityKey, ln);
                     }
                 }
             }
 
-            // Build CSV row for the provided factor
+            // Build CSV row for the provided factor (quote textual fields)
             String entity = factor.getEntity() == null ? "" : factor.getEntity();
             String unit = factor.getUnit() == null ? "" : factor.getUnit();
-            String row = String.format("%s,%d,%.6f,%s", entity, factor.getYear(), factor.getBaseFactor(), unit);
+            String qEntity = quoteCsv(entity);
+            String qUnit = quoteCsv(unit);
+            String baseStr = String.format(java.util.Locale.ROOT, "%.6f", factor.getBaseFactor());
+            String row = String.join(",", qEntity, String.valueOf(factor.getYear()), baseStr, qUnit);
 
             existingByEntity.put(entity, row);
 
@@ -80,14 +84,14 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
             for (int i = 1; i < lines.size(); i++) {
                 String ln = lines.get(i);
                 if (ln == null || ln.isBlank()) continue;
-                String[] parts = ln.split(",", -1);
+                List<String> parts = parseCsvLine(ln);
                 // expected: entity,year,baseFactor,unit
-                if (parts.length >= 4) {
-                    String entity = parts[0];
+                if (parts.size() >= 4) {
+                    String entity = parts.get(0);
                     int y = 0;
                     double base = 0.0;
-                    try { y = Integer.parseInt(parts[1]); } catch (Exception ignored) {}
-                    try { base = Double.parseDouble(parts[2]); } catch (Exception ignored) {}
+                    try { y = Integer.parseInt(parts.get(1)); } catch (Exception ignored) {}
+                    try { base = Double.parseDouble(parts.get(2)); } catch (Exception ignored) {}
 
                     EmissionFactor ef = createEmissionFactor(type);
                     // Set common fields via type-specific setters
@@ -121,6 +125,47 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
         }
 
         return result;
+    }
+
+    /** Parse a CSV line into fields, supporting quoted fields and escaped quotes. */
+    private List<String> parseCsvLine(String line) {
+        List<String> out = new ArrayList<>();
+        if (line == null) return out;
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (inQuotes) {
+                if (c == '"') {
+                    // look ahead for escaped quote
+                    if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                        cur.append('"');
+                        i++; // skip next quote
+                    } else {
+                        inQuotes = false;
+                    }
+                } else {
+                    cur.append(c);
+                }
+            } else {
+                if (c == '"') {
+                    inQuotes = true;
+                } else if (c == ',') {
+                    out.add(cur.toString());
+                    cur.setLength(0);
+                } else {
+                    cur.append(c);
+                }
+            }
+        }
+        out.add(cur.toString());
+        return out;
+    }
+
+    private String quoteCsv(String s) {
+        if (s == null) return "";
+        String escaped = s.replace("\"", "\"\"");
+        return "\"" + escaped + "\"";
     }
 
     @Override
@@ -184,6 +229,70 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
             e.printStackTrace();
             return new ArrayList<>();
         }
+    }
+
+    @Override
+    public void deleteEmissionFactor(String type, int year, String entity) {
+        if (entity == null) entity = "";
+        try {
+            List<? extends EmissionFactor> existing = loadEmissionFactors(type, year);
+            List<EmissionFactor> filtered = new ArrayList<>();
+
+            // Normalize the incoming entity for robust matching
+            String target = normalizeForComparison(entity);
+
+            for (EmissionFactor ef : existing) {
+                String ent = ef.getEntity();
+                if (ent == null) ent = "";
+                String norm = normalizeForComparison(ent);
+                if (!norm.equalsIgnoreCase(target)) {
+                    filtered.add(ef);
+                }
+            }
+
+            // Debug: print deletion attempt (can be removed)
+            System.out.println("Deleting entity='" + entity + "' (normalized='" + target + "') from type=" + type + " year=" + year + ", remaining=" + filtered.size());
+
+            // Persist filtered list to CSV
+            java.nio.file.Path base = java.nio.file.Paths.get(BASE_PATH, String.valueOf(year));
+            String fileName = String.format("emission_factors_%s.csv", type.toLowerCase());
+            java.nio.file.Path filePath = base.resolve(fileName);
+
+            java.util.List<String> out = new java.util.ArrayList<>();
+            out.add("entity,year,baseFactor,unit");
+
+            for (EmissionFactor ef : filtered) {
+                String ent = ef.getEntity() == null ? "" : ef.getEntity();
+                String yearStr = ef.getYear() <= 0 ? String.valueOf(year) : String.valueOf(ef.getYear());
+                String baseStr = String.valueOf(ef.getBaseFactor());
+                String unit = ef.getUnit() == null ? "" : ef.getUnit();
+
+                try {
+                    double d = Double.parseDouble(baseStr);
+                    baseStr = String.format(java.util.Locale.ROOT, "%.6f", d);
+                } catch (Exception ignored) {}
+
+                String qEntity = quoteCsv(ent);
+                String qUnit = quoteCsv(unit);
+                out.add(String.join(",", qEntity, yearStr, baseStr, qUnit));
+            }
+
+            java.nio.file.Files.createDirectories(filePath.getParent());
+            java.nio.file.Files.write(filePath, out);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String normalizeForComparison(String s) {
+        if (s == null) return "";
+        // Replace non-breaking spaces and normalize unicode to NFKC
+        String cleaned = s.replace('\u00A0', ' ').trim();
+        try {
+            cleaned = java.text.Normalizer.normalize(cleaned, java.text.Normalizer.Form.NFKC);
+        } catch (Exception ignored) {}
+        return cleaned;
     }
 
     // Helper method to create EmissionFactor based on type

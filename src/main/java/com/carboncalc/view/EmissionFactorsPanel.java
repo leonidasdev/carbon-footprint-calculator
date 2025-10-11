@@ -6,7 +6,6 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ResourceBundle;
-import java.time.Year;
 
 /**
  * Panel to manage emission factors. Contains controls to import Excel files,
@@ -246,30 +245,32 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
     buttonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
-        addButton = new JButton(messages.getString("button.add"));
-        editButton = new JButton(messages.getString("button.edit"));
-        deleteButton = new JButton(messages.getString("button.delete"));
+    addButton = new JButton(messages.getString("button.add"));
+    editButton = new JButton(messages.getString("button.edit"));
+    deleteButton = new JButton(messages.getString("button.delete"));
         
-        UIUtils.styleButton(addButton);
-        UIUtils.styleButton(editButton);
-        UIUtils.styleButton(deleteButton);
+    UIUtils.styleButton(addButton);
+    UIUtils.styleButton(editButton);
+    UIUtils.styleButton(deleteButton);
         
-        addButton.addActionListener(e -> controller.handleAdd());
-        editButton.addActionListener(e -> controller.handleEdit());
-        deleteButton.addActionListener(e -> controller.handleDelete());
+    addButton.addActionListener(e -> controller.handleAdd());
+    editButton.addActionListener(e -> controller.handleEdit());
+    deleteButton.addActionListener(e -> controller.handleDelete());
         
-        editButton.setEnabled(false);
-        deleteButton.setEnabled(false);
-        
+    // Delete enabled only when a row is selected
+    editButton.setEnabled(false);
+    deleteButton.setEnabled(false);
+
         factorsTable.getSelectionModel().addListSelectionListener(e -> {
-            boolean rowSelected = factorsTable.getSelectedRow() != -1;
-            editButton.setEnabled(rowSelected);
-            deleteButton.setEnabled(rowSelected);
+            boolean anySelected = factorsTable.getSelectedRowCount() > 0;
+            // Edit and Delete enabled when exactly one row is selected
+            editButton.setEnabled(anySelected);
+            deleteButton.setEnabled(anySelected);
         });
         
-        buttonPanel.add(addButton);
-        buttonPanel.add(editButton);
-        buttonPanel.add(deleteButton);
+    buttonPanel.add(addButton);
+    buttonPanel.add(editButton);
+    buttonPanel.add(deleteButton);
         
         panel.add(buttonPanel, BorderLayout.SOUTH);
         
@@ -628,6 +629,8 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     
     // Getters for controller
     public JTable getFactorsTable() { return factorsTable; }
+    // Expose the edit button (was previously a toggle)
+    public JButton getEditButton() { return editButton; }
     public JTable getPreviewTable() { return previewTable; }
     public JLabel getFileLabel() { return fileLabel; }
     public JComboBox<String> getSheetSelector() { return sheetSelector; }

@@ -42,15 +42,18 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
             }
         }
 
-        // Load trading companies if present
+        // Load trading companies if present. The companies CSV uses quoted
+        // textual fields (to allow commas inside names), so we must parse
+        // each line honoring CSV quoting rules instead of naive split(",").
         if (Files.exists(companiesPath)) {
             List<String> lines = Files.readAllLines(companiesPath, StandardCharsets.UTF_8);
             for (int i = 1; i < lines.size(); i++) {
-                String[] values = lines.get(i).split(",");
-                if (values.length >= 3) {
-                    String name = values[0];
-                    Double ef = ValidationUtils.tryParseDouble(values[1]);
-                    String gdoType = values[2];
+                String line = lines.get(i);
+                List<String> values = parseCsvLine(line);
+                if (values.size() >= 3) {
+                    String name = values.get(0);
+                    Double ef = ValidationUtils.tryParseDouble(values.get(1));
+                    String gdoType = values.get(2);
                     if (ef == null) ef = 0.0;
                     factors.addTradingCompany(new ElectricityGeneralFactors.TradingCompany(name, ef, gdoType));
                 }
@@ -103,5 +106,46 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
     @Override
     public Path getYearDirectory(int year) {
         return BASE_PATH.resolve(String.valueOf(year));
+    }
+
+    /**
+     * Very small CSV line parser that supports double-quoted fields and
+     * escaped double-quotes inside quoted fields (RFC4180-like). Returns
+     * the parsed fields with quotes removed and internal quotes unescaped.
+     */
+    private static List<String> parseCsvLine(String line) {
+        List<String> out = new ArrayList<>();
+        if (line == null) return out;
+
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (inQuotes) {
+                if (c == '"') {
+                    // If next char is also a quote, it's an escaped quote
+                    if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                        cur.append('"');
+                        i++; // skip the escaped quote
+                    } else {
+                        // closing quote
+                        inQuotes = false;
+                    }
+                } else {
+                    cur.append(c);
+                }
+            } else {
+                if (c == '"') {
+                    inQuotes = true;
+                } else if (c == ',') {
+                    out.add(cur.toString());
+                    cur.setLength(0);
+                } else {
+                    cur.append(c);
+                }
+            }
+        }
+        out.add(cur.toString());
+        return out;
     }
 }

@@ -5,7 +5,6 @@ import com.carboncalc.model.ElectricityGeneralFactors;
 import com.carboncalc.service.EmissionFactorService;
 // Services are injected via constructor; concrete implementations are provided by the application startup.
 import java.io.IOException;
-import java.awt.CardLayout;
 import com.carboncalc.view.EmissionFactorsPanel;
 import com.carboncalc.util.UIUtils;
 import java.util.List;
@@ -144,10 +143,27 @@ public class EmissionFactorsPanelController {
             view.getMixSinGdoField().setText(String.format("%.4f", factors.getMixSinGdo()));
             view.getGdoRenovableField().setText(String.format("%.4f", factors.getGdoRenovable()));
             view.getGdoCogeneracionField().setText(String.format("%.4f", factors.getGdoCogeneracionAltaEficiencia()));
+            // Populate trading companies table with loaded companies
+            try {
+                DefaultTableModel tmodel = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
+                tmodel.setRowCount(0);
+                if (factors.getTradingCompanies() != null) {
+                    for (ElectricityGeneralFactors.TradingCompany c : factors.getTradingCompanies()) {
+                        String name = c.getName();
+                        String factor = String.format(java.util.Locale.ROOT, "%.4f", c.getEmissionFactor());
+                        String gdo = c.getGdoType();
+                        tmodel.addRow(new Object[]{name, factor, gdo});
+                    }
+                }
+            } catch (Exception ignored) {}
         } else {
             view.getMixSinGdoField().setText("0.0000");
             view.getGdoRenovableField().setText("0.0000");
             view.getGdoCogeneracionField().setText("0.0000");
+            try {
+                DefaultTableModel tmodel = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
+                tmodel.setRowCount(0);
+            } catch (Exception ignored) {}
         }
     }
     
@@ -415,12 +431,12 @@ public class EmissionFactorsPanelController {
     public void handleFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-        
+
         FileNameExtensionFilter filter = new FileNameExtensionFilter(
             "Excel Files (*.xlsx, *.xls)", "xlsx", "xls");
         fileChooser.setFileFilter(filter);
         fileChooser.setAcceptAllFileFilterUsed(false);
-        
+
         if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
             try {
                 currentFile = fileChooser.getSelectedFile();
@@ -435,20 +451,6 @@ public class EmissionFactorsPanelController {
                     messages.getString("error.title"),
                     JOptionPane.ERROR_MESSAGE);
             }
-        }
-    }
-    
-    private void updateSheetList() {
-        JComboBox<String> sheetSelector = view.getSheetSelector();
-        sheetSelector.removeAllItems();
-        
-        for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-            sheetSelector.addItem(workbook.getSheetName(i));
-        }
-        
-        if (sheetSelector.getItemCount() > 0) {
-            sheetSelector.setSelectedIndex(0);
-            handleSheetSelection();
         }
     }
     
@@ -606,20 +608,73 @@ public class EmissionFactorsPanelController {
     }
     
     public void handleDelete() {
-        int selectedRow = view.getFactorsTable().getSelectedRow();
+        JTable table = view.getFactorsTable();
+        int selectedRow = table.getSelectedRow();
         if (selectedRow == -1) return;
-        
+
         int response = JOptionPane.showConfirmDialog(view,
             messages.getString("dialog.delete.confirm"),
             messages.getString("dialog.delete.title"),
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE);
-            
-        if (response == JOptionPane.YES_OPTION) {
-            DefaultTableModel model = (DefaultTableModel) view.getFactorsTable().getModel();
-            model.removeRow(selectedRow);
+
+        if (response != JOptionPane.YES_OPTION) return;
+
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        if (!(selectedRow >= 0 && selectedRow < model.getRowCount())) return;
+
+        // Use company/entity name as primary key to remove from CSV
+        String entityToDelete = String.valueOf(model.getValueAt(selectedRow, 0));
+        if (entityToDelete == null) entityToDelete = "";
+        entityToDelete = entityToDelete.trim();
+
+        try {
+            // Delegate deletion to the service layer which will persist the change
+            emissionFactorService.deleteEmissionFactor(this.currentFactorType, this.currentYear, entityToDelete);
+
+            // Reload from service to reflect persisted state
+            java.util.List<? extends com.carboncalc.model.factors.EmissionFactor> refreshed = emissionFactorService.loadEmissionFactors(this.currentFactorType, this.currentYear);
+            updateFactorsTable(refreshed);
+            table.clearSelection();
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.save.general.factors") + "\n" + e.getMessage(),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
         }
     }
+
+    /** Populate the sheet selector combo box from the currently-loaded workbook. */
+    private void updateSheetList() {
+        if (workbook == null || view == null) return;
+        JComboBox<String> sheetSelector = view.getSheetSelector();
+        sheetSelector.removeAllItems();
+
+        for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+            sheetSelector.addItem(workbook.getSheetName(i));
+        }
+
+        if (sheetSelector.getItemCount() > 0) {
+            sheetSelector.setSelectedIndex(0);
+            handleSheetSelection();
+        }
+    }
+
+    /** Toggle the factors table between single-selection and multi-selection
+     * modes to support bulk delete operations. */
+    public void handleToggleEdit(boolean enabled) {
+        JTable table = view.getFactorsTable();
+        if (table == null) return;
+        if (enabled) {
+            table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        } else {
+            table.clearSelection();
+            table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        }
+    }
+
+    // CSV quote helper removed; service layer takes responsibility for CSV formatting
     
     public void handleSave() {
         // TODO: Save the emission factors
@@ -732,6 +787,31 @@ public class EmissionFactorsPanelController {
         if (response == JOptionPane.YES_OPTION) {
             DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
             model.removeRow(selectedRow);
+
+            // Persist the updated general factors (trading companies) to CSV
+            try {
+                // Ensure spinner/editor commits and controller currentYear is up-to-date
+                int yearToSave = commitAndGetSpinnerYear();
+                if (!com.carboncalc.util.ValidationUtils.isValidYear(yearToSave)) {
+                    yearToSave = this.currentYear;
+                }
+
+                ElectricityGeneralFactors factors = buildElectricityGeneralFactorsFromView(yearToSave);
+                electricityGeneralFactorService.saveFactors(factors, yearToSave);
+
+                // Persist selected year as a convenience
+                persistCurrentYear(yearToSave);
+            } catch (IOException ioe) {
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            } catch (IllegalArgumentException iae) {
+                JOptionPane.showMessageDialog(view,
+                    iae.getMessage(),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 }

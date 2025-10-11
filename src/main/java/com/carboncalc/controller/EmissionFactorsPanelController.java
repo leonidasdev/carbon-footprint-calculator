@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.util.Vector;
+import java.util.Locale;
 
 public class EmissionFactorsPanelController {
     private final ResourceBundle messages;
@@ -629,8 +630,10 @@ public class EmissionFactorsPanelController {
     }
 
     public void handleAddTradingCompany() {
+        // Validate and add a trading company from manual input.
         try {
-            String name = view.getCompanyNameField().getText().trim();
+            String rawName = view.getCompanyNameField().getText();
+            String name = rawName == null ? "" : rawName.trim();
             if (name.isEmpty()) {
                 JOptionPane.showMessageDialog(view,
                     messages.getString("error.company.name.required"),
@@ -639,18 +642,59 @@ public class EmissionFactorsPanelController {
                 return;
             }
 
-            double factor = Double.parseDouble(view.getEmissionFactorField().getText());
+            // Normalize name to upper case (preserve accents using default locale)
+            String normalizedName = name.toUpperCase(Locale.getDefault());
+
+            // Parse emission factor using tolerant parser that accepts comma decimals
+            String factorText = view.getEmissionFactorField().getText();
+            Double parsedFactor = com.carboncalc.util.ValidationUtils.tryParseDouble(factorText);
+            if (parsedFactor == null || !com.carboncalc.util.ValidationUtils.isValidNonNegativeFactor(parsedFactor)) {
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("error.invalid.emission.factor"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             String gdoType = (String) view.getGdoTypeComboBox().getSelectedItem();
 
             DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
-            model.addRow(new Object[]{name, factor, gdoType});
+            model.addRow(new Object[]{normalizedName, String.format("%.4f", parsedFactor), gdoType});
 
             // Clear input fields
             view.getCompanyNameField().setText("");
             view.getEmissionFactorField().setText("");
             view.getGdoTypeComboBox().setSelectedIndex(0);
 
-        } catch (NumberFormatException e) {
+            // Persist the current general factors and trading companies to CSV
+            try {
+                // Ensure the spinner/editor commits and controller currentYear is up-to-date
+                int yearToSave = commitAndGetSpinnerYear();
+                if (!com.carboncalc.util.ValidationUtils.isValidYear(yearToSave)) {
+                    yearToSave = this.currentYear;
+                }
+
+                ElectricityGeneralFactors factors = buildElectricityGeneralFactorsFromView(yearToSave);
+                // Add trading companies from the table (we just added the new one above)
+                // buildElectricityGeneralFactorsFromView already reads table contents, so reuse it
+                electricityGeneralFactorService.saveFactors(factors, yearToSave);
+
+                // Persist selected year as a convenience
+                persistCurrentYear(yearToSave);
+
+            } catch (IOException ioe) {
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            } catch (IllegalArgumentException iae) {
+                JOptionPane.showMessageDialog(view,
+                    iae.getMessage(),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            }
+
+        } catch (Exception ex) {
             JOptionPane.showMessageDialog(view,
                 messages.getString("error.invalid.emission.factor"),
                 messages.getString("error.title"),

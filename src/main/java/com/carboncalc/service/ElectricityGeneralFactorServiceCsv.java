@@ -83,10 +83,18 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
         List<String> companyLines = new ArrayList<>();
         companyLines.add("comercializadora,factor_emision,tipo_gdo");
         for (ElectricityGeneralFactors.TradingCompany company : factors.getTradingCompanies()) {
-            companyLines.add(String.format("%s,%.3f,%s",
-                company.getName(),
-                company.getEmissionFactor(),
-                company.getGdoType()));
+            // Wrap textual fields in double quotes and escape any internal quotes
+            // to make the CSV robust for names containing commas or periods
+            String rawName = company.getName() == null ? "" : company.getName();
+            String escapedName = rawName.replace("\"", "\"\"");
+            String quotedName = "\"" + escapedName + "\"";
+
+            String rawGdo = company.getGdoType() == null ? "" : company.getGdoType();
+            String escapedGdo = rawGdo.replace("\"", "\"\"");
+            String quotedGdo = "\"" + escapedGdo + "\"";
+
+            String factorStr = String.format(java.util.Locale.ROOT, "%.3f", company.getEmissionFactor());
+            companyLines.add(quotedName + "," + factorStr + "," + quotedGdo);
         }
 
         Files.write(companiesFile, companyLines, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);

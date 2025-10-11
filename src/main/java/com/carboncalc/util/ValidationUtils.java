@@ -60,4 +60,30 @@ public final class ValidationUtils {
     public static boolean isValidNonNegativeFactor(double value) {
         return Double.isFinite(value) && value >= 0.0d;
     }
+
+    /**
+     * Normalize a CUPS string: trim, replace NBSP with space, normalize unicode
+     * and uppercase using the default locale.
+     */
+    public static String normalizeCups(String cups) {
+        if (cups == null) return null;
+        String s = cups.trim().replace('\u00A0', ' ');
+        try {
+            s = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFKC);
+        } catch (Exception ignored) {}
+        return s.toUpperCase(java.util.Locale.getDefault());
+    }
+
+    /**
+     * Validate a CUPS code based on length rules (20-22 characters) after
+     * normalization. Returns true when valid.
+     */
+    public static boolean isValidCups(String cups) {
+        if (cups == null) return false;
+        String s = cups.trim();
+        if (s.isEmpty()) return false;
+        // Accept length between 20 and 22 characters
+        int len = s.length();
+        return len >= 20 && len <= 22;
+    }
 }

@@ -144,4 +144,33 @@ public class CSVDataService {
             saveCupsData(existingMappings);
         }
     }
+
+    /**
+     * Append a full CupsCenterMapping entry to the cups CSV file. Creates file with header
+     * if it does not exist.
+     */
+    public void appendCupsCenter(String cups, String marketer, String centerName, String acronym,
+                                 String energyType, String street, String postalCode,
+                                 String city, String province) throws IOException {
+        Path filePath = Paths.get(DATA_DIR, CUPS_DIR, CUPS_FILE);
+        boolean createHeader = !Files.exists(filePath);
+
+        try (Writer writer = Files.newBufferedWriter(filePath, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+             CSVWriter csvWriter = new CSVWriter(writer,
+                     CSVWriter.DEFAULT_SEPARATOR,
+                     CSVWriter.DEFAULT_QUOTE_CHARACTER,
+                     CSVWriter.DEFAULT_ESCAPE_CHARACTER,
+                     CSVWriter.DEFAULT_LINE_END)) {
+
+            if (createHeader) {
+                String[] header = new String[] {"id","cups","marketer","centerName","acronym","energyType","street","postalCode","city","province"};
+                csvWriter.writeNext(header, false);
+            }
+
+            // id is left blank here; saveCupsData/loadCupsData manage ids when using beans
+            String[] row = new String[] {"", cups, marketer, centerName, acronym, energyType, street, postalCode, city, province};
+            csvWriter.writeNext(row, false);
+            csvWriter.flush();
+        }
+    }
 }

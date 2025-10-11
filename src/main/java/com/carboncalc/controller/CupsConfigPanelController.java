@@ -20,6 +20,7 @@ public class CupsConfigPanelController {
     private CupsConfigPanel view;
     private Workbook currentWorkbook;
     private File currentFile;
+    private final com.carboncalc.service.CSVDataService csvService = new com.carboncalc.service.CSVDataService();
     
     public CupsConfigPanelController(ResourceBundle messages) {
         this.messages = messages;
@@ -78,6 +79,11 @@ public class CupsConfigPanelController {
         }
         
         updateComboBox(view.getCupsColumnSelector(), columns);
+        // If marketer selector exists, populate it as well
+        try {
+            JComboBox<String> marketerSelector = view.getMarketerColumnSelector();
+            if (marketerSelector != null) updateComboBox(marketerSelector, columns);
+        } catch (Exception ignored) {}
         updateComboBox(view.getCenterNameColumnSelector(), columns);
     }
     
@@ -109,11 +115,11 @@ public class CupsConfigPanelController {
         
         // Add headers
         Row headerRow = sheet.getRow(0);
-        if (headerRow != null) {
-            for (Cell cell : headerRow) {
-                model.addColumn(cell.toString());
+            if (headerRow != null) {
+                for (Cell cell : headerRow) {
+                    model.addColumn(cell.toString());
+                }
             }
-        }
         
         // Add data (limit to first 100 rows for preview)
         int maxRows = Math.min(sheet.getLastRowNum(), 100);
@@ -144,20 +150,65 @@ public class CupsConfigPanelController {
                 JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
-        DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
-        model.addRow(new Object[]{
-            centerData.getCups(),
-            centerData.getCenterName(),
-            centerData.getCenterAcronym(),
-            centerData.getEnergyType(),
-            centerData.getStreet(),
-            centerData.getPostalCode(),
-            centerData.getCity(),
-            centerData.getProvince()
-        });
-        
-        clearManualInputFields();
+
+        // Clean and validate CUPS: normalize and uppercase.
+        String rawCups = centerData.getCups();
+        String normalizedCups = com.carboncalc.util.ValidationUtils.normalizeCups(rawCups);
+        if (!com.carboncalc.util.ValidationUtils.isValidCups(normalizedCups)) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.invalid.cups"),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Uppercase acronym as requested
+        String acronym = centerData.getCenterAcronym();
+        if (acronym != null) acronym = acronym.toUpperCase(java.util.Locale.getDefault());
+
+        // Translate energy type to Spanish for file storage
+        String energySpanish = centerData.getEnergyType();
+        if (energySpanish != null) {
+            if (energySpanish.equalsIgnoreCase("Electricity") || energySpanish.equalsIgnoreCase(messages.getString("energy.type.electricity"))) {
+                energySpanish = "Electricidad";
+            } else if (energySpanish.equalsIgnoreCase("Natural Gas") || energySpanish.equalsIgnoreCase(messages.getString("energy.type.gas"))) {
+                energySpanish = "Gas Natural";
+            }
+        }
+
+        try {
+            csvService.appendCupsCenter(
+                normalizedCups,
+                centerData.getMarketer(),
+                centerData.getCenterName(),
+                acronym,
+                energySpanish,
+                centerData.getStreet(),
+                centerData.getPostalCode(),
+                centerData.getCity(),
+                centerData.getProvince()
+            );
+
+            DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
+            model.addRow(new Object[]{
+                normalizedCups,
+                centerData.getMarketer(),
+                centerData.getCenterName(),
+                acronym,
+                centerData.getEnergyType(),
+                centerData.getStreet(),
+                centerData.getPostalCode(),
+                centerData.getCity(),
+                centerData.getProvince()
+            });
+
+            clearManualInputFields();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.save.failed"),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     public void handleEditCenter() {
@@ -199,7 +250,7 @@ public class CupsConfigPanelController {
             List<CenterData> centers = extractCentersFromTable();
             // TODO: Save to CSV using CSVDataService
             JOptionPane.showMessageDialog(view,
-                messages.getString("message.save.success"),
+                messages.getString("message.save.success") + " (" + centers.size() + ")",
                 messages.getString("message.title.success"),
                 JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception e) {
@@ -219,6 +270,7 @@ public class CupsConfigPanelController {
     
     private void clearManualInputFields() {
         view.getCupsField().setText("");
+        view.getMarketerField().setText("");
         view.getCenterNameField().setText("");
         view.getCenterAcronymField().setText("");
         view.getEnergyTypeCombo().setSelectedIndex(0);
@@ -235,13 +287,14 @@ public class CupsConfigPanelController {
         for (int i = 0; i < model.getRowCount(); i++) {
             centers.add(new CenterData(
                 (String) model.getValueAt(i, 0), // CUPS
-                (String) model.getValueAt(i, 1), // Center Name
-                (String) model.getValueAt(i, 2), // Center Acronym
-                (String) model.getValueAt(i, 3), // Energy Type
-                (String) model.getValueAt(i, 4), // Street
-                (String) model.getValueAt(i, 5), // Postal Code
-                (String) model.getValueAt(i, 6), // City
-                (String) model.getValueAt(i, 7)  // Province
+                (String) model.getValueAt(i, 1), // Marketer
+                (String) model.getValueAt(i, 2), // Center Name
+                (String) model.getValueAt(i, 3), // Center Acronym
+                (String) model.getValueAt(i, 4), // Energy Type
+                (String) model.getValueAt(i, 5), // Street
+                (String) model.getValueAt(i, 6), // Postal Code
+                (String) model.getValueAt(i, 7), // City
+                (String) model.getValueAt(i, 8)  // Province
             ));
         }
         

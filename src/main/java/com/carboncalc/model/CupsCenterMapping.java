@@ -4,12 +4,33 @@ public class CupsCenterMapping implements Comparable<CupsCenterMapping> {
     private Long id;
     private String cups;
     private String centerName;
+    private String marketer;
+    private String acronym;
+    private String energyType;
+    private String street;
+    private String postalCode;
+    private String city;
+    private String province;
     
     public CupsCenterMapping() {}
     
     public CupsCenterMapping(String cups, String centerName) {
         this.cups = cups;
         this.centerName = centerName;
+    }
+
+    public CupsCenterMapping(String cups, String marketer, String centerName, String acronym,
+                             String energyType, String street, String postalCode,
+                             String city, String province) {
+        this.cups = cups;
+        this.marketer = marketer;
+        this.centerName = centerName;
+        this.acronym = acronym;
+        this.energyType = energyType;
+        this.street = street;
+        this.postalCode = postalCode;
+        this.city = city;
+        this.province = province;
     }
     
     // Getters and Setters
@@ -19,6 +40,27 @@ public class CupsCenterMapping implements Comparable<CupsCenterMapping> {
     public String getCups() { return cups; }
     public void setCups(String cups) { this.cups = cups; }
     
+    public String getMarketer() { return marketer; }
+    public void setMarketer(String marketer) { this.marketer = marketer; }
+
+    public String getAcronym() { return acronym; }
+    public void setAcronym(String acronym) { this.acronym = acronym; }
+
+    public String getEnergyType() { return energyType; }
+    public void setEnergyType(String energyType) { this.energyType = energyType; }
+
+    public String getStreet() { return street; }
+    public void setStreet(String street) { this.street = street; }
+
+    public String getPostalCode() { return postalCode; }
+    public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+
+    public String getProvince() { return province; }
+    public void setProvince(String province) { this.province = province; }
+
     public String getCenterName() { return centerName; }
     public void setCenterName(String centerName) { this.centerName = centerName; }
     

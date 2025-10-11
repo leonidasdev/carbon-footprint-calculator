@@ -2,6 +2,7 @@ package com.carboncalc.model;
 
 public class CenterData {
     private String cups;
+    private String marketer;
     private String centerName;
     private String centerAcronym;
     private String energyType;
@@ -12,9 +13,10 @@ public class CenterData {
     
     public CenterData() {}
     
-    public CenterData(String cups, String centerName, String centerAcronym, String energyType,
+    public CenterData(String cups, String marketer, String centerName, String centerAcronym, String energyType,
                      String street, String postalCode, String city, String province) {
         this.cups = cups;
+        this.marketer = marketer;
         this.centerName = centerName;
         this.centerAcronym = centerAcronym;
         this.energyType = energyType;
@@ -27,6 +29,9 @@ public class CenterData {
     // Getters and setters
     public String getCups() { return cups; }
     public void setCups(String cups) { this.cups = cups; }
+    
+    public String getMarketer() { return marketer; }
+    public void setMarketer(String marketer) { this.marketer = marketer; }
     
     public String getCenterName() { return centerName; }
     public void setCenterName(String centerName) { this.centerName = centerName; }

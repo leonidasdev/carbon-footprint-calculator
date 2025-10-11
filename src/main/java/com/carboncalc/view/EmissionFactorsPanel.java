@@ -80,9 +80,13 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     cardsPanel = new JPanel(cardLayout);
     cardsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
-        // Add electricity general factors panel
-        JPanel electricityPanel = createElectricityGeneralFactorsPanel();
-        cardsPanel.add(electricityPanel, "ELECTRICITY");
+            // Create the shared electricity general factors panel once and
+            // add it as the ELECTRICITY card. This is the single authoritative
+            // instance that contains the year spinner used by the controller.
+            if (electricityGeneralFactorsPanel == null) {
+                electricityGeneralFactorsPanel = createElectricityGeneralFactorsPanel();
+            }
+            cardsPanel.add(electricityGeneralFactorsPanel, "ELECTRICITY");
         
     // Add other panels for different types (gas, fuel, etc)
     JPanel otherPanel = new JPanel(new BorderLayout());
@@ -206,9 +210,12 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     JPanel mainPanel = new JPanel(new CardLayout());
     mainPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
-        // Create electricity general factors panel
-        electricityGeneralFactorsPanel = createElectricityGeneralFactorsPanel();
-        mainPanel.add(electricityGeneralFactorsPanel, "ELECTRICITY_GENERAL");
+    // Do not create or add the shared general-factors panel here; a
+    // Swing component cannot have multiple parents. Use a lightweight
+    // placeholder so the CardLayout remains stable for the data area.
+    JPanel placeholder = new JPanel(new BorderLayout());
+    placeholder.setBackground(UIUtils.CONTENT_BACKGROUND);
+    mainPanel.add(placeholder, "ELECTRICITY_GENERAL");
 
         // Create table for factors data
         String[] columnNames = {
@@ -310,43 +317,87 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         javax.swing.JFormattedTextField tf = yearEditor.getTextField();
         tf.setFocusLostBehavior(javax.swing.JFormattedTextField.COMMIT);
 
-        // Also commit the editor on every document change so the model is
-        // kept in sync even while the user types (prevents needing to leave
-        // focus to trigger commitEdit). This makes the ChangeListener fire
-        // with the latest typed value.
+        // Helper to parse the visible editor text and notify the controller
+        java.util.function.Consumer<Void> notifyFromEditor = (v) -> {
+            try {
+                String txt = tf.getText();
+                if (txt != null) {
+                    txt = txt.trim();
+                    if (!txt.isEmpty()) {
+                        try {
+                            int parsed = Integer.parseInt(txt);
+                            controller.handleYearSelection(parsed);
+                            return;
+                        } catch (NumberFormatException nfe) {
+                            // fall through to try spinner model
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+            // Fallback: use spinner model value
+            try {
+                Object val = yearSpinner.getValue();
+                if (val instanceof Number) {
+                    controller.handleYearSelection(((Number) val).intValue());
+                }
+            } catch (Exception ignored) {}
+        };
+
+        // Commit on document changes and notify controller using the editor text
         tf.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             private void safeCommit() {
                 try {
-                    if (yearSpinner.getEditor() instanceof JSpinner.DefaultEditor) {
-                        yearSpinner.commitEdit();
-                    }
+                    yearSpinner.commitEdit();
                 } catch (Exception ignored) {
                     // ignore parse errors while typing
                 }
             }
 
             @Override
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { safeCommit(); }
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { safeCommit(); notifyFromEditor.accept(null); }
 
             @Override
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { safeCommit(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { safeCommit(); notifyFromEditor.accept(null); }
 
             @Override
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { safeCommit(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { safeCommit(); notifyFromEditor.accept(null); }
+        });
+
+        // Commit and notify on Enter (action) so users who press Enter also propagate
+        tf.addActionListener(ae -> {
+            try { yearSpinner.commitEdit(); } catch (Exception ignored) {}
+            notifyFromEditor.accept(null);
+        });
+
+        // Ensure focus lost also commits and notifies the controller
+        tf.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                try { yearSpinner.commitEdit(); } catch (Exception ignored) {}
+                notifyFromEditor.accept(null);
+            }
         });
     } catch (Exception ignored) {}
 
+    // Also listen to model changes as a fallback (keeps previous behavior)
     yearSpinner.addChangeListener(e -> {
         try {
+            // Prefer editor text (what the user sees) — reuse the editor parsing logic
+            if (yearSpinner.getEditor() instanceof JSpinner.NumberEditor) {
+                javax.swing.JFormattedTextField tf = ((JSpinner.NumberEditor) yearSpinner.getEditor()).getTextField();
+                String txt = tf.getText();
+                if (txt != null && !txt.trim().isEmpty()) {
+                    try {
+                        int parsed = Integer.parseInt(txt.trim());
+                        controller.handleYearSelection(parsed);
+                        return;
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+
             Object val = yearSpinner.getValue();
             if (val instanceof Number) {
                 controller.handleYearSelection(((Number) val).intValue());
-            } else {
-                // fallback: try parsing the editor text
-                if (yearSpinner.getEditor() instanceof JSpinner.NumberEditor) {
-                    String text = ((JSpinner.NumberEditor) yearSpinner.getEditor()).getTextField().getText();
-                    try { controller.handleYearSelection(Integer.parseInt(text.trim())); } catch (Exception ignored) {}
-                }
             }
         } catch (Exception ignored) {}
     });

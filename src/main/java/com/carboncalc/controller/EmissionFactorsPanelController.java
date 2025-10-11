@@ -67,8 +67,54 @@ public class EmissionFactorsPanelController {
             }
         } catch (Exception ignored) {}
 
+        // If the editor shows a different valid year than the numeric argument,
+        // prefer the shown value (the user's visible input). This reconciles
+        // calls that originate from model-change events or programmatic sets.
+        try {
+            if (spinnerText != null && !spinnerText.trim().isEmpty()) {
+                try {
+                    int shown = Integer.parseInt(spinnerText.trim());
+                    if (shown != year) {
+                        System.out.println(String.format("[DEBUG] Overriding passed year %d with shown editor value %d", year, shown));
+                        year = shown;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // ignore non-numeric editor text and keep passed year
+                }
+            }
+        } catch (Exception ignored) {}
+
         System.out.println(String.format("[DEBUG] handleYearSelection called with year=%d, suppressSpinnerSideEffects=%b, spinnerText='%s', time=%d",
             year, suppressSpinnerSideEffects, spinnerText, System.currentTimeMillis()));
+        // If the editor's visible text doesn't match the numeric year passed,
+        // print a short diagnostic stack to find who is calling with a
+        // different value.
+        try {
+            String shown = spinnerText == null ? "" : spinnerText.trim();
+            String numeric = String.valueOf(year);
+            if (!shown.equals(numeric)) {
+                Object spinnerObj = null;
+                Object tfObj = null;
+                try {
+                    if (view != null) spinnerObj = view.getYearSpinner();
+                    if (view != null && view.getYearSpinner() != null && view.getYearSpinner().getEditor() instanceof JSpinner.NumberEditor) {
+                        tfObj = ((JSpinner.NumberEditor) view.getYearSpinner().getEditor()).getTextField();
+                    }
+                } catch (Exception ignored) {}
+
+                System.out.println(String.format("[DIAG] mismatch: passed=%s, shown='%s', spinnerId=%s, editorId=%s, thread=%s",
+                    numeric, shown,
+                    spinnerObj == null ? "null" : Integer.toHexString(System.identityHashCode(spinnerObj)),
+                    tfObj == null ? "null" : Integer.toHexString(System.identityHashCode(tfObj)),
+                    Thread.currentThread().getName()));
+
+                // Print a short stack trace (top 12 elements) to help locate the caller
+                StackTraceElement[] st = Thread.currentThread().getStackTrace();
+                for (int i = 2; i < Math.min(st.length, 14); i++) {
+                    System.out.println("\t at " + st[i].toString());
+                }
+            }
+        } catch (Exception ignored) {}
         this.currentYear = year;
         // persist the selected year (guard against programmatic initialization)
         if (!suppressSpinnerSideEffects) {
@@ -186,6 +232,13 @@ public class EmissionFactorsPanelController {
         this.currentYear = selectedYear;
 
         try {
+            // Ensure spinner editor commits the shown value before building factors
+            try {
+                if (view != null && view.getYearSpinner() != null && view.getYearSpinner().getEditor() instanceof JSpinner.DefaultEditor) {
+                    view.getYearSpinner().commitEdit();
+                }
+            } catch (Exception ignored) {}
+
             // Build and validate factors from the view; throws IllegalArgumentException
             // with a user-friendly message when validation fails.
             ElectricityGeneralFactors factorsFromView = buildElectricityGeneralFactorsFromView(selectedYear);

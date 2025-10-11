@@ -161,7 +161,11 @@ public class MainWindow extends JFrame {
     }
     
     private JPanel createEmissionFactorsPanel() {
-        EmissionFactorsPanelController panelController = new EmissionFactorsPanelController(messages);
+        // Create concrete implementations here and inject into the controller.
+        com.carboncalc.service.EmissionFactorService efService = new com.carboncalc.service.EmissionFactorServiceCsv();
+        com.carboncalc.service.ElectricityGeneralFactorService egfService = new com.carboncalc.service.ElectricityGeneralFactorServiceCsv();
+
+        EmissionFactorsPanelController panelController = new EmissionFactorsPanelController(messages, efService, egfService);
         EmissionFactorsPanel panel = new EmissionFactorsPanel(panelController, messages);
         panelController.setView(panel);
         return panel;

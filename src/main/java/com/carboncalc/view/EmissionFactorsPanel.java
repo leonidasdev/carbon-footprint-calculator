@@ -294,7 +294,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         // Mix sin GdO (label, input, unit)
     // Year selector row inside the general factors box
     fgbc.gridx = 0; fgbc.gridy = 0; fgbc.weightx = 0.0; fgbc.anchor = GridBagConstraints.WEST;
-    JLabel yearLabel = new JLabel(messages.getString("label.year.select") + ":");
+    JLabel yearLabel = new JLabel(messages.getString("label.year.select"));
     factorsPanel.add(yearLabel, fgbc);
 
     fgbc.gridx = 1; fgbc.weightx = 0.6;
@@ -309,8 +309,47 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     try {
         javax.swing.JFormattedTextField tf = yearEditor.getTextField();
         tf.setFocusLostBehavior(javax.swing.JFormattedTextField.COMMIT);
+
+        // Also commit the editor on every document change so the model is
+        // kept in sync even while the user types (prevents needing to leave
+        // focus to trigger commitEdit). This makes the ChangeListener fire
+        // with the latest typed value.
+        tf.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void safeCommit() {
+                try {
+                    if (yearSpinner.getEditor() instanceof JSpinner.DefaultEditor) {
+                        yearSpinner.commitEdit();
+                    }
+                } catch (Exception ignored) {
+                    // ignore parse errors while typing
+                }
+            }
+
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { safeCommit(); }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { safeCommit(); }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { safeCommit(); }
+        });
     } catch (Exception ignored) {}
-    yearSpinner.addChangeListener(e -> controller.handleYearSelection((Integer) yearSpinner.getValue()));
+
+    yearSpinner.addChangeListener(e -> {
+        try {
+            Object val = yearSpinner.getValue();
+            if (val instanceof Number) {
+                controller.handleYearSelection(((Number) val).intValue());
+            } else {
+                // fallback: try parsing the editor text
+                if (yearSpinner.getEditor() instanceof JSpinner.NumberEditor) {
+                    String text = ((JSpinner.NumberEditor) yearSpinner.getEditor()).getTextField().getText();
+                    try { controller.handleYearSelection(Integer.parseInt(text.trim())); } catch (Exception ignored) {}
+                }
+            }
+        } catch (Exception ignored) {}
+    });
     factorsPanel.add(yearSpinner, fgbc);
 
     // Mix sin GdO (label, input, unit) - move to next row

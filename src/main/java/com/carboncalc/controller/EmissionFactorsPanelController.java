@@ -1,7 +1,6 @@
 package com.carboncalc.controller;
 
 import com.carboncalc.model.factors.*;
-import com.carboncalc.model.ElectricityGeneralFactors;
 import com.carboncalc.service.EmissionFactorService;
 // Services are injected via constructor; concrete implementations are provided by the application startup.
 import java.io.IOException;

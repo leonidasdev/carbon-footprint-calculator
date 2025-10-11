@@ -1,8 +1,9 @@
 package com.carboncalc.service;
 
-import com.carboncalc.model.ElectricityGeneralFactors;
 import java.io.IOException;
 import java.nio.file.Path;
+
+import com.carboncalc.model.factors.ElectricityGeneralFactors;
 
 /**
  * Interface that defines operations to load and persist electricity general factors

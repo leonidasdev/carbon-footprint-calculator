@@ -1,6 +1,6 @@
 package com.carboncalc.service;
 
-import com.carboncalc.model.ElectricityGeneralFactors;
+import com.carboncalc.model.factors.ElectricityGeneralFactors;
 import com.carboncalc.util.ValidationUtils;
 
 import java.io.IOException;

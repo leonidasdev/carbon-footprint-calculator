@@ -1,4 +1,4 @@
-package com.carboncalc.model;
+package com.carboncalc.model.factors;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -551,16 +551,16 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         JPanel tradingCompanyButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         tradingCompanyButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         
-        JButton editButton = new JButton(messages.getString("button.edit.company"));
-        JButton deleteButton = new JButton(messages.getString("button.delete.company"));
-        
-        editButton.addActionListener(e -> controller.handleEditTradingCompany());
-        deleteButton.addActionListener(e -> controller.handleDeleteTradingCompany());
-        
-        UIUtils.styleButton(editButton);
-        UIUtils.styleButton(deleteButton);
-        tradingCompanyButtonPanel.add(editButton);
-        tradingCompanyButtonPanel.add(deleteButton);
+    JButton tradingEditButton = new JButton(messages.getString("button.edit.company"));
+    JButton tradingDeleteButton = new JButton(messages.getString("button.delete.company"));
+
+    tradingEditButton.addActionListener(e -> controller.handleEditTradingCompany());
+    tradingDeleteButton.addActionListener(e -> controller.handleDeleteTradingCompany());
+
+    UIUtils.styleButton(tradingEditButton);
+    UIUtils.styleButton(tradingDeleteButton);
+    tradingCompanyButtonPanel.add(tradingEditButton);
+    tradingCompanyButtonPanel.add(tradingDeleteButton);
 
         // Note: general factors Save button will be placed in the right column
         // next to the general factors panel so it is visually associated with

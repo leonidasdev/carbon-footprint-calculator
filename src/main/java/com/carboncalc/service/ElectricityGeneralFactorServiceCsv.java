@@ -78,7 +78,6 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
             factors.getGdoCogeneracionAltaEficiencia()));
 
         Files.write(generalFile, generalLines, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-    System.out.println("[ElectricityGeneralFactorServiceCsv] Wrote general factors to: " + generalFile.toAbsolutePath());
 
         // Prepare companies CSV
         List<String> companyLines = new ArrayList<>();
@@ -91,7 +90,6 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
         }
 
         Files.write(companiesFile, companyLines, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-    System.out.println("[ElectricityGeneralFactorServiceCsv] Wrote companies to: " + companiesFile.toAbsolutePath());
     }
 
     @Override

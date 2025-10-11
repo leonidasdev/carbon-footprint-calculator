@@ -75,7 +75,6 @@ public class EmissionFactorsPanelController {
                 try {
                     int shown = Integer.parseInt(spinnerText.trim());
                     if (shown != year) {
-                        System.out.println(String.format("[DEBUG] Overriding passed year %d with shown editor value %d", year, shown));
                         year = shown;
                     }
                 } catch (NumberFormatException ignored) {
@@ -84,37 +83,8 @@ public class EmissionFactorsPanelController {
             }
         } catch (Exception ignored) {}
 
-        System.out.println(String.format("[DEBUG] handleYearSelection called with year=%d, suppressSpinnerSideEffects=%b, spinnerText='%s', time=%d",
-            year, suppressSpinnerSideEffects, spinnerText, System.currentTimeMillis()));
-        // If the editor's visible text doesn't match the numeric year passed,
-        // print a short diagnostic stack to find who is calling with a
-        // different value.
-        try {
-            String shown = spinnerText == null ? "" : spinnerText.trim();
-            String numeric = String.valueOf(year);
-            if (!shown.equals(numeric)) {
-                Object spinnerObj = null;
-                Object tfObj = null;
-                try {
-                    if (view != null) spinnerObj = view.getYearSpinner();
-                    if (view != null && view.getYearSpinner() != null && view.getYearSpinner().getEditor() instanceof JSpinner.NumberEditor) {
-                        tfObj = ((JSpinner.NumberEditor) view.getYearSpinner().getEditor()).getTextField();
-                    }
-                } catch (Exception ignored) {}
-
-                System.out.println(String.format("[DIAG] mismatch: passed=%s, shown='%s', spinnerId=%s, editorId=%s, thread=%s",
-                    numeric, shown,
-                    spinnerObj == null ? "null" : Integer.toHexString(System.identityHashCode(spinnerObj)),
-                    tfObj == null ? "null" : Integer.toHexString(System.identityHashCode(tfObj)),
-                    Thread.currentThread().getName()));
-
-                // Print a short stack trace (top 12 elements) to help locate the caller
-                StackTraceElement[] st = Thread.currentThread().getStackTrace();
-                for (int i = 2; i < Math.min(st.length, 14); i++) {
-                    System.out.println("\t at " + st[i].toString());
-                }
-            }
-        } catch (Exception ignored) {}
+        // Year selection updated; prefer editor visible text when available.
+        // (Diagnostic logging removed in production.)
         this.currentYear = year;
         // persist the selected year (guard against programmatic initialization)
         if (!suppressSpinnerSideEffects) {
@@ -253,13 +223,7 @@ public class EmissionFactorsPanelController {
             // prints the committed value, the spinner's visible text (if
             // available), controller state and persisted year.
             try {
-                String spinnerText = "";
-                if (view != null && view.getYearSpinner() != null && view.getYearSpinner().getEditor() instanceof JSpinner.NumberEditor) {
-                    spinnerText = ((JSpinner.NumberEditor) view.getYearSpinner().getEditor()).getTextField().getText();
-                }
-                int persistedNow = loadPersistedYear();
-                System.out.println(String.format("[DEBUG] saveFactors: selectedYear=%d, controller.currentYear=%d, spinnerText='%s', persisted=%d",
-                    selectedYear, this.currentYear, spinnerText, persistedNow));
+                // Diagnostics removed: successful save will show a message dialog.
             } catch (Exception ignored) {}
 
             // Show success and where files were written

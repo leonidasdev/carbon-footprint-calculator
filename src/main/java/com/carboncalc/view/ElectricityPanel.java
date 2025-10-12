@@ -484,7 +484,7 @@ public class ElectricityPanel extends BaseModulePanel {
     JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "####");
     yearSpinner.setEditor(yearEditor);
     ((java.text.DecimalFormat) yearEditor.getFormat()).setGroupingUsed(false);
-    yearSpinner.setPreferredSize(new Dimension(60, 24));
+    yearSpinner.setPreferredSize(new Dimension(65, 24));
     // Persist year changes when edited
     yearSpinner.addChangeListener(new ChangeListener() {
         private boolean init = true;

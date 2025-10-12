@@ -2,6 +2,7 @@ package com.carboncalc.util;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -20,7 +21,8 @@ public class ElectricityExcelExporter {
     };
 
     public static void exportElectricityData(String filePath) throws IOException {
-        try (Workbook workbook = new XSSFWorkbook()) {
+        boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
+        try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
             // Create sheets
             Sheet detailedSheet = workbook.createSheet("Extendido");
             Sheet totalSheet = workbook.createSheet("Total");

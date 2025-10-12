@@ -46,10 +46,10 @@ public class GasController {
     private void loadStoredCups() {
         try {
             List<Cups> cupsData = csvDataService.loadCups();
-            // Filter for gas-type CUPS
-            cupsData.stream()
-                   .filter(cup -> "GAS".equals(cup.getEnergyType()))
-                   .forEach(cup -> view.addCupsToList(cup.getCups(), cup.getEmissionEntity()));
+         // Filter for gas-type CUPS
+         cupsData.stream()
+             .filter(cup -> com.carboncalc.model.enums.EnergyType.GAS.name().equalsIgnoreCase(cup.getEnergyType()))
+             .forEach(cup -> view.addCupsToList(cup.getCups(), cup.getEmissionEntity()));
         } catch (IOException e) {
             UIUtils.showErrorDialog(view, messages.getString("error.loading.cups"), e.getMessage());
         }

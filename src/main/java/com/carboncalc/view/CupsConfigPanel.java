@@ -145,11 +145,16 @@ public class CupsConfigPanel extends BaseModulePanel {
         l.gridy = 4;
         left.add(new JLabel(messages.getString("label.energy.type") + ":"), l);
         l.gridx = 1;
-        String[] energyOptions = new String[] {
-                messages.getString("energy.type.electricity"),
-                messages.getString("energy.type.gas")
-        };
-        energyTypeCombo = new JComboBox<>(energyOptions);
+    // Build localized energy type options from the EnergyType enum so the
+    // panel stays in sync with supported types. Resource bundle keys use
+    // the convention energy.type.<id> (e.g. energy.type.electricity).
+    java.util.List<String> energyOptions = new java.util.ArrayList<>();
+    for (com.carboncalc.model.enums.EnergyType et : com.carboncalc.model.enums.EnergyType.values()) {
+        String key = "energy.type." + et.id();
+        String label = messages.containsKey(key) ? messages.getString(key) : et.name();
+        energyOptions.add(label);
+    }
+    energyTypeCombo = new JComboBox<>(energyOptions.toArray(new String[0]));
         Border tfBorder = UIManager.getBorder("TextField.border");
         if (tfBorder != null)
             energyTypeCombo.setBorder(tfBorder);

@@ -3,6 +3,7 @@ package com.carboncalc.controller;
 import com.carboncalc.model.CenterData;
 import com.carboncalc.model.CupsCenterMapping;
 import com.carboncalc.view.CupsConfigPanel;
+import com.carboncalc.model.enums.EnergyType;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -21,9 +22,51 @@ public class CupsConfigController {
     private Workbook currentWorkbook;
     private File currentFile;
     private final com.carboncalc.service.CupsService csvService = new com.carboncalc.service.CupsServiceCsv();
+    // Map localized label (lowercase) -> EnergyType for quick resolution
+    private final java.util.Map<String, EnergyType> energyLabelToEnum = new java.util.HashMap<>();
     
     public CupsConfigController(ResourceBundle messages) {
         this.messages = messages;
+        // Build mapping from localized display label to canonical EnergyType
+        for (EnergyType et : EnergyType.values()) {
+            String key = "energy.type." + et.id();
+            String label = messages.containsKey(key) ? messages.getString(key) : et.name();
+            energyLabelToEnum.put(label.toLowerCase(java.util.Locale.ROOT), et);
+            // Also accept enum name and id as inputs
+            energyLabelToEnum.put(et.name().toLowerCase(java.util.Locale.ROOT), et);
+            energyLabelToEnum.put(et.id().toLowerCase(java.util.Locale.ROOT), et);
+        }
+    }
+
+    /**
+     * Resolve a localized label or id/name to the canonical EnergyType, or null if unknown.
+     */
+    private EnergyType resolveEnergyType(String labelOrToken) {
+        if (labelOrToken == null) return null;
+        String key = labelOrToken.trim().toLowerCase(java.util.Locale.ROOT);
+        return energyLabelToEnum.getOrDefault(key, null);
+    }
+
+    /**
+     * Given a stored token (e.g. ELECTRICITY or electricity), return the localized
+     * display label if available, or the original token.
+     */
+    private String localizedLabelFor(String storedToken) {
+        if (storedToken == null) return messages.getString("energy.type.electricity");
+        try {
+            EnergyType et = EnergyType.from(storedToken);
+            String key = "energy.type." + et.id();
+            return messages.containsKey(key) ? messages.getString(key) : et.name();
+        } catch (Exception ex) {
+            // Unknown token: try direct label map lookup
+            String k = storedToken.trim().toLowerCase(java.util.Locale.ROOT);
+            EnergyType e = energyLabelToEnum.get(k);
+            if (e != null) {
+                String key = "energy.type." + e.id();
+                return messages.containsKey(key) ? messages.getString(key) : e.name();
+            }
+        }
+        return storedToken;
     }
     
     public void setView(CupsConfigPanel view) {
@@ -79,12 +122,14 @@ public class CupsConfigController {
         DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
         model.setRowCount(0);
         for (CupsCenterMapping m : mappings) {
+            // Convert stored energy token (e.g. ELECTRICITY) to localized display label if possible
+            String displayEnergy = localizedLabelFor(m.getEnergyType());
             model.addRow(new Object[] {
                 m.getCups(),
                 m.getMarketer(),
                 m.getCenterName(),
                 m.getAcronym(),
-                m.getEnergyType(),
+                displayEnergy,
                 m.getStreet(),
                 m.getPostalCode(),
                 m.getCity(),
@@ -229,15 +274,10 @@ public class CupsConfigController {
         String acronym = centerData.getCenterAcronym();
         if (acronym != null) acronym = acronym.toUpperCase(java.util.Locale.getDefault());
 
-        // Translate energy type to Spanish for file storage
-        String energySpanish = centerData.getEnergyType();
-        if (energySpanish != null) {
-            if (energySpanish.equalsIgnoreCase("Electricity") || energySpanish.equalsIgnoreCase(messages.getString("energy.type.electricity"))) {
-                energySpanish = "Electricidad";
-            } else if (energySpanish.equalsIgnoreCase("Natural Gas") || energySpanish.equalsIgnoreCase(messages.getString("energy.type.gas"))) {
-                energySpanish = "Gas Natural";
-            }
-        }
+        // Resolve selected (localized) energy label to canonical EnergyType and persist its name.
+        String selectedEnergyLabel = centerData.getEnergyType();
+        EnergyType resolved = resolveEnergyType(selectedEnergyLabel);
+        String energyToSave = resolved != null ? resolved.name() : selectedEnergyLabel;
 
         try {
             csvService.appendCupsCenter(
@@ -245,7 +285,7 @@ public class CupsConfigController {
                 centerData.getMarketer(),
                 centerData.getCenterName(),
                 acronym,
-                energySpanish,
+                energyToSave,
                 centerData.getStreet(),
                 centerData.getPostalCode(),
                 centerData.getCity(),
@@ -305,10 +345,11 @@ public class CupsConfigController {
         view.getMarketerField().setText(marketer);
         view.getCenterNameField().setText(centerName);
         view.getCenterAcronymField().setText(acronym);
-        // Try to set energy type selection if possible
+        // Try to set energy type selection using localized label
         try {
             JComboBox<String> energyCombo = view.getEnergyTypeCombo();
-            energyCombo.setSelectedItem(energy != null ? energy : messages.getString("energy.type.electricity"));
+            String display = localizedLabelFor(energy);
+            energyCombo.setSelectedItem(display != null ? display : messages.getString("energy.type.electricity"));
         } catch (Exception ignored) {}
         view.getStreetField().setText(street);
         view.getPostalCodeField().setText(postal);

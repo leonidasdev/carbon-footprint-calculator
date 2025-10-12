@@ -2,6 +2,7 @@ package com.carboncalc.view;
 
 import com.carboncalc.controller.EmissionFactorsController;
 import com.carboncalc.util.UIUtils;
+import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -35,9 +36,9 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     // Type selection components
     private JComboBox<String> typeComboBox;
     private JSpinner yearSpinner;
-    private static final String[] FACTOR_TYPES = {
-            "ELECTRICITY", "GAS", "FUEL", "REFRIGERANT"
-    };
+    // Build factor type names directly from the domain enum so the UI
+    // stays in sync with any changes to supported energy types.
+    private static final String[] FACTOR_TYPES = java.util.Arrays.stream(EnergyType.values()).map(Enum::name).toArray(String[]::new);
 
     // Preview Components
     private JTable previewTable;
@@ -80,25 +81,41 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         cardsPanel = new JPanel(cardLayout);
         cardsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
-        // Create the shared electricity general factors panel once and
-        // add it as the ELECTRICITY card. This is the single authoritative
-        // instance that contains the year spinner used by the controller.
+        // For each EnergyType create a card. ELECTRICITY uses the dedicated
+        // general factors panel (which contains the year spinner). Other
+        // energy types reuse the generic file/data/preview composition but
+        // must be separate components (Swing components cannot have
+        // multiple parents), so we create one per-energy.
         if (electricityGeneralFactorsPanel == null) {
             electricityGeneralFactorsPanel = createElectricityGeneralFactorsPanel();
         }
-        cardsPanel.add(electricityGeneralFactorsPanel, "ELECTRICITY");
-
-        // Add other panels for different types (gas, fuel, etc)
-        JPanel otherPanel = new JPanel(new BorderLayout());
-        // Use shared content background for consistency
-        otherPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        otherPanel.add(createFileManagementPanel(), BorderLayout.NORTH);
-        otherPanel.add(createDataManagementPanel(), BorderLayout.CENTER);
-        otherPanel.add(createPreviewPanel(), BorderLayout.SOUTH);
-
-        cardsPanel.add(otherPanel, "OTHER");
+        for (EnergyType et : EnergyType.values()) {
+            if (et == EnergyType.ELECTRICITY) {
+                cardsPanel.add(electricityGeneralFactorsPanel, et.name());
+            } else {
+                JPanel otherPanel = new JPanel(new BorderLayout());
+                otherPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+                otherPanel.add(createFileManagementPanel(), BorderLayout.NORTH);
+                otherPanel.add(createDataManagementPanel(), BorderLayout.CENTER);
+                otherPanel.add(createPreviewPanel(), BorderLayout.SOUTH);
+                cardsPanel.add(otherPanel, et.name());
+            }
+        }
 
         mainPanel.add(cardsPanel, BorderLayout.CENTER);
+
+        // Ensure an initial type is selected and its card shown so the UI
+        // initializes in a consistent state.
+        if (FACTOR_TYPES.length > 0) {
+            try {
+                typeComboBox.setSelectedIndex(0);
+                if (cardLayout != null && cardsPanel != null) {
+                    cardLayout.show(cardsPanel, FACTOR_TYPES[0]);
+                }
+                controller.handleTypeSelection(FACTOR_TYPES[0]);
+            } catch (Exception ignored) {
+            }
+        }
 
         // Setup the content panel
         contentPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -181,7 +198,18 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         typePanel.add(new JLabel(messages.getString("label.factor.type.select")));
         typeComboBox = new JComboBox<>(FACTOR_TYPES);
         typeComboBox.setPreferredSize(new Dimension(150, 25));
-        typeComboBox.addActionListener(e -> controller.handleTypeSelection((String) typeComboBox.getSelectedItem()));
+        typeComboBox.addActionListener(e -> {
+            String sel = (String) typeComboBox.getSelectedItem();
+            if (sel != null) {
+                try {
+                    if (cardLayout != null && cardsPanel != null) {
+                        cardLayout.show(cardsPanel, sel);
+                    }
+                } catch (Exception ignored) {
+                }
+                controller.handleTypeSelection(sel);
+            }
+        });
         typePanel.add(typeComboBox);
         UIUtils.styleComboBox(typeComboBox);
         contentPanel.add(typePanel);

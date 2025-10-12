@@ -3,7 +3,6 @@ package com.carboncalc.controller;
 import com.carboncalc.view.ElectricityPanel;
 import com.carboncalc.model.Cups;
 import com.carboncalc.model.ElectricityColumnMapping;
-import com.carboncalc.service.CupsService;
 import com.carboncalc.util.UIUtils;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -15,11 +14,14 @@ import java.io.File;
 import java.util.ResourceBundle;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import java.io.IOException;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
 
 public class ElectricityController {
     private final ResourceBundle messages;
@@ -43,10 +45,10 @@ public class ElectricityController {
     private void loadStoredCups() {
         try {
             List<Cups> cupsData = csvDataService.loadCups();
-            // Filter for electricity-type CUPS
-            cupsData.stream()
-                   .filter(cup -> "ELECTRICITY".equals(cup.getEnergyType()))
-                   .forEach(cup -> view.addCupsToList(cup.getCups(), cup.getEmissionEntity()));
+         // Filter for electricity-type CUPS
+         cupsData.stream()
+             .filter(cup -> com.carboncalc.model.enums.EnergyType.ELECTRICITY.name().equalsIgnoreCase(cup.getEnergyType()))
+             .forEach(cup -> view.addCupsToList(cup.getCups(), cup.getEmissionEntity()));
         } catch (IOException e) {
             UIUtils.showErrorDialog(view, messages.getString("error.loading.cups"), e.getMessage());
         }
@@ -66,9 +68,17 @@ public class ElectricityController {
             try {
                 providerFile = fileChooser.getSelectedFile();
                 FileInputStream fis = new FileInputStream(providerFile);
-                providerWorkbook = new XSSFWorkbook(fis);
+                String lname = providerFile.getName().toLowerCase();
+                if (lname.endsWith(".xlsx")) {
+                    providerWorkbook = new XSSFWorkbook(fis);
+                } else if (lname.endsWith(".xls")) {
+                    providerWorkbook = new HSSFWorkbook(fis);
+                } else {
+                    throw new IllegalArgumentException("Unsupported Excel format");
+                }
                 updateProviderSheetList();
-                view.getProviderFileLabel().setText(providerFile.getName());
+                // Use view helper to safely display long filenames
+                view.setProviderFileName(providerFile.getName());
                 fis.close();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
@@ -93,9 +103,17 @@ public class ElectricityController {
             try {
                 erpFile = fileChooser.getSelectedFile();
                 FileInputStream fis = new FileInputStream(erpFile);
-                erpWorkbook = new XSSFWorkbook(fis);
+                String lname = erpFile.getName().toLowerCase();
+                if (lname.endsWith(".xlsx")) {
+                    erpWorkbook = new XSSFWorkbook(fis);
+                } else if (lname.endsWith(".xls")) {
+                    erpWorkbook = new HSSFWorkbook(fis);
+                } else {
+                    throw new IllegalArgumentException("Unsupported Excel format");
+                }
                 updateErpSheetList();
-                view.getErpFileLabel().setText(erpFile.getName());
+                // Use view helper to safely display long filenames
+                view.setErpFileName(erpFile.getName());
                 fis.close();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
@@ -159,15 +177,36 @@ public class ElectricityController {
     }
     
     private void updateProviderColumnSelectors(Sheet sheet) {
-        if (sheet.getRow(0) == null) return;
-        
-        List<String> columnHeaders = new ArrayList<>();
-        Row headerRow = sheet.getRow(0);
-        
-        for (Cell cell : headerRow) {
-            columnHeaders.add(getCellValueAsString(cell));
+        // Find the first non-empty row to use as header (some files have leading blank rows)
+        DataFormatter df = new DataFormatter();
+        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
+
+        int headerRowIndex = -1;
+        for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+            Row r = sheet.getRow(i);
+            if (r == null) continue;
+            boolean nonEmpty = false;
+            for (Cell c : r) {
+                if (!getCellString(c, df, eval).isEmpty()) { nonEmpty = true; break; }
+            }
+            if (nonEmpty) { headerRowIndex = i; break; }
         }
-        
+        if (headerRowIndex == -1) {
+            // fallback: use first row if sheet has any rows
+            if (sheet.getPhysicalNumberOfRows() > 0) {
+                headerRowIndex = sheet.getFirstRowNum();
+            } else {
+                return;
+            }
+        }
+
+        List<String> columnHeaders = new ArrayList<>();
+        Row headerRow = sheet.getRow(headerRowIndex);
+
+        for (Cell cell : headerRow) {
+            columnHeaders.add(getCellString(cell, df, eval));
+        }
+
         updateComboBox(view.getCupsSelector(), columnHeaders);
         updateComboBox(view.getInvoiceNumberSelector(), columnHeaders);
         updateComboBox(view.getStartDateSelector(), columnHeaders);
@@ -178,15 +217,28 @@ public class ElectricityController {
     }
     
     private void updateErpColumnSelectors(Sheet sheet) {
-        if (sheet.getRow(0) == null) return;
-        
-        List<String> columnHeaders = new ArrayList<>();
-        Row headerRow = sheet.getRow(0);
-        
-        for (Cell cell : headerRow) {
-            columnHeaders.add(getCellValueAsString(cell));
+        DataFormatter df = new DataFormatter();
+        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
+
+        int headerRowIndex = -1;
+        for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+            Row r = sheet.getRow(i);
+            if (r == null) continue;
+            boolean nonEmpty = false;
+            for (Cell c : r) {
+                if (!getCellString(c, df, eval).isEmpty()) { nonEmpty = true; break; }
+            }
+            if (nonEmpty) { headerRowIndex = i; break; }
         }
-        
+        if (headerRowIndex == -1) return;
+
+        List<String> columnHeaders = new ArrayList<>();
+        Row headerRow = sheet.getRow(headerRowIndex);
+
+        for (Cell cell : headerRow) {
+            columnHeaders.add(getCellString(cell, df, eval));
+        }
+
         updateComboBox(view.getErpInvoiceNumberSelector(), columnHeaders);
         updateComboBox(view.getConformityDateSelector(), columnHeaders);
     }
@@ -200,35 +252,64 @@ public class ElectricityController {
     }
     
     private void updatePreviewTable(Sheet sheet, boolean isProvider) {
-        // Create column headers with Excel-style letters
+        DataFormatter df = new DataFormatter();
+        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
+
+        // Determine header row and robustly compute number of columns (max across preview rows)
+        int headerRowIndex = -1;
+        for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+            Row r = sheet.getRow(i);
+            if (r == null) continue;
+            boolean nonEmpty = false;
+            for (Cell c : r) {
+                if (!getCellString(c, df, eval).isEmpty()) { nonEmpty = true; break; }
+            }
+            if (nonEmpty) { headerRowIndex = i; break; }
+        }
+        if (headerRowIndex == -1) {
+            // fallback
+            if (sheet.getPhysicalNumberOfRows() > 0) headerRowIndex = sheet.getFirstRowNum();
+            else return;
+        }
+
+        // Determine max columns by scanning the header row and a few subsequent rows used for preview
+        int maxColumns = 0;
+        int scanEnd = Math.min(sheet.getLastRowNum(), headerRowIndex + 100);
+        for (int r = headerRowIndex; r <= scanEnd; r++) {
+            Row row = sheet.getRow(r);
+            if (row == null) continue;
+            short last = row.getLastCellNum();
+            if (last > maxColumns) maxColumns = last;
+        }
+        if (maxColumns <= 0) return;
+
         Vector<String> columnHeaders = new Vector<>();
-        Row headerRow = sheet.getRow(0);
-        if (headerRow == null) return;
-        
-        for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+        for (int i = 0; i < maxColumns; i++) {
             columnHeaders.add(convertToExcelColumn(i));
         }
         
         // Create data rows starting with header row
         Vector<Vector<String>> data = new Vector<>();
-        
-        // Add header row first
+
+        // Add header row first (use fixed column count)
         Vector<String> headerData = new Vector<>();
-        for (Cell cell : headerRow) {
-            headerData.add(getCellValueAsString(cell));
+        Row headerRow = sheet.getRow(headerRowIndex);
+        for (int j = 0; j < maxColumns; j++) {
+            Cell cell = headerRow.getCell(j);
+            headerData.add(getCellString(cell, df, eval));
         }
         data.add(headerData);
-        
-        // Add data rows
-        int maxRows = Math.min(sheet.getLastRowNum(), 100); // Limit preview to 100 rows
-        for (int i = 1; i <= maxRows; i++) {
+
+        // Add data rows (start after header row)
+        int maxRows = Math.min(sheet.getLastRowNum(), headerRowIndex + 100); // Limit preview to 100 rows after header
+        for (int i = headerRowIndex + 1; i <= maxRows; i++) {
             Row row = sheet.getRow(i);
             if (row == null) continue;
-            
+
             Vector<String> rowData = new Vector<>();
-            for (int j = 0; j < headerRow.getLastCellNum(); j++) {
+            for (int j = 0; j < maxColumns; j++) {
                 Cell cell = row.getCell(j);
-                rowData.add(getCellValueAsString(cell));
+                rowData.add(getCellString(cell, df, eval));
             }
             data.add(rowData);
         }
@@ -242,22 +323,84 @@ public class ElectricityController {
         
         JTable targetTable = isProvider ? view.getProviderPreviewTable() : view.getErpPreviewTable();
         targetTable.setModel(model);
-        
-        // Add row numbers
+
+        // Diagnostics: print summary of the preview model so we can debug empty-body cases
+        try {
+            System.out.println("[Preview Debug] headerRowIndex=" + headerRowIndex + ", maxColumns=" + maxColumns + ", rowsInModel=" + data.size());
+            if (!data.isEmpty()) {
+                Vector<String> firstHeader = data.get(0);
+                System.out.println("[Preview Debug] firstHeaderSample=" + firstHeader);
+                if (data.size() > 1) System.out.println("[Preview Debug] firstDataRowSample=" + data.get(1));
+            }
+        } catch (Exception e) {
+            // don't break UI due to diagnostics
+            e.printStackTrace();
+        }
+
+        // Add row numbers and styling
         targetTable.setRowSelectionAllowed(true);
         TableRowSorter<TableModel> sorter = new TableRowSorter<>(model);
         targetTable.setRowSorter(sorter);
-        
-        // Style the table
+
         targetTable.getTableHeader().setReorderingAllowed(false);
         targetTable.getTableHeader().setResizingAllowed(true);
         targetTable.setRowHeight(25);
         targetTable.setShowGrid(true);
         targetTable.setGridColor(Color.LIGHT_GRAY);
-        
+
         // Adjust column widths
         for (int i = 0; i < targetTable.getColumnCount(); i++) {
             packColumn(targetTable, i, 3);
+        }
+
+        // Setup preview-specific UI helpers (row header and column letters) now that model is set and table is in a scrollpane
+        try {
+            // Run UI setup on the Event Dispatch Thread and force revalidate/repaint after setup
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                try {
+                    UIUtils.setupPreviewTable(targetTable);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+                try {
+                    targetTable.revalidate();
+                    targetTable.repaint();
+                    java.awt.Component anc = javax.swing.SwingUtilities.getAncestorOfClass(javax.swing.JScrollPane.class, targetTable);
+                    if (anc instanceof javax.swing.JScrollPane) {
+                        javax.swing.JScrollPane sp = (javax.swing.JScrollPane) anc;
+                        sp.revalidate();
+                        sp.repaint();
+                        // Diagnostics: print viewport and column widths
+                        try {
+                            int totalPref = 0;
+                            System.out.println("[Preview Debug] viewportWidth=" + sp.getViewport().getWidth() + ", viewPos=" + sp.getViewport().getViewPosition());
+                            for (int ci = 0; ci < targetTable.getColumnCount(); ci++) {
+                                int pw = targetTable.getColumnModel().getColumn(ci).getPreferredWidth();
+                                totalPref += pw;
+                                System.out.println("[Preview Debug] col=" + ci + " prefWidth=" + pw);
+                            }
+                            System.out.println("[Preview Debug] totalPreferredWidth=" + totalPref);
+                        } catch (Exception ex2) {
+                            ex2.printStackTrace();
+                        }
+                        // Ensure table provides a sensible preferred viewport size so horizontal scrollbars show
+                        try {
+                            int approxWidth = Math.min(1600, Math.max(400, targetTable.getColumnCount() * 120));
+                            int approxHeight = Math.min(800, Math.max(200, targetTable.getRowHeight() * Math.min(data.size(), 20)));
+                            targetTable.setPreferredScrollableViewportSize(new java.awt.Dimension(approxWidth, approxHeight));
+                            sp.getViewport().revalidate();
+                            sp.getViewport().repaint();
+                        } catch (Exception ex3) {
+                            ex3.printStackTrace();
+                        }
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            });
+        } catch (Exception ex) {
+            // If setup scheduling fails, log to console but don't crash the UI
+            ex.printStackTrace();
         }
     }
     
@@ -281,9 +424,11 @@ public class ElectricityController {
             width = Math.max(width, comp.getPreferredSize().width);
         }
         
-        width += 2 * margin;
-        width = Math.max(width, 40); // Minimum width
-        col.setPreferredWidth(width);
+    width += 2 * margin;
+    width = Math.max(width, 40); // Minimum width
+    int maxColumnWidth = 300; // avoid excessive width that breaks layout
+    width = Math.min(width, maxColumnWidth);
+    col.setPreferredWidth(width);
     }
     
     private String convertToExcelColumn(int columnNumber) {
@@ -296,29 +441,27 @@ public class ElectricityController {
         return result.toString();
     }
     
-    private String getCellValueAsString(Cell cell) {
-        if (cell == null) return "";
-        
-        switch (cell.getCellType()) {
-            case STRING:
-                return cell.getStringCellValue();
-            case NUMERIC:
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    return cell.getLocalDateTimeCellValue().toString();
+
+
+        // Use DataFormatter and FormulaEvaluator to obtain the displayed string value of a cell
+        private String getCellString(Cell cell, DataFormatter df, FormulaEvaluator eval) {
+            if (cell == null) return "";
+            try {
+                if (cell.getCellType() == CellType.FORMULA) {
+                    CellValue cv = eval.evaluate(cell);
+                    if (cv == null) return "";
+                    switch (cv.getCellType()) {
+                        case STRING: return cv.getStringValue();
+                        case NUMERIC: return String.valueOf(cv.getNumberValue());
+                        case BOOLEAN: return String.valueOf(cv.getBooleanValue());
+                        default: return df.formatCellValue(cell, eval);
+                    }
                 }
-                return String.valueOf(cell.getNumericCellValue());
-            case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-            case FORMULA:
-                try {
-                    return String.valueOf(cell.getNumericCellValue());
-                } catch (IllegalStateException e) {
-                    return cell.getStringCellValue();
-                }
-            default:
+                return df.formatCellValue(cell);
+            } catch (Exception e) {
                 return "";
+            }
         }
-    }
     
     public void handleSourceSelection(boolean isProvider) {
         CardLayout cardLayout = view.getColumnConfigLayout();
@@ -376,14 +519,16 @@ public class ElectricityController {
             // Choose file location to save
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle(messages.getString("excel.save.title"));
-            fileChooser.setFileFilter(new FileNameExtensionFilter("Excel files (*.xlsx)", "xlsx"));
+            fileChooser.setFileFilter(new FileNameExtensionFilter("Excel files (*.xlsx, *.xls)", "xlsx", "xls"));
             
             if (fileChooser.showSaveDialog(view) != JFileChooser.APPROVE_OPTION) {
                 return;
             }
             
             File outputFile = fileChooser.getSelectedFile();
-            if (!outputFile.getName().toLowerCase().endsWith(".xlsx")) {
+            String outName = outputFile.getName().toLowerCase();
+            if (!outName.endsWith(".xlsx") && !outName.endsWith(".xls")) {
+                // Default to .xlsx when user doesn't provide extension
                 outputFile = new File(outputFile.getAbsolutePath() + ".xlsx");
             }
             

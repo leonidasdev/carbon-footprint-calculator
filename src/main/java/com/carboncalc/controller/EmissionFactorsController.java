@@ -19,6 +19,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.util.Vector;
 import java.util.Locale;
+import com.carboncalc.model.enums.EnergyType;
 
 public class EmissionFactorsController {
     private final ResourceBundle messages;
@@ -46,15 +47,20 @@ public class EmissionFactorsController {
         // Attempt to load persisted year; fallback to current year
         int persisted = loadPersistedYear();
         this.currentYear = persisted > 0 ? persisted : java.time.Year.now().getValue();
-        this.currentFactorType = "ELECTRICITY"; // Default type
+        this.currentFactorType = EnergyType.ELECTRICITY.name(); // Default type
     }
     
     public void handleTypeSelection(String type) {
         this.currentFactorType = type;
         loadFactorsForType();
         
-        // Update panel visibility
-        view.getCardLayout().show(view.getCardsPanel(), "ELECTRICITY".equals(type) ? "ELECTRICITY" : "OTHER");
+        // Update panel visibility: show the selected energy-type card when possible
+        try {
+            if (view != null && view.getCardLayout() != null && view.getCardsPanel() != null && type != null) {
+                view.getCardLayout().show(view.getCardsPanel(), type);
+            }
+        } catch (Exception ignored) {
+        }
     }
     
     public void handleYearSelection(int year) {
@@ -124,7 +130,7 @@ public class EmissionFactorsController {
         updateFactorsTable(factors);
         
         // Load general electricity factors if type is ELECTRICITY
-        if ("ELECTRICITY".equals(currentFactorType)) {
+        if (EnergyType.ELECTRICITY.name().equals(currentFactorType)) {
             try {
                 ElectricityGeneralFactors generalFactors = electricityGeneralFactorService.loadFactors(currentYear);
                 updateGeneralFactors(generalFactors);

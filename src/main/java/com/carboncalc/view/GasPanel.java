@@ -3,6 +3,7 @@ package com.carboncalc.view;
 import com.carboncalc.controller.GasController;
 import com.carboncalc.model.GasColumnMapping;
 import com.carboncalc.util.UIUtils;
+import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
 
 import java.awt.*;
@@ -14,6 +15,9 @@ import java.util.ResourceBundle;
  */
 public class GasPanel extends BaseModulePanel {
     private final GasController controller;
+    // Expose the energy type this panel represents so controllers and
+    // parent containers can use the enum instead of string literals.
+    public static final EnergyType TYPE = EnergyType.GAS;
     
     // File Management Components
     private JButton addProviderFileButton;
@@ -52,6 +56,11 @@ public class GasPanel extends BaseModulePanel {
     public GasPanel(GasController controller, ResourceBundle messages) {
         super(messages);
         this.controller = controller;
+    }
+
+    /** Return the EnergyType of this panel. */
+    public EnergyType getEnergyType() {
+        return TYPE;
     }
     
     @Override

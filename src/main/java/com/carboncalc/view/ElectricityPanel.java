@@ -3,6 +3,7 @@ package com.carboncalc.view;
 import com.carboncalc.controller.ElectricityController;
 import com.carboncalc.model.ElectricityColumnMapping;
 import com.carboncalc.util.UIUtils;
+import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
 
 import java.awt.*;
@@ -17,6 +18,8 @@ import java.util.ResourceBundle;
  */
 public class ElectricityPanel extends BaseModulePanel {
     private final ElectricityController controller;
+    // Expose the energy type this panel represents
+    public static final EnergyType TYPE = EnergyType.ELECTRICITY;
     
     // File Management Components
     private JButton addProviderFileButton;
@@ -56,6 +59,11 @@ public class ElectricityPanel extends BaseModulePanel {
     public ElectricityPanel(ElectricityController controller, ResourceBundle messages) {
         super(messages);
         this.controller = controller;
+    }
+
+    /** Return the EnergyType of this panel. */
+    public EnergyType getEnergyType() {
+        return TYPE;
     }
     
     @Override
@@ -150,8 +158,20 @@ public class ElectricityPanel extends BaseModulePanel {
     providerSheetSelector = new JComboBox<>();
     providerSheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
     providerSheetSelector.setMaximumSize(new Dimension(150, 25));
+    providerSheetSelector.setPreferredSize(new Dimension(150, 25)); // keep static width
     providerSheetSelector.addActionListener(e -> controller.handleProviderSheetSelection());
     UIUtils.styleComboBox(providerSheetSelector);
+    // Render sheet names truncated to a fixed 8 characters with trailing ellipsis and tooltip with full name
+    providerSheetSelector.setRenderer(new DefaultListCellRenderer() {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            String s = value == null ? "" : value.toString();
+            String display = s.length() > 8 ? s.substring(0, 8) + "..." : s;
+            JLabel lbl = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
+            lbl.setToolTipText(s.length() > 8 ? s : null);
+            return lbl;
+        }
+    });
         
         // Add components to provider panel with some spacing
         providerPanel.add(Box.createVerticalStrut(5));
@@ -186,8 +206,20 @@ public class ElectricityPanel extends BaseModulePanel {
     erpSheetSelector = new JComboBox<>();
     erpSheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
     erpSheetSelector.setMaximumSize(new Dimension(150, 25));
+    erpSheetSelector.setPreferredSize(new Dimension(150, 25)); // keep static width
     erpSheetSelector.addActionListener(e -> controller.handleErpSheetSelection());
     UIUtils.styleComboBox(erpSheetSelector);
+    // Render sheet names truncated to a fixed 8 characters with trailing ellipsis and tooltip with full name
+    erpSheetSelector.setRenderer(new DefaultListCellRenderer() {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            String s = value == null ? "" : value.toString();
+            String display = s.length() > 8 ? s.substring(0, 8) + "..." : s;
+            JLabel lbl = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
+            lbl.setToolTipText(s.length() > 8 ? s : null);
+            return lbl;
+        }
+    });
         
         // Add components to ERP panel with some spacing
         erpPanel.add(Box.createVerticalStrut(5));
@@ -244,7 +276,7 @@ public class ElectricityPanel extends BaseModulePanel {
         // Emission Entity
         addColumnMapping(panel, gbc, "label.column.emission.entity", emissionEntitySelector = new JComboBox<>());
 
-        // Style mapping combo boxes for consistent look
+        // Style mapping combo boxes for consistent look and keep them a fixed width so long names don't resize layout
         UIUtils.styleComboBox(cupsSelector);
         UIUtils.styleComboBox(invoiceNumberSelector);
         UIUtils.styleComboBox(issueDateSelector);
@@ -253,6 +285,26 @@ public class ElectricityPanel extends BaseModulePanel {
         UIUtils.styleComboBox(consumptionSelector);
         UIUtils.styleComboBox(centerSelector);
         UIUtils.styleComboBox(emissionEntitySelector);
+
+        // Apply fixed size and width-aware truncating renderer to prevent layout shifts
+        java.util.List<JComboBox<String>> mappingCombos = java.util.Arrays.asList(
+            cupsSelector, invoiceNumberSelector, issueDateSelector, startDateSelector,
+            endDateSelector, consumptionSelector, centerSelector, emissionEntitySelector
+        );
+        for (JComboBox<String> cb : mappingCombos) {
+            cb.setPreferredSize(new Dimension(180, 25));
+            cb.setMaximumSize(new Dimension(180, 25));
+            cb.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    String s = value == null ? "" : value.toString();
+                    String display = s.length() > 8 ? s.substring(0, 8) + "..." : s;
+                    JLabel lbl = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
+                    lbl.setToolTipText(s.length() > 8 ? s : null);
+                    return lbl;
+                }
+            });
+        }
     }
     
     private void setupErpMappingPanel(JPanel panel) {
@@ -268,9 +320,24 @@ public class ElectricityPanel extends BaseModulePanel {
         // Conformity Date
         addColumnMapping(panel, gbc, "label.column.conformity.date", conformityDateSelector = new JComboBox<>());
 
-        // Style ERP mapping combo boxes
+        // Style ERP mapping combo boxes and keep fixed size to avoid layout shifts
         UIUtils.styleComboBox(erpInvoiceNumberSelector);
         UIUtils.styleComboBox(conformityDateSelector);
+        java.util.List<JComboBox<String>> erpCombos = java.util.Arrays.asList(erpInvoiceNumberSelector, conformityDateSelector);
+        for (JComboBox<String> cb : erpCombos) {
+            cb.setPreferredSize(new Dimension(180, 25));
+            cb.setMaximumSize(new Dimension(180, 25));
+            cb.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    String s = value == null ? "" : value.toString();
+                    String display = s.length() > 8 ? s.substring(0, 8) + "..." : s;
+                    JLabel lbl = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
+                    lbl.setToolTipText(s.length() > 8 ? s : null);
+                    return lbl;
+                }
+            });
+        }
     }
     
     private void addColumnMapping(JPanel panel, GridBagConstraints gbc, String labelKey, JComboBox<String> comboBox) {
@@ -314,11 +381,12 @@ public class ElectricityPanel extends BaseModulePanel {
         providerPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         UIUtils.styleTable(providerPreviewTable);
 
-        providerTableScrollPane = new JScrollPane(providerPreviewTable);
-        providerTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        providerTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+    providerTableScrollPane = new JScrollPane(providerPreviewTable);
+    providerTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+    providerTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+    providerTableScrollPane.setPreferredSize(new Dimension(320, 360));
 
-        UIUtils.setupPreviewTable(providerPreviewTable);
+    // UIUtils.setupPreviewTable(providerPreviewTable); -- moved to controller after model is set
         providerPanel.add(providerTableScrollPane, BorderLayout.CENTER);
 
         // ERP Preview Panel
@@ -331,11 +399,12 @@ public class ElectricityPanel extends BaseModulePanel {
         erpPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         UIUtils.styleTable(erpPreviewTable);
 
-        erpTableScrollPane = new JScrollPane(erpPreviewTable);
-        erpTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        erpTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+    erpTableScrollPane = new JScrollPane(erpPreviewTable);
+    erpTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+    erpTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+    erpTableScrollPane.setPreferredSize(new Dimension(320, 360));
 
-        UIUtils.setupPreviewTable(erpPreviewTable);
+    // UIUtils.setupPreviewTable(erpPreviewTable); -- moved to controller after model is set
         erpPanel.add(erpTableScrollPane, BorderLayout.CENTER);
 
         // Result Preview Panel (to the right of ERP)
@@ -348,11 +417,12 @@ public class ElectricityPanel extends BaseModulePanel {
         resultPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         UIUtils.styleTable(resultPreviewTable);
 
-        resultTableScrollPane = new JScrollPane(resultPreviewTable);
-        resultTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        resultTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+    resultTableScrollPane = new JScrollPane(resultPreviewTable);
+    resultTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+    resultTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+    resultTableScrollPane.setPreferredSize(new Dimension(320, 360));
 
-        UIUtils.setupPreviewTable(resultPreviewTable);
+    // UIUtils.setupPreviewTable(resultPreviewTable); -- moved to controller after model is set
         resultPanel.add(resultTableScrollPane, BorderLayout.CENTER);
 
         // Add Apply & Save button below the result preview
@@ -384,6 +454,47 @@ public class ElectricityPanel extends BaseModulePanel {
     // ERP file getters
     public JLabel getErpFileLabel() { return erpFileLabel; }
     public JComboBox<String> getErpSheetSelector() { return erpSheetSelector; }
+
+    /**
+     * Set provider file name with ellipsis if too long and set tooltip to full name.
+     */
+    public void setProviderFileName(String fullName) {
+        int maxLen = 20;
+        try {
+            String none = messages.getString("label.file.none");
+            if (none != null) maxLen = Math.max(3, none.length());
+        } catch (Exception ignored) {}
+        setLabelTextWithEllipsis(providerFileLabel, fullName, maxLen);
+    }
+
+    /**
+     * Set ERP file name with ellipsis if too long and set tooltip to full name.
+     */
+    public void setErpFileName(String fullName) {
+        int maxLen = 20;
+        try {
+            String none = messages.getString("label.file.none");
+            if (none != null) maxLen = Math.max(3, none.length());
+        } catch (Exception ignored) {}
+        setLabelTextWithEllipsis(erpFileLabel, fullName, maxLen);
+    }
+
+    private void setLabelTextWithEllipsis(JLabel label, String fullName, int maxLen) {
+        if (label == null) return;
+        if (fullName == null) {
+            label.setText("");
+            label.setToolTipText(null);
+            return;
+        }
+        String display = fullName;
+        if (fullName.length() > maxLen) {
+            // keep the leftmost characters and append ellipsis, e.g. "file101..."
+            int keep = Math.max(3, maxLen - 3);
+            display = fullName.substring(0, keep) + "...";
+        }
+        label.setText(display);
+        label.setToolTipText(fullName);
+    }
     
     // Provider column mapping getters
     public JComboBox<String> getCupsSelector() { return cupsSelector; }

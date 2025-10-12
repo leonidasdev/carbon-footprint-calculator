@@ -10,6 +10,7 @@ import javax.swing.*;
 import com.carboncalc.util.UIUtils;
 import java.awt.*;
 import java.util.ResourceBundle;
+import com.carboncalc.model.enums.EnergyType;
 
 /**
  * Main application window. Holds the navigation bar and a card-based
@@ -86,12 +87,12 @@ public class MainWindow extends JFrame {
     titleLabel.setHorizontalAlignment(SwingConstants.LEFT);
     navigationPanel.add(titleLabel);
         
-        // Reporting modules
-        addNavigationButton("module.electricity", "electricity");
-        addNavigationButton("module.gas", "gas");
-        addNavigationButton("module.fuel", "fuel");
-        addNavigationButton("module.refrigerants", "refrigerants");
-        addNavigationButton("module.general", "general");
+    // Reporting modules (use EnergyType ids for consistency)
+    addNavigationButton("module.electricity", EnergyType.ELECTRICITY.id());
+    addNavigationButton("module.gas", EnergyType.GAS.id());
+    addNavigationButton("module.fuel", EnergyType.FUEL.id());
+    addNavigationButton("module.refrigerants", EnergyType.REFRIGERANT.id());
+    addNavigationButton("module.general", "general");
         
         // Add a separator
         navigationPanel.add(Box.createVerticalStrut(20));
@@ -108,18 +109,18 @@ public class MainWindow extends JFrame {
     
     private void setupContent() {
         // Initialize all module panels
-        contentPanel.add(createElectricityPanel(), "electricity");
-        contentPanel.add(createGasPanel(), "gas");
+    contentPanel.add(createElectricityPanel(), EnergyType.ELECTRICITY.id());
+    contentPanel.add(createGasPanel(), EnergyType.GAS.id());
         // Add placeholder panels for unimplemented modules
-        contentPanel.add(createPlaceholderPanel("module.fuel"), "fuel");
-        contentPanel.add(createPlaceholderPanel("module.refrigerants"), "refrigerants");
-        contentPanel.add(createPlaceholderPanel("module.general"), "general");
+    contentPanel.add(createPlaceholderPanel("module.fuel"), EnergyType.FUEL.id());
+    contentPanel.add(createPlaceholderPanel("module.refrigerants"), EnergyType.REFRIGERANT.id());
+    contentPanel.add(createPlaceholderPanel("module.general"), "general");
         contentPanel.add(createCupsConfigPanel(), "cups");
         contentPanel.add(createEmissionFactorsPanel(), "factors");
         contentPanel.add(createOptionsPanel(), "options");
         
-        // Show default panel
-        cardLayout.show(contentPanel, "electricity");
+    // Show default panel
+    cardLayout.show(contentPanel, EnergyType.ELECTRICITY.id());
     }
     
     private JPanel createOptionsPanel() {
@@ -190,7 +191,7 @@ public class MainWindow extends JFrame {
         navigationButtonGroup.add(button);
         
         // Select the first button (electricity) by default
-        if (cardName.equals("electricity")) {
+        if (cardName.equals(EnergyType.ELECTRICITY.id())) {
             button.setSelected(true);
         }
         

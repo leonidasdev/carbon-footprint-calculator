@@ -112,31 +112,25 @@ public class UIUtils {
     }
 
     public static void setupPreviewTable(JTable table) {
-        // Create row header
-        JTable rowHeader = new JTable(new DefaultTableModel(table.getRowCount(), 1) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+        if (table == null) return;
 
-            @Override
-            public Object getValueAt(int row, int column) {
-                return row + 1;
-            }
-        });
+        // Find the enclosing JScrollPane robustly
+        java.awt.Component possible = javax.swing.SwingUtilities.getAncestorOfClass(JScrollPane.class, table);
+        if (possible == null) {
+            possible = table.getParent();
+            if (possible != null) possible = possible.getParent();
+        }
+        if (!(possible instanceof JScrollPane)) {
+            // Can't find a scroll pane; nothing to setup
+            return;
+        }
+        final JScrollPane scrollPane = (JScrollPane) possible;
 
-        // Style row header
-        rowHeader.setShowGrid(false);
-        rowHeader.setBackground(new Color(0xF5F5F5));
-        rowHeader.setSelectionBackground(UPM_LIGHTER_BLUE);
-        rowHeader.getColumnModel().getColumn(0).setPreferredWidth(50);
-        rowHeader.setRowHeight(table.getRowHeight());
-        rowHeader.getTableHeader().setReorderingAllowed(false);
-        rowHeader.getTableHeader().setResizingAllowed(false);
-
-        // Add row header to scroll pane
-        JScrollPane scrollPane = (JScrollPane) table.getParent().getParent();
-        scrollPane.setRowHeaderView(rowHeader);
+        // We no longer show a dedicated row-header column for row numbers (it was visually noisy).
+        // Ensure any existing row header is removed so the table viewport uses the full width.
+        try {
+            scrollPane.setRowHeaderView(null);
+        } catch (Exception ignored) {}
 
         // Set column headers to letters (A, B, C, etc.)
         for (int i = 0; i < table.getColumnCount(); i++) {
@@ -144,9 +138,69 @@ public class UIUtils {
             column.setHeaderValue(getExcelColumnName(i));
         }
 
-        // Make sure the table and row header stay synchronized
-        scrollPane.getRowHeader().addChangeListener(
-                e -> scrollPane.getVerticalScrollBar().setValue(scrollPane.getViewport().getViewPosition().y));
+        // If there is a row header view (unlikely now), keep it synchronized; otherwise skip
+        try {
+            if (scrollPane.getRowHeader() != null) {
+                scrollPane.getRowHeader().addChangeListener(
+                        e -> scrollPane.getVerticalScrollBar().setValue(scrollPane.getViewport().getViewPosition().y));
+            }
+        } catch (Exception ignored) {}
+
+        // Ensure table viewport background matches table and layout is refreshed
+        try {
+            scrollPane.getViewport().setBackground(table.getBackground());
+            scrollPane.revalidate();
+            scrollPane.repaint();
+            // also revalidate parent chain to avoid sibling overlay issues
+            java.awt.Component p = scrollPane.getParent();
+            if (p != null) { p.revalidate(); p.repaint(); }
+        } catch (Exception ignored) {}
+
+        // Extra diagnostics: print component bounds and look for any opaque sibling that may overlap the viewport
+        try {
+            java.awt.Component viewportView = scrollPane.getViewport().getView();
+            System.out.println("[UIUtils Debug] scrollPane bounds=" + scrollPane.getBounds() + ", viewport=" + scrollPane.getViewport().getBounds());
+            if (viewportView != null) System.out.println("[UIUtils Debug] viewport view=" + viewportView.getClass().getSimpleName() + " bounds=" + viewportView.getBounds());
+
+            java.awt.Container parent = scrollPane.getParent();
+            if (parent != null) {
+                java.awt.Component[] comps = parent.getComponents();
+                for (int i = 0; i < comps.length; i++) {
+                    java.awt.Component c = comps[i];
+                    System.out.println("[UIUtils Debug] sibling[" + i + "]=" + c.getClass().getSimpleName() + " bounds=" + c.getBounds() + " opaque=" + c.isOpaque() + " bg=" + c.getBackground());
+                }
+
+                // Find any sibling that overlaps the viewport area and is opaque
+                java.awt.Rectangle vp = scrollPane.getViewport().getBounds();
+                boolean foundOverlap = false;
+                for (java.awt.Component c : comps) {
+                    if (c == scrollPane) continue;
+                    if (!c.isVisible()) continue;
+                    java.awt.Rectangle b = c.getBounds();
+                    if (b.intersects(vp) && c.isOpaque()) {
+                        foundOverlap = true;
+                        System.out.println("[UIUtils Debug] Overlapping opaque sibling detected: " + c.getClass().getName() + " bounds=" + b + " bg=" + c.getBackground());
+                    }
+                }
+                // If overlap detected, try to bring scrollPane to front to avoid being visually covered
+                if (foundOverlap) {
+                    try {
+                        java.awt.Container _parent = scrollPane.getParent();
+                        if (_parent != null) {
+                            // ensure scroll pane is opaque so it repaints over siblings
+                            scrollPane.setOpaque(true);
+                            scrollPane.getViewport().setOpaque(true);
+                            _parent.setComponentZOrder(scrollPane, 0);
+                            _parent.revalidate();
+                            _parent.repaint();
+                            System.out.println("[UIUtils Debug] Brought scrollPane to front in parent to avoid overlap");
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
     }
 
     private static String getExcelColumnName(int columnNumber) {

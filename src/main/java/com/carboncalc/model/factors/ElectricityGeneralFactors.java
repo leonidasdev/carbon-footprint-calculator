@@ -7,12 +7,14 @@ public class ElectricityGeneralFactors {
     private double mixSinGdo;
     private double gdoRenovable;
     private double gdoCogeneracionAltaEficiencia;
+    private double locationBasedFactor;
     private List<TradingCompany> tradingCompanies;
 
     public ElectricityGeneralFactors() {
         this.mixSinGdo = 0.0;
         this.gdoRenovable = 0.0;
         this.gdoCogeneracionAltaEficiencia = 0.0;
+        this.locationBasedFactor = 0.0;
         this.tradingCompanies = new ArrayList<>();
     }
 
@@ -45,6 +47,9 @@ public class ElectricityGeneralFactors {
 
     public double getGdoCogeneracionAltaEficiencia() { return gdoCogeneracionAltaEficiencia; }
     public void setGdoCogeneracionAltaEficiencia(double value) { this.gdoCogeneracionAltaEficiencia = value; }
+
+    public double getLocationBasedFactor() { return locationBasedFactor; }
+    public void setLocationBasedFactor(double value) { this.locationBasedFactor = value; }
 
     public List<TradingCompany> getTradingCompanies() { return tradingCompanies; }
     public void setTradingCompanies(List<TradingCompany> companies) { this.tradingCompanies = companies; }

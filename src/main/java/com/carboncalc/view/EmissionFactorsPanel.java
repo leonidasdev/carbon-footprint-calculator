@@ -225,6 +225,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     // General electricity factors components
     private JTextField mixSinGdoField;
     private JTextField gdoRenovableField;
+    private JTextField locationBasedField;
     private JTextField gdoCogeneracionField;
     private JButton saveGeneralFactorsButton;
     private JPanel electricityGeneralFactorsPanel;
@@ -490,15 +491,15 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         JLabel renovableLabel = new JLabel(messages.getString("label.gdo.renovable") + ":");
         factorsPanel.add(renovableLabel, fgbc);
 
-        fgbc.gridx = 1;
-        fgbc.weightx = 0.6;
-        gdoRenovableField = new JTextField();
-        gdoRenovableField.setPreferredSize(new Dimension(140, 26));
-        gdoRenovableField.setMargin(new Insets(5, 5, 5, 5));
-        gdoRenovableField.setHorizontalAlignment(JTextField.RIGHT);
-        gdoRenovableField.setEditable(true);
-        UIUtils.styleTextField(gdoRenovableField);
-        factorsPanel.add(gdoRenovableField, fgbc);
+    fgbc.gridx = 1;
+    fgbc.weightx = 0.6;
+    gdoRenovableField = new JTextField();
+    gdoRenovableField.setPreferredSize(new Dimension(140, 26));
+    gdoRenovableField.setMargin(new Insets(5, 5, 5, 5));
+    gdoRenovableField.setHorizontalAlignment(JTextField.RIGHT);
+    gdoRenovableField.setEditable(true);
+    UIUtils.styleTextField(gdoRenovableField);
+    factorsPanel.add(gdoRenovableField, fgbc);
 
         fgbc.gridx = 2;
         fgbc.weightx = 0.0;
@@ -515,23 +516,48 @@ public class EmissionFactorsPanel extends BaseModulePanel {
 
         fgbc.gridx = 1;
         fgbc.weightx = 0.6;
-        gdoCogeneracionField = new JTextField();
-        gdoCogeneracionField.setPreferredSize(new Dimension(140, 26));
-        gdoCogeneracionField.setMargin(new Insets(5, 5, 5, 5));
-        gdoCogeneracionField.setHorizontalAlignment(JTextField.RIGHT);
-        gdoCogeneracionField.setEditable(true);
-        UIUtils.styleTextField(gdoCogeneracionField);
-        factorsPanel.add(gdoCogeneracionField, fgbc);
+    gdoCogeneracionField = new JTextField();
+    gdoCogeneracionField.setPreferredSize(new Dimension(140, 26));
+    gdoCogeneracionField.setMargin(new Insets(5, 5, 5, 5));
+    gdoCogeneracionField.setHorizontalAlignment(JTextField.RIGHT);
+    gdoCogeneracionField.setEditable(true);
+    UIUtils.styleTextField(gdoCogeneracionField);
+    factorsPanel.add(gdoCogeneracionField, fgbc);
+
+        // Location-based emissions input (new row)
+        fgbc.gridx = 0;
+        fgbc.gridy = 4;
+        fgbc.weightx = 0.0;
+        JLabel locLabel = new JLabel(messages.getString("label.location.based") + ":");
+        factorsPanel.add(locLabel, fgbc);
+
+        fgbc.gridx = 1;
+        fgbc.weightx = 0.6;
+        locationBasedField = new JTextField();
+        locationBasedField.setPreferredSize(new Dimension(140, 26));
+        locationBasedField.setMargin(new Insets(5, 5, 5, 5));
+        locationBasedField.setHorizontalAlignment(JTextField.RIGHT);
+        locationBasedField.setEditable(true);
+        UIUtils.styleTextField(locationBasedField);
+        factorsPanel.add(locationBasedField, fgbc);
 
         fgbc.gridx = 2;
+        fgbc.weightx = 0.0;
+        JLabel locUnit = new JLabel("kg CO2/kWh");
+        locUnit.setForeground(Color.GRAY);
+        factorsPanel.add(locUnit, fgbc);
+
+        // Ensure cogUnit remains at its row (3) and is present
+        fgbc.gridx = 2;
+        fgbc.gridy = 3;
         fgbc.weightx = 0.0;
         JLabel cogUnit = new JLabel("kg CO2/kWh");
         cogUnit.setForeground(Color.GRAY);
         factorsPanel.add(cogUnit, fgbc);
 
-        // Add Edit/Save buttons inside the general factors box (new row)
+        // Add Edit/Save buttons inside the general factors box on the next row
         fgbc.gridx = 0;
-        fgbc.gridy = 4;
+        fgbc.gridy = 5;
         fgbc.gridwidth = 3;
         fgbc.weightx = 1.0;
         fgbc.anchor = GridBagConstraints.EAST;
@@ -594,6 +620,10 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         manualInputBox.setBackground(UIUtils.CONTENT_BACKGROUND);
         manualInputBox.setBorder(UIUtils.createLightGroupBorder(messages.getString("tab.manual.input")));
         manualInputBox.add(inputWrapperPanel, BorderLayout.CENTER);
+    // Make the manual input box taller so form fields and the Add button
+    // have more vertical room and won't collide with adjacent controls.
+    manualInputBox.setPreferredSize(new Dimension(380, 240));
+    manualInputBox.setMinimumSize(new Dimension(300, 200));
 
         // Create table for trading companies (preview)
         String[] columnNames = {
@@ -614,10 +644,10 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         tradingCompaniesTable.getTableHeader().setReorderingAllowed(false);
         UIUtils.styleTable(tradingCompaniesTable);
 
-        JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
-        // Increase preferred height so the table takes more vertical space and buttons
-        // sit closer
-        scrollPane.setPreferredSize(new Dimension(0, 300));
+    JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
+    // Reduce the trading companies preferred height so the top panels
+    // (Manual Input and General Factors) can occupy more vertical space.
+    scrollPane.setPreferredSize(new Dimension(0, 180));
 
         // Button panel for table actions
         JPanel tradingCompanyButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -680,7 +710,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.preview")));
         panel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        panel.setPreferredSize(new Dimension(0, 400)); // Set minimum height for preview
+        panel.setPreferredSize(new Dimension(0, 350)); // Set minimum height for preview
 
         // Create preview table
         previewTable = new JTable();
@@ -731,6 +761,10 @@ public class EmissionFactorsPanel extends BaseModulePanel {
 
     public JTextField getGdoRenovableField() {
         return gdoRenovableField;
+    }
+
+    public JTextField getLocationBasedField() {
+        return locationBasedField;
     }
 
     public JTextField getGdoCogeneracionField() {

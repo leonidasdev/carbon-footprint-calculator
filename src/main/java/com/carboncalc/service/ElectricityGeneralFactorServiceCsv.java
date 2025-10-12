@@ -35,9 +35,11 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
                     Double v0 = ValidationUtils.tryParseDouble(values[0]);
                     Double v1 = ValidationUtils.tryParseDouble(values[1]);
                     Double v2 = ValidationUtils.tryParseDouble(values[2]);
+                    Double v3 = values.length > 3 ? ValidationUtils.tryParseDouble(values[3]) : null;
                     if (v0 != null) factors.setMixSinGdo(v0);
                     if (v1 != null) factors.setGdoRenovable(v1);
                     if (v2 != null) factors.setGdoCogeneracionAltaEficiencia(v2);
+                    if (v3 != null) factors.setLocationBasedFactor(v3);
                 }
             }
         }
@@ -74,11 +76,12 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
 
         // Prepare general factors CSV
         List<String> generalLines = new ArrayList<>();
-        generalLines.add("mix_sin_gdo,gdo_renovable,gdo_cogeneracion_alta_eficiencia");
-        generalLines.add(String.format("%.3f,%.3f,%.3f",
+        generalLines.add("mix_sin_gdo,gdo_renovable,gdo_cogeneracion_alta_eficiencia,location_based_factor");
+        generalLines.add(String.format(java.util.Locale.ROOT, "%.3f,%.3f,%.3f,%.3f",
             factors.getMixSinGdo(),
             factors.getGdoRenovable(),
-            factors.getGdoCogeneracionAltaEficiencia()));
+            factors.getGdoCogeneracionAltaEficiencia(),
+            factors.getLocationBasedFactor()));
 
         Files.write(generalFile, generalLines, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 

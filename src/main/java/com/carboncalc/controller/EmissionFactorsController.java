@@ -148,6 +148,9 @@ public class EmissionFactorsController {
             view.getMixSinGdoField().setText(String.format("%.4f", factors.getMixSinGdo()));
             view.getGdoRenovableField().setText(String.format("%.4f", factors.getGdoRenovable()));
             view.getGdoCogeneracionField().setText(String.format("%.4f", factors.getGdoCogeneracionAltaEficiencia()));
+            try {
+                view.getLocationBasedField().setText(String.format("%.4f", factors.getLocationBasedFactor()));
+            } catch (Exception ignored) {}
             // Populate trading companies table with loaded companies
             try {
                 DefaultTableModel tmodel = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
@@ -162,9 +165,10 @@ public class EmissionFactorsController {
                 }
             } catch (Exception ignored) {}
         } else {
-            view.getMixSinGdoField().setText("0.0000");
-            view.getGdoRenovableField().setText("0.0000");
-            view.getGdoCogeneracionField().setText("0.0000");
+        view.getMixSinGdoField().setText("0.0000");
+        view.getGdoRenovableField().setText("0.0000");
+        view.getGdoCogeneracionField().setText("0.0000");
+        try { view.getLocationBasedField().setText("0.0000"); } catch (Exception ignored) {}
             try {
                 DefaultTableModel tmodel = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
                 tmodel.setRowCount(0);
@@ -292,7 +296,9 @@ public class EmissionFactorsController {
         // Parse numeric inputs (tolerant)
         String mixText = view.getMixSinGdoField().getText();
         String renovText = view.getGdoRenovableField().getText();
-        String cogText = view.getGdoCogeneracionField().getText();
+    String cogText = view.getGdoCogeneracionField().getText();
+    String locText = "";
+    try { locText = view.getLocationBasedField().getText(); } catch (Exception ignored) {}
 
         Double mixSinGdo = com.carboncalc.util.ValidationUtils.tryParseDouble(mixText);
         Double gdoRenovable = com.carboncalc.util.ValidationUtils.tryParseDouble(renovText);
@@ -304,6 +310,10 @@ public class EmissionFactorsController {
             mixSinGdo = com.carboncalc.util.ValidationUtils.tryParseDouble(view.getMixSinGdoField().getText());
             gdoRenovable = com.carboncalc.util.ValidationUtils.tryParseDouble(view.getGdoRenovableField().getText());
             gdoCogeneracion = com.carboncalc.util.ValidationUtils.tryParseDouble(view.getGdoCogeneracionField().getText());
+            if (locText != null && !locText.isEmpty()) {
+                // ensure location-based is refreshed too
+                try { view.getLocationBasedField().setText(locText); } catch (Exception ignored) {}
+            }
         }
 
         if (mixSinGdo == null || gdoRenovable == null || gdoCogeneracion == null) {
@@ -321,6 +331,9 @@ public class EmissionFactorsController {
         factors.setMixSinGdo(mixSinGdo);
         factors.setGdoRenovable(gdoRenovable);
         factors.setGdoCogeneracionAltaEficiencia(gdoCogeneracion);
+    Double locVal = com.carboncalc.util.ValidationUtils.tryParseDouble(locText);
+    if (locVal == null) locVal = 0.0;
+    factors.setLocationBasedFactor(locVal);
 
         // Parse trading companies from table (defensive parsing)
         DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();

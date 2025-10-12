@@ -22,12 +22,12 @@ public class ElectricityExcelExporter {
 
     public static void exportElectricityData(String filePath) throws IOException {
         // Backward-compatible call: no data provided -> create empty template
-        exportElectricityData(filePath, null, null, null, null, new com.carboncalc.model.ElectricityMapping(), java.time.LocalDate.now().getYear(), "extended");
+    exportElectricityData(filePath, null, null, null, null, new com.carboncalc.model.ElectricityMapping(), java.time.LocalDate.now().getYear(), "extended", java.util.Collections.emptySet());
     }
 
     public static void exportElectricityData(String filePath, String providerPath, String providerSheet,
-            String erpPath, String erpSheet, com.carboncalc.model.ElectricityMapping mapping, int year,
-            String sheetMode) throws IOException {
+        String erpPath, String erpSheet, com.carboncalc.model.ElectricityMapping mapping, int year,
+        String sheetMode, java.util.Set<String> validInvoices) throws IOException {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
             // Create sheets based on mode
@@ -42,7 +42,7 @@ public class ElectricityExcelExporter {
                         org.apache.poi.ss.usermodel.Workbook src = providerPath.toLowerCase().endsWith(".xlsx") ? new XSSFWorkbook(fis) : new HSSFWorkbook(fis);
                         Sheet sheet = src.getSheet(providerSheet);
                         if (sheet != null) {
-                            writeExtendedRows(detailedSheet, sheet, mapping, year);
+                            writeExtendedRows(detailedSheet, sheet, mapping, year, validInvoices);
                         }
                         src.close();
                     } catch (Exception e) {
@@ -75,7 +75,7 @@ public class ElectricityExcelExporter {
         }
     }
 
-    private static void writeExtendedRows(Sheet target, Sheet source, com.carboncalc.model.ElectricityMapping mapping, int year) {
+    private static void writeExtendedRows(Sheet target, Sheet source, com.carboncalc.model.ElectricityMapping mapping, int year, java.util.Set<String> validInvoices) {
         DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = source.getWorkbook().getCreationHelper().createFormulaEvaluator();
 
@@ -109,6 +109,14 @@ public class ElectricityExcelExporter {
 
             // Helper to safely get center when index may be -1
             if (mapping.getCenterIndex() < 0) centro = "";
+
+            // If a non-empty validInvoices set was provided, filter by invoice number (sociedad/invoice)
+            if (validInvoices != null && !validInvoices.isEmpty()) {
+                String invoiceKey = sociedad != null ? sociedad.trim() : "";
+                if (invoiceKey.isEmpty() || !validInvoices.contains(invoiceKey)) {
+                    continue; // skip this provider row
+                }
+            }
 
 
             Row out = target.createRow(outRow++);

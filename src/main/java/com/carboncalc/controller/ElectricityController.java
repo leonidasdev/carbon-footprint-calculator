@@ -519,9 +519,57 @@ public class ElectricityController {
             int selectedYear = (Integer) view.getYearSpinner().getValue();
             String sheetMode = (String) view.getResultSheetSelector().getSelectedItem();
 
-            // Generate the Excel report with mapping and year context
+            // Build set of valid invoice numbers from ERP file (conformity date >= selectedYear)
+            java.util.Set<String> validInvoices = new java.util.HashSet<>();
+            if (erpPath != null && erpSheet != null && view.getErpInvoiceNumberSelector().getSelectedItem() != null) {
+                try (java.io.FileInputStream fis = new java.io.FileInputStream(erpPath)) {
+                    org.apache.poi.ss.usermodel.Workbook erpWb = erpPath.toLowerCase().endsWith(".xlsx") ? new XSSFWorkbook(fis) : new HSSFWorkbook(fis);
+                    Sheet sheet = erpWb.getSheet(erpSheet);
+                    if (sheet != null) {
+                        DataFormatter df = new DataFormatter();
+                        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
+                        int headerRowIndex = -1;
+                        for (int r = sheet.getFirstRowNum(); r <= sheet.getLastRowNum(); r++) {
+                            Row row = sheet.getRow(r);
+                            if (row == null) continue;
+                            boolean nonEmpty = false;
+                            for (Cell c : row) { if (!getCellString(c, df, eval).isEmpty()) { nonEmpty = true; break; } }
+                            if (nonEmpty) { headerRowIndex = r; break; }
+                        }
+                        if (headerRowIndex != -1) {
+                            Row headerRow = sheet.getRow(headerRowIndex);
+                            int invoiceCol = -1;
+                            int conformityCol = -1;
+                            String selInvoiceHeader = (String) view.getErpInvoiceNumberSelector().getSelectedItem();
+                            String selConformityHeader = (String) view.getConformityDateSelector().getSelectedItem();
+                            for (Cell c : headerRow) {
+                                String h = getCellString(c, df, eval);
+                                if (selInvoiceHeader != null && selInvoiceHeader.equals(h)) invoiceCol = c.getColumnIndex();
+                                if (selConformityHeader != null && selConformityHeader.equals(h)) conformityCol = c.getColumnIndex();
+                            }
+                            if (invoiceCol != -1 && conformityCol != -1) {
+                                for (int r = headerRowIndex + 1; r <= sheet.getLastRowNum(); r++) {
+                                    Row row = sheet.getRow(r);
+                                    if (row == null) continue;
+                                    String invoice = getCellString(row.getCell(invoiceCol), df, eval);
+                                    String conformity = getCellString(row.getCell(conformityCol), df, eval);
+                                    int y = extractYearFromString(conformity);
+                                    if (y >= selectedYear && invoice != null && !invoice.isEmpty()) {
+                                        validInvoices.add(invoice.trim());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    erpWb.close();
+                } catch (Exception ex) {
+                    // ignore ERP parsing errors and continue with empty filter (means include all)
+                }
+            }
+
+            // Generate the Excel report with mapping, year context and invoice filter
             com.carboncalc.util.ElectricityExcelExporter.exportElectricityData(
-                outputFile.getAbsolutePath(), providerPath, providerSheet, erpPath, erpSheet, mapping, selectedYear, sheetMode
+                outputFile.getAbsolutePath(), providerPath, providerSheet, erpPath, erpSheet, mapping, selectedYear, sheetMode, validInvoices
             );
             
             // Show success message
@@ -537,5 +585,15 @@ public class ElectricityController {
                 messages.getString("error.title"),
                 JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    // Extract a 4-digit year from a string if possible. Returns -1 if none found.
+    private int extractYearFromString(String s) {
+        if (s == null) return -1;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(19|20)\\d{2}").matcher(s);
+        if (m.find()) {
+            try { return Integer.parseInt(m.group()); } catch (NumberFormatException ignored) {}
+        }
+        return -1;
     }
 }

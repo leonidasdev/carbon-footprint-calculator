@@ -113,11 +113,110 @@ public class CSVDataService {
     
     // CUPS-Center mapping methods
     public List<CupsCenterMapping> loadCupsData() throws IOException {
-        return readCsvFile(Paths.get(CUPS_DIR, CUPS_FILE).toString(), CupsCenterMapping.class);
+        try {
+            return readCsvFile(Paths.get(CUPS_DIR, CUPS_FILE).toString(), CupsCenterMapping.class);
+        } catch (Exception e) {
+            // Fallback to a lenient parser to tolerate minor CSV issues (blank lines,
+            // header variations, etc.). Log to stderr and return best-effort parse.
+            System.err.println("Warning: standard bean CSV parse failed for cups CSV, falling back to lenient parser: " + e.getMessage());
+            return loadCupsDataLenient();
+        }
+    }
+
+    private List<CupsCenterMapping> loadCupsDataLenient() throws IOException {
+        Path filePath = Paths.get(DATA_DIR, CUPS_DIR, CUPS_FILE);
+        if (!Files.exists(filePath)) return List.of();
+
+        List<CupsCenterMapping> result = new java.util.ArrayList<>();
+        try (java.io.Reader reader = Files.newBufferedReader(filePath);
+             com.opencsv.CSVReader csv = new com.opencsv.CSVReader(reader)) {
+            List<String[]> rows = csv.readAll();
+            if (rows.isEmpty()) return result;
+
+            int start = 0;
+            // Detect header row if first cell equals 'id' (case-insensitive)
+            String[] first = rows.get(0);
+            if (first.length > 0 && "id".equalsIgnoreCase(first[0].trim())) start = 1;
+
+            for (int i = start; i < rows.size(); i++) {
+                String[] row = rows.get(i);
+                if (row == null) continue;
+                boolean allEmpty = true;
+                for (String c : row) if (c != null && !c.trim().isEmpty()) { allEmpty = false; break; }
+                if (allEmpty) continue; // skip blank lines
+
+                // Map columns by position with safe bounds
+                String idStr = row.length > 0 ? row[0] : "";
+                String cups = row.length > 1 ? row[1] : "";
+                String marketer = row.length > 2 ? row[2] : "";
+                String centerName = row.length > 3 ? row[3] : "";
+                String acronym = row.length > 4 ? row[4] : "";
+                String energyType = row.length > 5 ? row[5] : "";
+                String street = row.length > 6 ? row[6] : "";
+                String postalCode = row.length > 7 ? row[7] : "";
+                String city = row.length > 8 ? row[8] : "";
+                String province = row.length > 9 ? row[9] : "";
+
+                CupsCenterMapping m = new CupsCenterMapping(cups, marketer, centerName, acronym, energyType, street, postalCode, city, province);
+                try {
+                    if (idStr != null && !idStr.trim().isEmpty()) m.setId(Long.parseLong(idStr.trim()));
+                } catch (NumberFormatException ignored) {}
+                result.add(m);
+            }
+        } catch (Exception ex) {
+            // If even lenient parse fails, rethrow as IOException
+            throw new IOException("Failed to read cups CSV leniently: " + ex.getMessage(), ex);
+        }
+
+        return result;
     }
     
     public void saveCupsData(List<CupsCenterMapping> mappings) throws IOException {
-        writeCsvFile(Paths.get(CUPS_DIR, CUPS_FILE).toString(), mappings, CupsCenterMapping.class);
+        Path filePath = Paths.get(DATA_DIR, CUPS_DIR, CUPS_FILE);
+
+        // Ensure directory exists
+        if (!Files.exists(filePath.getParent())) {
+            Files.createDirectories(filePath.getParent());
+        }
+
+        // Sort by centerName and reassign IDs
+        Collections.sort(mappings);
+        long id = 1;
+        for (CupsCenterMapping m : mappings) {
+            m.setId(id++);
+        }
+
+        // Write using CSVWriter and force quotes so centerName is always enclosed
+        try (Writer writer = Files.newBufferedWriter(filePath);
+             CSVWriter csvWriter = new CSVWriter(writer,
+                     CSVWriter.DEFAULT_SEPARATOR,
+                     CSVWriter.DEFAULT_QUOTE_CHARACTER,
+                     CSVWriter.DEFAULT_ESCAPE_CHARACTER,
+                     CSVWriter.DEFAULT_LINE_END)) {
+
+            // Header (do not force quotes)
+            String[] header = new String[] {"id","cups","marketer","centerName","acronym","energyType","street","postalCode","city","province"};
+            csvWriter.writeNext(header, false);
+
+            for (CupsCenterMapping m : mappings) {
+                String[] row = new String[] {
+                    m.getId() != null ? String.valueOf(m.getId()) : "",
+                    m.getCups(),
+                    m.getMarketer(),
+                    m.getCenterName(),
+                    m.getAcronym(),
+                    m.getEnergyType(),
+                    m.getStreet(),
+                    m.getPostalCode(),
+                    m.getCity(),
+                    m.getProvince()
+                };
+                // Let CSVWriter decide quoting; do not force-quote all fields. Fields
+                // containing separators, quotes or newlines will be quoted automatically.
+                csvWriter.writeNext(row, false);
+            }
+            csvWriter.flush();
+        }
     }
     
     public void saveCupsData(String cups, String centerName) throws IOException {
@@ -152,25 +251,54 @@ public class CSVDataService {
     public void appendCupsCenter(String cups, String marketer, String centerName, String acronym,
                                  String energyType, String street, String postalCode,
                                  String city, String province) throws IOException {
-        Path filePath = Paths.get(DATA_DIR, CUPS_DIR, CUPS_FILE);
-        boolean createHeader = !Files.exists(filePath);
+        // Load existing mappings (bean-backed) so we can sort and assign IDs
+        List<CupsCenterMapping> existing = loadCupsData();
 
-        try (Writer writer = Files.newBufferedWriter(filePath, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-             CSVWriter csvWriter = new CSVWriter(writer,
-                     CSVWriter.DEFAULT_SEPARATOR,
-                     CSVWriter.DEFAULT_QUOTE_CHARACTER,
-                     CSVWriter.DEFAULT_ESCAPE_CHARACTER,
-                     CSVWriter.DEFAULT_LINE_END)) {
+        CupsCenterMapping newMapping = new CupsCenterMapping(cups, marketer, centerName, acronym,
+                energyType, street, postalCode, city, province);
 
-            if (createHeader) {
-                String[] header = new String[] {"id","cups","marketer","centerName","acronym","energyType","street","postalCode","city","province"};
-                csvWriter.writeNext(header, false);
+        // Only add if not already present (equals checks cups+centerName or id)
+        if (!existing.contains(newMapping)) {
+            existing.add(newMapping);
+
+            // Sort by center name
+            Collections.sort(existing);
+
+            // Reassign sequential IDs starting at 1
+            long id = 1;
+            for (CupsCenterMapping m : existing) {
+                m.setId(id++);
             }
 
-            // id is left blank here; saveCupsData/loadCupsData manage ids when using beans
-            String[] row = new String[] {"", cups, marketer, centerName, acronym, energyType, street, postalCode, city, province};
-            csvWriter.writeNext(row, false);
-            csvWriter.flush();
+            // Save the full list via bean writer (will quote fields as needed)
+            saveCupsData(existing);
+        }
+    }
+
+    /**
+     * Delete a cups center mapping identified by cups + centerName (case-insensitive).
+     * If found, removes it, reassigns IDs and saves the file.
+     */
+    public void deleteCupsCenter(String cups, String centerName) throws IOException {
+        List<CupsCenterMapping> existing = loadCupsData();
+        if (existing.isEmpty()) return;
+
+        String targetCups = cups != null ? cups.trim() : "";
+        String targetCenter = centerName != null ? centerName.trim() : "";
+
+        boolean removed = existing.removeIf(m -> {
+            String mc = m.getCups() != null ? m.getCups().trim() : "";
+            String mn = m.getCenterName() != null ? m.getCenterName().trim() : "";
+            return mc.equalsIgnoreCase(targetCups) && mn.equalsIgnoreCase(targetCenter);
+        });
+
+        if (removed) {
+            Collections.sort(existing);
+            long id = 1;
+            for (CupsCenterMapping m : existing) {
+                m.setId(id++);
+            }
+            saveCupsData(existing);
         }
     }
 }

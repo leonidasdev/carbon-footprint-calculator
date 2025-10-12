@@ -28,6 +28,69 @@ public class CupsConfigPanelController {
     
     public void setView(CupsConfigPanel view) {
         this.view = view;
+        // When the view is attached, load existing centers from CSV so the table
+        // reflects current persisted data on startup.
+        // The view's initializeComponents() is invoked asynchronously (via
+        // SwingUtilities.invokeLater()) by BaseModulePanel, so the UI controls
+        // may not exist yet. Schedule the load to run afterwards on the EDT and
+        // retry a few times if the components are still not ready.
+        final java.util.concurrent.atomic.AtomicInteger attempts = new java.util.concurrent.atomic.AtomicInteger(0);
+        Runnable tryLoad = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    // If the centers table hasn't been created yet, retry a few times
+                    if (view.getCentersTable() == null) {
+                        if (attempts.incrementAndGet() <= 5) {
+                            // Re-schedule later on the EDT
+                            SwingUtilities.invokeLater(this);
+                            return;
+                        } else {
+                            // Give up after retries
+                            System.err.println("CupsConfigPanelController: centersTable not ready after retries");
+                            JOptionPane.showMessageDialog(view,
+                                messages.getString("error.loading.cups"),
+                                messages.getString("error.title"),
+                                JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                    }
+
+                    loadCentersTable();
+                } catch (Exception e) {
+                    // Log the exception for diagnostics and show a user-friendly message
+                    e.printStackTrace(System.err);
+                    JOptionPane.showMessageDialog(view,
+                        messages.getString("error.loading.cups"),
+                        messages.getString("error.title"),
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+
+        SwingUtilities.invokeLater(tryLoad);
+    }
+
+    /**
+     * Load centers from the CSV and populate the centers table model.
+     */
+    private void loadCentersTable() throws Exception {
+        List<CupsCenterMapping> mappings = csvService.loadCupsData();
+        DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
+        model.setRowCount(0);
+        for (CupsCenterMapping m : mappings) {
+            model.addRow(new Object[] {
+                m.getCups(),
+                m.getMarketer(),
+                m.getCenterName(),
+                m.getAcronym(),
+                m.getEnergyType(),
+                m.getStreet(),
+                m.getPostalCode(),
+                m.getCity(),
+                m.getProvince()
+            });
+        }
     }
     
     public void handleFileSelection() {
@@ -188,19 +251,24 @@ public class CupsConfigPanelController {
                 centerData.getCity(),
                 centerData.getProvince()
             );
-
+            // Reload table from saved CSV so it's sorted and IDs are assigned
+            List<CupsCenterMapping> mappings = csvService.loadCupsData();
             DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
-            model.addRow(new Object[]{
-                normalizedCups,
-                centerData.getMarketer(),
-                centerData.getCenterName(),
-                acronym,
-                centerData.getEnergyType(),
-                centerData.getStreet(),
-                centerData.getPostalCode(),
-                centerData.getCity(),
-                centerData.getProvince()
-            });
+            // Clear existing rows
+            model.setRowCount(0);
+            for (CupsCenterMapping m : mappings) {
+                model.addRow(new Object[] {
+                    m.getCups(),
+                    m.getMarketer(),
+                    m.getCenterName(),
+                    m.getAcronym(),
+                    m.getEnergyType(),
+                    m.getStreet(),
+                    m.getPostalCode(),
+                    m.getCity(),
+                    m.getProvince()
+                });
+            }
 
             clearManualInputFields();
         } catch (Exception e) {
@@ -220,8 +288,46 @@ public class CupsConfigPanelController {
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
-        // TODO: Implement edit functionality
+        DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
+
+        String cups = (String) model.getValueAt(selectedRow, 0);
+        String marketer = (String) model.getValueAt(selectedRow, 1);
+        String centerName = (String) model.getValueAt(selectedRow, 2);
+        String acronym = (String) model.getValueAt(selectedRow, 3);
+        String energy = (String) model.getValueAt(selectedRow, 4);
+        String street = (String) model.getValueAt(selectedRow, 5);
+        String postal = (String) model.getValueAt(selectedRow, 6);
+        String city = (String) model.getValueAt(selectedRow, 7);
+        String province = (String) model.getValueAt(selectedRow, 8);
+
+        // Populate manual input fields so user can edit
+        view.getCupsField().setText(cups);
+        view.getMarketerField().setText(marketer);
+        view.getCenterNameField().setText(centerName);
+        view.getCenterAcronymField().setText(acronym);
+        // Try to set energy type selection if possible
+        try {
+            JComboBox<String> energyCombo = view.getEnergyTypeCombo();
+            energyCombo.setSelectedItem(energy != null ? energy : messages.getString("energy.type.electricity"));
+        } catch (Exception ignored) {}
+        view.getStreetField().setText(street);
+        view.getPostalCodeField().setText(postal);
+        view.getCityField().setText(city);
+        view.getProvinceField().setText(province);
+
+        // Remove from table immediately
+        model.removeRow(selectedRow);
+
+        // Remove from underlying CSV so editing/re-adding persists as update
+        try {
+            csvService.deleteCupsCenter(cups, centerName);
+        } catch (Exception e) {
+            // If deletion fails, show but keep edited row removed from UI to avoid duplicates
+            JOptionPane.showMessageDialog(view,
+                messages.getString("error.save.failed"),
+                messages.getString("error.title"),
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     public void handleDeleteCenter() {
@@ -241,7 +347,36 @@ public class CupsConfigPanelController {
             
         if (confirm == JOptionPane.YES_OPTION) {
             DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
-            model.removeRow(selectedRow);
+
+            String cups = (String) model.getValueAt(selectedRow, 0);
+            String centerName = (String) model.getValueAt(selectedRow, 2);
+
+            try {
+                // Delete from persisted CSV via service
+                csvService.deleteCupsCenter(cups, centerName);
+
+                // Reload table from disk
+                List<CupsCenterMapping> mappings = csvService.loadCupsData();
+                model.setRowCount(0);
+                for (CupsCenterMapping m : mappings) {
+                    model.addRow(new Object[] {
+                        m.getCups(),
+                        m.getMarketer(),
+                        m.getCenterName(),
+                        m.getAcronym(),
+                        m.getEnergyType(),
+                        m.getStreet(),
+                        m.getPostalCode(),
+                        m.getCity(),
+                        m.getProvince()
+                    });
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("error.save.failed"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 

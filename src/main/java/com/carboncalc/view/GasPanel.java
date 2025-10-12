@@ -1,7 +1,7 @@
 package com.carboncalc.view;
 
 import com.carboncalc.controller.GasController;
-import com.carboncalc.model.GasColumnMapping;
+import com.carboncalc.model.GasMapping;
 import com.carboncalc.util.UIUtils;
 import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
@@ -36,7 +36,7 @@ public class GasPanel extends BaseModulePanel {
     private JPanel erpMappingPanel;
     private JComboBox<String> cupsSelector;
     private JComboBox<String> invoiceNumberSelector;
-    private JComboBox<String> issueDateSelector;
+    // issueDate removed per UX decision
     private JComboBox<String> startDateSelector;
     private JComboBox<String> endDateSelector;
     private JComboBox<String> consumptionSelector;
@@ -255,8 +255,7 @@ public class GasPanel extends BaseModulePanel {
         // Invoice Number
         addColumnMapping(panel, gbc, "label.column.invoice", invoiceNumberSelector = new JComboBox<>());
         
-        // Issue Date
-        addColumnMapping(panel, gbc, "label.column.issue.date", issueDateSelector = new JComboBox<>());
+    // Issue Date removed from mapping UI
         
         // Start Date
         addColumnMapping(panel, gbc, "label.column.start.date", startDateSelector = new JComboBox<>());
@@ -274,10 +273,9 @@ public class GasPanel extends BaseModulePanel {
         addColumnMapping(panel, gbc, "label.column.emission.entity", emissionEntitySelector = new JComboBox<>());
 
         // Style mapping combo boxes for consistent look and keep them a fixed width so long names don't resize layout
-        UIUtils.styleComboBox(cupsSelector);
-        UIUtils.styleComboBox(invoiceNumberSelector);
-        UIUtils.styleComboBox(issueDateSelector);
-        UIUtils.styleComboBox(startDateSelector);
+    UIUtils.styleComboBox(cupsSelector);
+    UIUtils.styleComboBox(invoiceNumberSelector);
+    UIUtils.styleComboBox(startDateSelector);
         UIUtils.styleComboBox(endDateSelector);
         UIUtils.styleComboBox(consumptionSelector);
         UIUtils.styleComboBox(centerSelector);
@@ -285,7 +283,7 @@ public class GasPanel extends BaseModulePanel {
 
         // Apply fixed size and width-aware truncating renderer to prevent layout shifts
         java.util.List<JComboBox<String>> mappingCombos = java.util.Arrays.asList(
-            cupsSelector, invoiceNumberSelector, issueDateSelector, startDateSelector,
+            cupsSelector, invoiceNumberSelector, startDateSelector,
             endDateSelector, consumptionSelector, centerSelector, emissionEntitySelector
         );
         for (JComboBox<String> cb : mappingCombos) {
@@ -355,7 +353,7 @@ public class GasPanel extends BaseModulePanel {
      */
     private void updateApplyAndSaveButtonState() {
         if (applyAndSaveExcelButton != null) {
-            GasColumnMapping columns = getSelectedColumns();
+            GasMapping columns = getSelectedColumns();
             boolean allRequired = columns.isComplete();
             applyAndSaveExcelButton.setEnabled(allRequired);
         }
@@ -505,17 +503,16 @@ public class GasPanel extends BaseModulePanel {
         controller.handleSave();
     }
     
-    public GasColumnMapping getSelectedColumns() {
+    public GasMapping getSelectedColumns() {
         int cupsIndex = getSelectedIndex(cupsSelector);
         int invoiceIndex = getSelectedIndex(invoiceNumberSelector);
-        int issueDateIndex = getSelectedIndex(issueDateSelector);
         int startDateIndex = getSelectedIndex(startDateSelector);
         int endDateIndex = getSelectedIndex(endDateSelector);
         int consumptionIndex = getSelectedIndex(consumptionSelector);
         int centerIndex = getSelectedIndex(centerSelector);
         int emissionEntityIndex = getSelectedIndex(emissionEntitySelector);
         
-        return new GasColumnMapping(cupsIndex, invoiceIndex, issueDateIndex, startDateIndex, 
+        return new GasMapping(cupsIndex, invoiceIndex, startDateIndex, 
             endDateIndex, consumptionIndex, centerIndex, emissionEntityIndex);
     }
 

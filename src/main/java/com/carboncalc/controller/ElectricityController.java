@@ -2,7 +2,7 @@ package com.carboncalc.controller;
 
 import com.carboncalc.view.ElectricityPanel;
 import com.carboncalc.model.Cups;
-import com.carboncalc.model.ElectricityColumnMapping;
+import com.carboncalc.model.ElectricityMapping;
 import com.carboncalc.util.UIUtils;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -473,7 +473,7 @@ public class ElectricityController {
             return false;
         }
 
-        ElectricityColumnMapping columns = view.getSelectedColumns();
+        ElectricityMapping columns = view.getSelectedColumns();
         if (!columns.isComplete()) {
             JOptionPane.showMessageDialog(view,
                 messages.getString("error.missing.columns"),

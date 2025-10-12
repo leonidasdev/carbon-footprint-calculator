@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import com.carboncalc.model.Cups;
-import com.carboncalc.model.GasColumnMapping;
+import com.carboncalc.model.GasMapping;
 import com.carboncalc.util.UIUtils;
 
 public class GasController {
@@ -357,7 +357,7 @@ public class GasController {
             return false;
         }
 
-        GasColumnMapping columns = view.getSelectedColumns();
+        GasMapping columns = view.getSelectedColumns();
         // For Excel export, we need the essential columns
         if (columns.getStartDateIndex() == -1 ||
             columns.getEndDateIndex() == -1 ||

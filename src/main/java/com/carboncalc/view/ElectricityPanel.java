@@ -1,7 +1,7 @@
 package com.carboncalc.view;
 
 import com.carboncalc.controller.ElectricityController;
-import com.carboncalc.model.ElectricityColumnMapping;
+import com.carboncalc.model.ElectricityMapping;
 import com.carboncalc.util.UIUtils;
 import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
@@ -36,7 +36,7 @@ public class ElectricityPanel extends BaseModulePanel {
     private JPanel erpMappingPanel;
     private JComboBox<String> cupsSelector;
     private JComboBox<String> invoiceNumberSelector;
-    private JComboBox<String> issueDateSelector;
+    // issueDate removed per UX decision; no selector required
     private JComboBox<String> startDateSelector;
     private JComboBox<String> endDateSelector;
     private JComboBox<String> consumptionSelector;
@@ -148,10 +148,7 @@ public class ElectricityPanel extends BaseModulePanel {
         providerFileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         providerFileLabel.setForeground(Color.GRAY);
         
-        // Issue Date Selector
-        issueDateSelector = new JComboBox<>();
-        
-        // Provider Sheet Selection
+    // Provider Sheet Selection
         JLabel providerSheetLabel = new JLabel(messages.getString("label.sheet.select"));
         providerSheetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
@@ -258,8 +255,7 @@ public class ElectricityPanel extends BaseModulePanel {
         // Invoice Number
         addColumnMapping(panel, gbc, "label.column.invoice", invoiceNumberSelector = new JComboBox<>());
         
-        // Issue Date
-        addColumnMapping(panel, gbc, "label.column.issue.date", issueDateSelector = new JComboBox<>());
+    // Issue Date was removed from the mapping UI
         
         // Start Date
         addColumnMapping(panel, gbc, "label.column.start.date", startDateSelector = new JComboBox<>());
@@ -277,10 +273,9 @@ public class ElectricityPanel extends BaseModulePanel {
         addColumnMapping(panel, gbc, "label.column.emission.entity", emissionEntitySelector = new JComboBox<>());
 
         // Style mapping combo boxes for consistent look and keep them a fixed width so long names don't resize layout
-        UIUtils.styleComboBox(cupsSelector);
-        UIUtils.styleComboBox(invoiceNumberSelector);
-        UIUtils.styleComboBox(issueDateSelector);
-        UIUtils.styleComboBox(startDateSelector);
+    UIUtils.styleComboBox(cupsSelector);
+    UIUtils.styleComboBox(invoiceNumberSelector);
+    UIUtils.styleComboBox(startDateSelector);
         UIUtils.styleComboBox(endDateSelector);
         UIUtils.styleComboBox(consumptionSelector);
         UIUtils.styleComboBox(centerSelector);
@@ -288,7 +283,7 @@ public class ElectricityPanel extends BaseModulePanel {
 
         // Apply fixed size and width-aware truncating renderer to prevent layout shifts
         java.util.List<JComboBox<String>> mappingCombos = java.util.Arrays.asList(
-            cupsSelector, invoiceNumberSelector, issueDateSelector, startDateSelector,
+            cupsSelector, invoiceNumberSelector, startDateSelector,
             endDateSelector, consumptionSelector, centerSelector, emissionEntitySelector
         );
         for (JComboBox<String> cb : mappingCombos) {
@@ -358,7 +353,7 @@ public class ElectricityPanel extends BaseModulePanel {
      */
     private void updateApplyAndSaveButtonState() {
         if (applyAndSaveExcelButton != null) {
-            ElectricityColumnMapping columns = getSelectedColumns();
+            ElectricityMapping columns = getSelectedColumns();
             boolean allRequired = columns.isComplete();
             applyAndSaveExcelButton.setEnabled(allRequired);
         }
@@ -536,17 +531,16 @@ public class ElectricityPanel extends BaseModulePanel {
         return emissionEntitySelector.getSelectedItem() != null ? emissionEntitySelector.getSelectedItem().toString() : "";
     }
 
-    public ElectricityColumnMapping getSelectedColumns() {
+    public ElectricityMapping getSelectedColumns() {
         int cupsIndex = getSelectedIndex(cupsSelector);
         int invoiceIndex = getSelectedIndex(invoiceNumberSelector);
-        int issueDateIndex = getSelectedIndex(issueDateSelector);
         int startDateIndex = getSelectedIndex(startDateSelector);
         int endDateIndex = getSelectedIndex(endDateSelector);
         int consumptionIndex = getSelectedIndex(consumptionSelector);
         int centerIndex = getSelectedIndex(centerSelector);
         int emissionEntityIndex = getSelectedIndex(emissionEntitySelector);
         
-        return new ElectricityColumnMapping(cupsIndex, invoiceIndex, issueDateIndex, startDateIndex, 
+        return new ElectricityMapping(cupsIndex, invoiceIndex, startDateIndex, 
             endDateIndex, consumptionIndex, centerIndex, emissionEntityIndex);
     }
 

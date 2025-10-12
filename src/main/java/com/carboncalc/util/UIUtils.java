@@ -156,21 +156,12 @@ public class UIUtils {
             if (p != null) { p.revalidate(); p.repaint(); }
         } catch (Exception ignored) {}
 
-        // Extra diagnostics: print component bounds and look for any opaque sibling that may overlap the viewport
+        // No debug prints here; keep UI adjustments silent in normal runs.
         try {
-            java.awt.Component viewportView = scrollPane.getViewport().getView();
-            System.out.println("[UIUtils Debug] scrollPane bounds=" + scrollPane.getBounds() + ", viewport=" + scrollPane.getViewport().getBounds());
-            if (viewportView != null) System.out.println("[UIUtils Debug] viewport view=" + viewportView.getClass().getSimpleName() + " bounds=" + viewportView.getBounds());
-
+            // Keep the overlap mitigation logic but avoid verbose console output.
             java.awt.Container parent = scrollPane.getParent();
             if (parent != null) {
                 java.awt.Component[] comps = parent.getComponents();
-                for (int i = 0; i < comps.length; i++) {
-                    java.awt.Component c = comps[i];
-                    System.out.println("[UIUtils Debug] sibling[" + i + "]=" + c.getClass().getSimpleName() + " bounds=" + c.getBounds() + " opaque=" + c.isOpaque() + " bg=" + c.getBackground());
-                }
-
-                // Find any sibling that overlaps the viewport area and is opaque
                 java.awt.Rectangle vp = scrollPane.getViewport().getBounds();
                 boolean foundOverlap = false;
                 for (java.awt.Component c : comps) {
@@ -179,24 +170,21 @@ public class UIUtils {
                     java.awt.Rectangle b = c.getBounds();
                     if (b.intersects(vp) && c.isOpaque()) {
                         foundOverlap = true;
-                        System.out.println("[UIUtils Debug] Overlapping opaque sibling detected: " + c.getClass().getName() + " bounds=" + b + " bg=" + c.getBackground());
+                        break;
                     }
                 }
-                // If overlap detected, try to bring scrollPane to front to avoid being visually covered
                 if (foundOverlap) {
                     try {
                         java.awt.Container _parent = scrollPane.getParent();
                         if (_parent != null) {
-                            // ensure scroll pane is opaque so it repaints over siblings
                             scrollPane.setOpaque(true);
                             scrollPane.getViewport().setOpaque(true);
                             _parent.setComponentZOrder(scrollPane, 0);
                             _parent.revalidate();
                             _parent.repaint();
-                            System.out.println("[UIUtils Debug] Brought scrollPane to front in parent to avoid overlap");
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        // keep silent on exception to avoid spamming console
                     }
                 }
             }

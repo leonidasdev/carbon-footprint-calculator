@@ -324,18 +324,7 @@ public class ElectricityController {
         JTable targetTable = isProvider ? view.getProviderPreviewTable() : view.getErpPreviewTable();
         targetTable.setModel(model);
 
-        // Diagnostics: print summary of the preview model so we can debug empty-body cases
-        try {
-            System.out.println("[Preview Debug] headerRowIndex=" + headerRowIndex + ", maxColumns=" + maxColumns + ", rowsInModel=" + data.size());
-            if (!data.isEmpty()) {
-                Vector<String> firstHeader = data.get(0);
-                System.out.println("[Preview Debug] firstHeaderSample=" + firstHeader);
-                if (data.size() > 1) System.out.println("[Preview Debug] firstDataRowSample=" + data.get(1));
-            }
-        } catch (Exception e) {
-            // don't break UI due to diagnostics
-            e.printStackTrace();
-        }
+        // Quiet: do not print preview diagnostics in normal runs.
 
         // Add row numbers and styling
         targetTable.setRowSelectionAllowed(true);
@@ -371,18 +360,7 @@ public class ElectricityController {
                         sp.revalidate();
                         sp.repaint();
                         // Diagnostics: print viewport and column widths
-                        try {
-                            int totalPref = 0;
-                            System.out.println("[Preview Debug] viewportWidth=" + sp.getViewport().getWidth() + ", viewPos=" + sp.getViewport().getViewPosition());
-                            for (int ci = 0; ci < targetTable.getColumnCount(); ci++) {
-                                int pw = targetTable.getColumnModel().getColumn(ci).getPreferredWidth();
-                                totalPref += pw;
-                                System.out.println("[Preview Debug] col=" + ci + " prefWidth=" + pw);
-                            }
-                            System.out.println("[Preview Debug] totalPreferredWidth=" + totalPref);
-                        } catch (Exception ex2) {
-                            ex2.printStackTrace();
-                        }
+                        // No verbose diagnostics here; keep layout adjustments silent.
                         // Ensure table provides a sensible preferred viewport size so horizontal scrollbars show
                         try {
                             int approxWidth = Math.min(1600, Math.max(400, targetTable.getColumnCount() * 120));

@@ -44,6 +44,18 @@
             <version>5.9.2</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Logging: ensure Log4j2 implementation is available so StatusLogger has an implementation -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.20.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.20.0</version>
+        </dependency>
     </dependencies>
 
     <build>

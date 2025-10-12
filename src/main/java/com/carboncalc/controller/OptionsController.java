@@ -93,8 +93,6 @@ public class OptionsController {
     
     public void handleAboutRequest() {
         String aboutText = messages.getString("application.title") + "\nVersion " + com.carboncalc.App.VERSION + "\n© 2025 UPM";
-        // Print to console for traceability as well as show dialog.
-        System.out.println(aboutText);
         JOptionPane.showMessageDialog(view,
             aboutText,
             messages.getString("dialog.about.title"),

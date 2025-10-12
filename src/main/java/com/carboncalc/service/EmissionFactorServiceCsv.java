@@ -250,8 +250,7 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
                 }
             }
 
-            // Debug: print deletion attempt (can be removed)
-            System.out.println("Deleting entity='" + entity + "' (normalized='" + target + "') from type=" + type + " year=" + year + ", remaining=" + filtered.size());
+            // deletion performed; no debug output in normal runs
 
             // Persist filtered list to CSV
             java.nio.file.Path base = java.nio.file.Paths.get(BASE_PATH, String.valueOf(year));

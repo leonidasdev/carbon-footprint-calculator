@@ -147,17 +147,7 @@ public class ElectricityPanel extends BaseModulePanel {
     }
 
     /** Save the selected year to data/year/current_year.txt (creates directories if needed). */
-    private void saveCurrentYearToFile(int year) {
-        try {
-            Path dir = Paths.get("data", "year");
-            if (!Files.exists(dir)) Files.createDirectories(dir);
-            Path p = dir.resolve("current_year.txt");
-            Files.writeString(p, String.valueOf(year), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            // Show non-blocking warning to the user
-            UIUtils.showErrorDialog(this, messages.getString("error.file.write"), e.getMessage());
-        }
-    }
+    // Year persistence is handled by the controller; keep loadCurrentYearFromFile as a fallback
     
     private JPanel createFileManagementPanel() {
         JPanel panel = new JPanel(new BorderLayout());
@@ -477,22 +467,22 @@ public class ElectricityPanel extends BaseModulePanel {
         JLabel yearLabel = new JLabel("Year:");
         yearLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(yearLabel);
-    // Initialize yearSpinner with value from data/year/current_year.txt
-    int initialYear = loadCurrentYearFromFile();
+    // Initialize yearSpinner with value provided by controller (persisted there)
+    int initialYear = controller != null ? controller.getCurrentYear() : loadCurrentYearFromFile();
     yearSpinner = new JSpinner(new SpinnerNumberModel(initialYear, 1900, 2100, 1));
     // Use a NumberEditor and disable grouping to avoid locale grouping (e.g., "2,025")
     JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "####");
     yearSpinner.setEditor(yearEditor);
     ((java.text.DecimalFormat) yearEditor.getFormat()).setGroupingUsed(false);
     yearSpinner.setPreferredSize(new Dimension(65, 24));
-    // Persist year changes when edited
+    // Delegate persistence to controller when year changes
     yearSpinner.addChangeListener(new ChangeListener() {
         private boolean init = true;
         @Override
         public void stateChanged(ChangeEvent e) {
             if (init) { init = false; return; }
             int year = (Integer) yearSpinner.getValue();
-            saveCurrentYearToFile(year);
+            if (controller != null) controller.handleYearSelection(year);
         }
     });
         yearSpinner.setAlignmentY(Component.CENTER_ALIGNMENT);

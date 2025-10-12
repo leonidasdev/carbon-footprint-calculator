@@ -555,13 +555,17 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         cogUnit.setForeground(Color.GRAY);
         factorsPanel.add(cogUnit, fgbc);
 
-        // Add Edit/Save buttons inside the general factors box on the next row
-        fgbc.gridx = 0;
-        fgbc.gridy = 5;
-        fgbc.gridwidth = 3;
-        fgbc.weightx = 1.0;
-        fgbc.anchor = GridBagConstraints.EAST;
-        fgbc.fill = GridBagConstraints.NONE;
+    // Add Edit/Save buttons inside the general factors box on the next row
+    // Move the button up slightly by reducing the top inset by ~5px
+    Insets previousInsets = fgbc.insets;
+    // Request a larger upward nudge; inset is clamped to >=0 so top may become 0
+    fgbc.insets = new Insets(Math.max(0, previousInsets.top - 10), previousInsets.left, previousInsets.bottom, previousInsets.right);
+    fgbc.gridx = 0;
+    fgbc.gridy = 5;
+    fgbc.gridwidth = 3;
+    fgbc.weightx = 1.0;
+    fgbc.anchor = GridBagConstraints.EAST;
+    fgbc.fill = GridBagConstraints.NONE;
         JPanel localFactorsButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         localFactorsButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
@@ -571,7 +575,9 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         UIUtils.styleButton(saveGeneralFactorsButton);
         localFactorsButtonPanel.add(saveGeneralFactorsButton);
 
-        factorsPanel.add(localFactorsButtonPanel, fgbc);
+    factorsPanel.add(localFactorsButtonPanel, fgbc);
+    // restore original insets for subsequent components
+    fgbc.insets = previousInsets;
 
         // Create a wrapper panel which will hold a top two-column area and
         // the trading companies panel below (spanning full width)
@@ -583,23 +589,26 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         inputPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         inputPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        // Company name field
-        inputPanel.add(new JLabel(messages.getString("label.company.name") + ":"));
-        companyNameField = new JTextField(20);
-        companyNameField.setMargin(new Insets(5, 5, 5, 5));
-        inputPanel.add(companyNameField);
+    // Company name field (reduced size)
+    inputPanel.add(new JLabel(messages.getString("label.company.name") + ":"));
+    companyNameField = new JTextField(10);
+    companyNameField.setMargin(new Insets(3, 3, 3, 3));
+    companyNameField.setPreferredSize(new Dimension(140, 24));
+    inputPanel.add(companyNameField);
 
-        // Emission factor field
-        inputPanel.add(new JLabel(messages.getString("label.emission.factor") + ":"));
-        emissionFactorField = new JTextField(20);
-        emissionFactorField.setMargin(new Insets(5, 5, 5, 5));
-        inputPanel.add(emissionFactorField);
+    // Emission factor field (reduced size)
+    inputPanel.add(new JLabel(messages.getString("label.emission.factor") + ":"));
+    emissionFactorField = new JTextField(10);
+    emissionFactorField.setMargin(new Insets(3, 3, 3, 3));
+    emissionFactorField.setPreferredSize(new Dimension(100, 24));
+    inputPanel.add(emissionFactorField);
 
-        // GdO type combo box
-        inputPanel.add(new JLabel(messages.getString("label.gdo.type") + ":"));
-        gdoTypeComboBox = new JComboBox<>(GDO_TYPES);
-        UIUtils.styleComboBox(gdoTypeComboBox);
-        inputPanel.add(gdoTypeComboBox);
+    // GdO type combo box (reduced width)
+    inputPanel.add(new JLabel(messages.getString("label.gdo.type") + ":"));
+    gdoTypeComboBox = new JComboBox<>(GDO_TYPES);
+    gdoTypeComboBox.setPreferredSize(new Dimension(140, 24));
+    UIUtils.styleComboBox(gdoTypeComboBox);
+    inputPanel.add(gdoTypeComboBox);
 
         // Add button panel for manual input
         JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -622,8 +631,8 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         manualInputBox.add(inputWrapperPanel, BorderLayout.CENTER);
     // Make the manual input box taller so form fields and the Add button
     // have more vertical room and won't collide with adjacent controls.
-    manualInputBox.setPreferredSize(new Dimension(380, 240));
-    manualInputBox.setMinimumSize(new Dimension(300, 200));
+    manualInputBox.setPreferredSize(new Dimension(380, 200));
+    manualInputBox.setMinimumSize(new Dimension(300, 160));
 
         // Create table for trading companies (preview)
         String[] columnNames = {

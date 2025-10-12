@@ -31,15 +31,55 @@ public class ElectricityController {
     private Workbook erpWorkbook;
     private File providerFile;
     private File erpFile;
+    private int currentYear;
+    private static final java.nio.file.Path CURRENT_YEAR_FILE = java.nio.file.Paths.get("data", "year", "current_year.txt");
     
     public ElectricityController(ResourceBundle messages) {
         this.messages = messages;
     this.csvDataService = new com.carboncalc.service.CupsServiceCsv();
+    // Initialize currentYear from persisted file or system year
+    int persisted = loadPersistedYear();
+    this.currentYear = persisted > 0 ? persisted : java.time.Year.now().getValue();
     }
     
     public void setView(ElectricityPanel view) {
         this.view = view;
         loadStoredCups();
+    }
+
+    public int getCurrentYear() {
+        return currentYear;
+    }
+
+    public void handleYearSelection(int year) {
+        // prefer the passed value; persist and update internal state
+        this.currentYear = year;
+        persistCurrentYear(year);
+        // nothing else to do right now; view can trigger an export using this year
+    }
+
+    private int loadPersistedYear() {
+        try {
+            java.nio.file.Path p = CURRENT_YEAR_FILE;
+            if (!java.nio.file.Files.exists(p)) return -1;
+            String s = java.nio.file.Files.readString(p).trim();
+            if (s.isEmpty()) return -1;
+            return Integer.parseInt(s);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private void persistCurrentYear(int year) {
+        try {
+            java.nio.file.Path dir = CURRENT_YEAR_FILE.getParent();
+            if (!java.nio.file.Files.exists(dir)) {
+                java.nio.file.Files.createDirectories(dir);
+            }
+            java.nio.file.Files.writeString(CURRENT_YEAR_FILE, String.valueOf(year));
+        } catch (Exception e) {
+            System.err.println("Failed to persist current year: " + e.getMessage());
+        }
     }
     
     private void loadStoredCups() {

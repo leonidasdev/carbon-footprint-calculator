@@ -19,12 +19,12 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
-public class CSVDataService {
+public class CupsServiceCsv implements CupsService {
     private static final String DATA_DIR = "data";
     private static final String CUPS_DIR = "cups_center";
     private static final String CUPS_FILE = "cups.csv";
     
-    public CSVDataService() {
+    public CupsServiceCsv() {
         initializeDataDirectory();
     }
     
@@ -82,15 +82,18 @@ public class CSVDataService {
     }
     
     // CUPS data methods
+    @Override
     public List<Cups> loadCups() throws IOException {
         return readCsvFile(Paths.get(CUPS_DIR, "cups.csv").toString(), Cups.class);
     }
     
+    @Override
     public void saveCups(List<Cups> cupsList) throws IOException {
         Collections.sort(cupsList); // Sort by CUPS code
         writeCsvFile(Paths.get(CUPS_DIR, "cups.csv").toString(), cupsList, Cups.class);
     }
     
+    @Override
     public void saveCups(String cups, String emissionEntity, String energyType) throws IOException {
         List<Cups> existingCups = loadCups();
         
@@ -112,6 +115,7 @@ public class CSVDataService {
     }
     
     // CUPS-Center mapping methods
+    @Override
     public List<CupsCenterMapping> loadCupsData() throws IOException {
         try {
             return readCsvFile(Paths.get(CUPS_DIR, CUPS_FILE).toString(), CupsCenterMapping.class);
@@ -171,6 +175,7 @@ public class CSVDataService {
         return result;
     }
     
+    @Override
     public void saveCupsData(List<CupsCenterMapping> mappings) throws IOException {
         Path filePath = Paths.get(DATA_DIR, CUPS_DIR, CUPS_FILE);
 
@@ -219,6 +224,7 @@ public class CSVDataService {
         }
     }
     
+    @Override
     public void saveCupsData(String cups, String centerName) throws IOException {
         // Load existing data
         List<CupsCenterMapping> existingMappings = loadCupsData();
@@ -248,6 +254,7 @@ public class CSVDataService {
      * Append a full CupsCenterMapping entry to the cups CSV file. Creates file with header
      * if it does not exist.
      */
+    @Override
     public void appendCupsCenter(String cups, String marketer, String centerName, String acronym,
                                  String energyType, String street, String postalCode,
                                  String city, String province) throws IOException {
@@ -279,6 +286,7 @@ public class CSVDataService {
      * Delete a cups center mapping identified by cups + centerName (case-insensitive).
      * If found, removes it, reassigns IDs and saves the file.
      */
+    @Override
     public void deleteCupsCenter(String cups, String centerName) throws IOException {
         List<CupsCenterMapping> existing = loadCupsData();
         if (existing.isEmpty()) return;

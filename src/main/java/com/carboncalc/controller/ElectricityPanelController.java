@@ -3,7 +3,7 @@ package com.carboncalc.controller;
 import com.carboncalc.view.ElectricityPanel;
 import com.carboncalc.model.Cups;
 import com.carboncalc.model.ElectricityColumnMapping;
-import com.carboncalc.service.CSVDataService;
+import com.carboncalc.service.CupsService;
 import com.carboncalc.util.UIUtils;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -23,7 +23,7 @@ import java.io.IOException;
 
 public class ElectricityPanelController {
     private final ResourceBundle messages;
-    private final CSVDataService csvDataService;
+    private final com.carboncalc.service.CupsService csvDataService;
     private ElectricityPanel view;
     private Workbook providerWorkbook;
     private Workbook erpWorkbook;
@@ -32,7 +32,7 @@ public class ElectricityPanelController {
     
     public ElectricityPanelController(ResourceBundle messages) {
         this.messages = messages;
-        this.csvDataService = new CSVDataService();
+    this.csvDataService = new com.carboncalc.service.CupsServiceCsv();
     }
     
     public void setView(ElectricityPanel view) {

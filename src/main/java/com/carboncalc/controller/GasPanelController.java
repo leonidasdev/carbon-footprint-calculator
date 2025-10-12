@@ -1,7 +1,7 @@
 package com.carboncalc.controller;
 
 import com.carboncalc.view.GasPanel;
-import com.carboncalc.service.CSVDataService;
+import com.carboncalc.service.CupsService;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
@@ -23,7 +23,7 @@ import com.carboncalc.util.UIUtils;
 
 public class GasPanelController {
     private final ResourceBundle messages;
-    private final CSVDataService csvDataService;
+    private final com.carboncalc.service.CupsService csvDataService;
     private GasPanel view;
     private Workbook providerWorkbook;
     private Workbook erpWorkbook;
@@ -32,7 +32,7 @@ public class GasPanelController {
     
     public GasPanelController(ResourceBundle messages) {
         this.messages = messages;
-        this.csvDataService = new CSVDataService();
+    this.csvDataService = new com.carboncalc.service.CupsServiceCsv();
     }
     
     public void setView(GasPanel view) {

@@ -20,7 +20,7 @@ public class CupsConfigPanelController {
     private CupsConfigPanel view;
     private Workbook currentWorkbook;
     private File currentFile;
-    private final com.carboncalc.service.CSVDataService csvService = new com.carboncalc.service.CSVDataService();
+    private final com.carboncalc.service.CupsService csvService = new com.carboncalc.service.CupsServiceCsv();
     
     public CupsConfigPanelController(ResourceBundle messages) {
         this.messages = messages;

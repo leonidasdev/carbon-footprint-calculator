@@ -20,7 +20,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.util.Vector;
 import java.util.Locale;
 
-public class EmissionFactorsPanelController {
+public class EmissionFactorsController {
     private final ResourceBundle messages;
     private EmissionFactorsPanel view;
     private Workbook workbook;
@@ -37,7 +37,7 @@ public class EmissionFactorsPanelController {
      * Constructor using dependency injection for service interfaces. The
      * application should provide concrete implementations (CSV-backed here).
      */
-    public EmissionFactorsPanelController(ResourceBundle messages,
+    public EmissionFactorsController(ResourceBundle messages,
                                          EmissionFactorService emissionFactorService,
                                          com.carboncalc.service.ElectricityGeneralFactorService electricityGeneralFactorService) {
         this.messages = messages;

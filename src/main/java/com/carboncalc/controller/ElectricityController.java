@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Vector;
 import java.io.IOException;
 
-public class ElectricityPanelController {
+public class ElectricityController {
     private final ResourceBundle messages;
     private final com.carboncalc.service.CupsService csvDataService;
     private ElectricityPanel view;
@@ -30,7 +30,7 @@ public class ElectricityPanelController {
     private File providerFile;
     private File erpFile;
     
-    public ElectricityPanelController(ResourceBundle messages) {
+    public ElectricityController(ResourceBundle messages) {
         this.messages = messages;
     this.csvDataService = new com.carboncalc.service.CupsServiceCsv();
     }

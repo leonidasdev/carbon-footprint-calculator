@@ -20,11 +20,11 @@ import java.util.ResourceBundle;
  *   and persists them using {@link Settings}.
  */
 
-public class OptionsPanelController {
+public class OptionsController {
     private OptionsPanel view;
     private final ResourceBundle messages;
     
-    public OptionsPanelController(ResourceBundle messages) {
+    public OptionsController(ResourceBundle messages) {
         this.messages = messages;
     }
     

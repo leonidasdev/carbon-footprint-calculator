@@ -21,7 +21,7 @@ import com.carboncalc.model.Cups;
 import com.carboncalc.model.GasColumnMapping;
 import com.carboncalc.util.UIUtils;
 
-public class GasPanelController {
+public class GasController {
     private final ResourceBundle messages;
     private final com.carboncalc.service.CupsService csvDataService;
     private GasPanel view;
@@ -30,7 +30,7 @@ public class GasPanelController {
     private File providerFile;
     private File erpFile;
     
-    public GasPanelController(ResourceBundle messages) {
+    public GasController(ResourceBundle messages) {
         this.messages = messages;
     this.csvDataService = new com.carboncalc.service.CupsServiceCsv();
     }

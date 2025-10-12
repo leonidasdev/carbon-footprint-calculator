@@ -1,11 +1,11 @@
 package com.carboncalc.view;
 
-import com.carboncalc.controller.CupsConfigPanelController;
-import com.carboncalc.controller.ElectricityPanelController;
-import com.carboncalc.controller.EmissionFactorsPanelController;
-import com.carboncalc.controller.GasPanelController;
-import com.carboncalc.controller.MainWindowController;
-import com.carboncalc.controller.OptionsPanelController;
+import com.carboncalc.controller.CupsConfigController;
+import com.carboncalc.controller.ElectricityController;
+import com.carboncalc.controller.EmissionFactorsController;
+import com.carboncalc.controller.GasController;
+import com.carboncalc.controller.MainController;
+import com.carboncalc.controller.OptionsController;
 import javax.swing.*;
 import com.carboncalc.util.UIUtils;
 import java.awt.*;
@@ -32,7 +32,7 @@ public class MainWindow extends JFrame {
     private JPanel navigationPanel;  // Removed final to allow panel replacement
     private JPanel mainNavContainer; // Container for the navigation panel
     
-    public MainWindow(MainWindowController controller, ResourceBundle messages) {
+    public MainWindow(MainController controller, ResourceBundle messages) {
         this.messages = messages;
         this.cardLayout = new CardLayout();
         this.contentPanel = new JPanel(cardLayout);
@@ -123,7 +123,7 @@ public class MainWindow extends JFrame {
     }
     
     private JPanel createOptionsPanel() {
-        OptionsPanelController panelController = new OptionsPanelController(messages);
+        OptionsController panelController = new OptionsController(messages);
         OptionsPanel panel = new OptionsPanel(panelController, messages);
         panelController.setView(panel);
         // Preselect language in options based on currently loaded messages bundle.
@@ -147,14 +147,14 @@ public class MainWindow extends JFrame {
     }
     
     private JPanel createElectricityPanel() {
-        ElectricityPanelController panelController = new ElectricityPanelController(messages);
+        ElectricityController panelController = new ElectricityController(messages);
         ElectricityPanel panel = new ElectricityPanel(panelController, messages);
         panelController.setView(panel);
         return panel;
     }
     
     private JPanel createGasPanel() {
-        GasPanelController panelController = new GasPanelController(messages);
+        GasController panelController = new GasController(messages);
         GasPanel panel = new GasPanel(panelController, messages);
         panelController.setView(panel);
         return panel;
@@ -165,14 +165,14 @@ public class MainWindow extends JFrame {
         com.carboncalc.service.EmissionFactorService efService = new com.carboncalc.service.EmissionFactorServiceCsv();
         com.carboncalc.service.ElectricityGeneralFactorService egfService = new com.carboncalc.service.ElectricityGeneralFactorServiceCsv();
 
-        EmissionFactorsPanelController panelController = new EmissionFactorsPanelController(messages, efService, egfService);
+        EmissionFactorsController panelController = new EmissionFactorsController(messages, efService, egfService);
         EmissionFactorsPanel panel = new EmissionFactorsPanel(panelController, messages);
         panelController.setView(panel);
         return panel;
     }
     
     private JPanel createCupsConfigPanel() {
-        CupsConfigPanelController panelController = new CupsConfigPanelController(messages);
+        CupsConfigController panelController = new CupsConfigController(messages);
         CupsConfigPanel panel = new CupsConfigPanel(panelController, messages);
         panelController.setView(panel);
         return panel;

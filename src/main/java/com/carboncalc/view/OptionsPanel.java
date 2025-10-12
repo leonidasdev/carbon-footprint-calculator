@@ -1,6 +1,6 @@
 package com.carboncalc.view;
 
-import com.carboncalc.controller.OptionsPanelController;
+import com.carboncalc.controller.OptionsController;
 import javax.swing.*;
 import com.carboncalc.util.UIUtils;
 import java.awt.*;
@@ -21,7 +21,7 @@ import java.util.ResourceBundle;
  * {@link #suppressLanguageEvents}).
  */
 public class OptionsPanel extends BaseModulePanel {
-    private final OptionsPanelController controller;
+    private final OptionsController controller;
     private JComboBox<String> languageSelector;
     // When programmatically setting combo selection (e.g. on startup), set
     // this flag to true to avoid triggering the action listener which would
@@ -29,7 +29,7 @@ public class OptionsPanel extends BaseModulePanel {
     // notify the controller.
     private boolean suppressLanguageEvents = false;
 
-    public OptionsPanel(OptionsPanelController controller, ResourceBundle messages) {
+    public OptionsPanel(OptionsController controller, ResourceBundle messages) {
         super(messages);
         this.controller = controller;
     }

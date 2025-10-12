@@ -1,6 +1,6 @@
 package com.carboncalc.view;
 
-import com.carboncalc.controller.ElectricityPanelController;
+import com.carboncalc.controller.ElectricityController;
 import com.carboncalc.model.ElectricityColumnMapping;
 import com.carboncalc.util.UIUtils;
 import javax.swing.*;
@@ -16,7 +16,7 @@ import java.util.ResourceBundle;
  * helpers in `UIUtils` and localized strings from the resource bundle.
  */
 public class ElectricityPanel extends BaseModulePanel {
-    private final ElectricityPanelController controller;
+    private final ElectricityController controller;
     
     // File Management Components
     private JButton addProviderFileButton;
@@ -53,7 +53,7 @@ public class ElectricityPanel extends BaseModulePanel {
     private JScrollPane resultTableScrollPane;
     private JPanel columnConfigPanel;
     
-    public ElectricityPanel(ElectricityPanelController controller, ResourceBundle messages) {
+    public ElectricityPanel(ElectricityController controller, ResourceBundle messages) {
         super(messages);
         this.controller = controller;
     }

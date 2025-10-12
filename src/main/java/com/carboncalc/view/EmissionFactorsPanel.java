@@ -1,6 +1,6 @@
 package com.carboncalc.view;
 
-import com.carboncalc.controller.EmissionFactorsPanelController;
+import com.carboncalc.controller.EmissionFactorsController;
 import com.carboncalc.util.UIUtils;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -16,7 +16,7 @@ import java.util.ResourceBundle;
  * and texts from the resource bundle passed to the base class.
  */
 public class EmissionFactorsPanel extends BaseModulePanel {
-    private final EmissionFactorsPanelController controller;
+    private final EmissionFactorsController controller;
     private JPanel cardsPanel;
     private CardLayout cardLayout;
 
@@ -43,7 +43,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private JTable previewTable;
     private JScrollPane previewScrollPane;
 
-    public EmissionFactorsPanel(EmissionFactorsPanelController controller, ResourceBundle messages) {
+    public EmissionFactorsPanel(EmissionFactorsController controller, ResourceBundle messages) {
         super(messages);
         this.controller = controller;
     }

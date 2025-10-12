@@ -1,6 +1,6 @@
 package com.carboncalc.view;
 
-import com.carboncalc.controller.GasPanelController;
+import com.carboncalc.controller.GasController;
 import com.carboncalc.model.GasColumnMapping;
 import com.carboncalc.util.UIUtils;
 import javax.swing.*;
@@ -13,7 +13,7 @@ import java.util.ResourceBundle;
  * Uses centralized UI styles and resource bundle strings.
  */
 public class GasPanel extends BaseModulePanel {
-    private final GasPanelController controller;
+    private final GasController controller;
     
     // File Management Components
     private JButton addProviderFileButton;
@@ -49,7 +49,7 @@ public class GasPanel extends BaseModulePanel {
     private JScrollPane resultTableScrollPane;
     private JPanel columnConfigPanel;
     
-    public GasPanel(GasPanelController controller, ResourceBundle messages) {
+    public GasPanel(GasController controller, ResourceBundle messages) {
         super(messages);
         this.controller = controller;
     }

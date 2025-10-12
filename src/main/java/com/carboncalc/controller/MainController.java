@@ -4,11 +4,11 @@ import com.carboncalc.view.MainWindow;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
-public class MainWindowController {
+public class MainController {
     private final MainWindow view;
     private ResourceBundle messages;
     
-    public MainWindowController(ResourceBundle messages) {
+    public MainController(ResourceBundle messages) {
         this.messages = messages;
         this.view = new MainWindow(this, messages);
     }

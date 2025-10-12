@@ -1,6 +1,6 @@
 package com.carboncalc;
 
-import com.carboncalc.controller.MainWindowController;
+import com.carboncalc.controller.MainController;
 import com.carboncalc.util.UIUtils;
 import com.formdev.flatlaf.FlatLightLaf;
 import javax.swing.*;
@@ -108,7 +108,7 @@ public class App {
     }
 
     private static void createAndShowGUI(ResourceBundle messages) {
-        MainWindowController controller = new MainWindowController(messages);
+        MainController controller = new MainController(messages);
         controller.showWindow();
     }
 }

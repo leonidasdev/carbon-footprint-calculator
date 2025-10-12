@@ -1,6 +1,6 @@
 package com.carboncalc.view;
 
-import com.carboncalc.controller.CupsConfigPanelController;
+import com.carboncalc.controller.CupsConfigController;
 import com.carboncalc.model.CenterData;
 import com.carboncalc.util.UIUtils;
 import javax.swing.*;
@@ -17,7 +17,7 @@ import java.util.ResourceBundle;
  * bundle and styling should use UIUtils constants/helpers.
  */
 public class CupsConfigPanel extends BaseModulePanel {
-    private final CupsConfigPanelController controller;
+    private final CupsConfigController controller;
 
     // Manual Input Components
     private JTextField cupsField;
@@ -58,7 +58,7 @@ public class CupsConfigPanel extends BaseModulePanel {
     // Energy types and table column names are loaded from the resource bundle
     // at runtime to keep the UI fully localizable.
 
-    public CupsConfigPanel(CupsConfigPanelController controller, ResourceBundle messages) {
+    public CupsConfigPanel(CupsConfigController controller, ResourceBundle messages) {
         super(messages);
         this.controller = controller;
     }

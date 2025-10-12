@@ -16,9 +16,9 @@ import java.util.ResourceBundle;
  *
  * Design goals:
  * - Keep the UI construction modular (helper factory methods for each
- *   control) so future changes are localized.
+ * control) so future changes are localized.
  * - Avoid side-effects during programmatic initialization (see
- *   {@link #suppressLanguageEvents}).
+ * {@link #suppressLanguageEvents}).
  */
 public class OptionsPanel extends BaseModulePanel {
     private final OptionsPanelController controller;
@@ -33,16 +33,16 @@ public class OptionsPanel extends BaseModulePanel {
         super(messages);
         this.controller = controller;
     }
-    
+
     @Override
     protected void initializeComponents() {
-    contentPanel.setLayout(new GridBagLayout());
-    contentPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        
+        contentPanel.setLayout(new GridBagLayout());
+        contentPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
-        
+
         // Language selection (label + combo) — created through helper to keep
         // the layout code concise and make the control reusable.
         JPanel languageRow = createLanguageSelector();
@@ -50,15 +50,15 @@ public class OptionsPanel extends BaseModulePanel {
         gbc.gridy = 0;
         gbc.gridwidth = 2; // languageRow contains both label and combo
         contentPanel.add(languageRow, gbc);
-        
-    // About button — small factory method keeps the initializer focused.
-    JButton aboutButton = createAboutButton();
-    gbc.gridx = 0;
-    gbc.gridy = 1;
-    gbc.gridwidth = 2;
-    gbc.anchor = GridBagConstraints.CENTER;
-    contentPanel.add(aboutButton, gbc);
-        
+
+        // About button — small factory method keeps the initializer focused.
+        JButton aboutButton = createAboutButton();
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        contentPanel.add(aboutButton, gbc);
+
         // Add some padding around the content
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -77,15 +77,16 @@ public class OptionsPanel extends BaseModulePanel {
         row.add(languageLabel);
 
         languageSelector = new JComboBox<>(new String[] {
-            messages.getString("language.english"),
-            messages.getString("language.spanish")
+                messages.getString("language.english"),
+                messages.getString("language.spanish")
         });
 
         // When user changes language, close the popup first then call the
         // controller on the EDT so any modal dialog appears after the combo
         // visually collapses.
         languageSelector.addActionListener(e -> {
-            if (suppressLanguageEvents) return;
+            if (suppressLanguageEvents)
+                return;
             languageSelector.setPopupVisible(false);
             SwingUtilities.invokeLater(() -> controller.handleLanguageChange());
         });
@@ -105,17 +106,17 @@ public class OptionsPanel extends BaseModulePanel {
         UIUtils.styleButton(aboutButton);
         return aboutButton;
     }
-    
+
     @Override
     protected void onSave() {
         controller.handleSave();
     }
-    
+
     // Getters
     public String getSelectedLanguage() {
         return (String) languageSelector.getSelectedItem();
     }
-    
+
     public void setSelectedLanguage(String language) {
         suppressLanguageEvents = true;
         try {

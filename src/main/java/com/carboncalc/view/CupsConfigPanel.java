@@ -54,7 +54,6 @@ public class CupsConfigPanel extends BaseModulePanel {
     private JTable centersTable;
     private JScrollPane centersScrollPane;
     private JTable previewTable;
-    private JScrollPane previewScrollPane;
 
     // Energy types and table column names are loaded from the resource bundle
     // at runtime to keep the UI fully localizable.
@@ -91,8 +90,8 @@ public class CupsConfigPanel extends BaseModulePanel {
          * Contains a boxed form for entering a single CUPS/center manually.
          * Fields are vertically aligned and the Add button is right-aligned.
          */
-    JPanel outer = new JPanel(new BorderLayout());
-    outer.setBackground(UIUtils.CONTENT_BACKGROUND);
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBackground(UIUtils.CONTENT_BACKGROUND);
         outer.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // Create a titled group box using the centralized helper (keeps border color
@@ -100,8 +99,8 @@ public class CupsConfigPanel extends BaseModulePanel {
         JPanel box = createGroupPanel("tab.manual.input");
 
         // Form panel uses two columns: left for CUPS..Energy, right for address fields
-    JPanel form = new JPanel(new GridBagLayout());
-    form.setBackground(UIUtils.CONTENT_BACKGROUND);
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBackground(UIUtils.CONTENT_BACKGROUND);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
         gbc.insets = new Insets(8, 8, 8, 8);
@@ -114,31 +113,36 @@ public class CupsConfigPanel extends BaseModulePanel {
         l.fill = GridBagConstraints.HORIZONTAL;
         l.insets = new Insets(6, 6, 6, 6);
         l.anchor = GridBagConstraints.WEST;
-        l.gridx = 0; l.gridy = 0;
+        l.gridx = 0;
+        l.gridy = 0;
         left.add(new JLabel(messages.getString("label.cups") + ":"), l);
         l.gridx = 1;
         cupsField = new JTextField(20);
         left.add(cupsField, l);
 
-        l.gridx = 0; l.gridy = 1;
+        l.gridx = 0;
+        l.gridy = 1;
         left.add(new JLabel(messages.getString("label.marketer") + ":"), l);
         l.gridx = 1;
         marketerField = new JTextField(20);
         left.add(marketerField, l);
 
-        l.gridx = 0; l.gridy = 2;
+        l.gridx = 0;
+        l.gridy = 2;
         left.add(new JLabel(messages.getString("label.center.name") + ":"), l);
         l.gridx = 1;
         centerNameField = new JTextField(20);
         left.add(centerNameField, l);
 
-        l.gridx = 0; l.gridy = 3;
+        l.gridx = 0;
+        l.gridy = 3;
         left.add(new JLabel(messages.getString("label.center.acronym") + ":"), l);
         l.gridx = 1;
         centerAcronymField = new JTextField(20);
         left.add(centerAcronymField, l);
 
-        l.gridx = 0; l.gridy = 4;
+        l.gridx = 0;
+        l.gridy = 4;
         left.add(new JLabel(messages.getString("label.energy.type") + ":"), l);
         l.gridx = 1;
         String[] energyOptions = new String[] {
@@ -159,34 +163,43 @@ public class CupsConfigPanel extends BaseModulePanel {
         r.fill = GridBagConstraints.HORIZONTAL;
         r.insets = new Insets(6, 6, 6, 6);
         r.anchor = GridBagConstraints.WEST;
-        r.gridx = 0; r.gridy = 0;
+        r.gridx = 0;
+        r.gridy = 0;
         right.add(new JLabel(messages.getString("label.street") + ":"), r);
         r.gridx = 1;
         streetField = new JTextField(20);
         right.add(streetField, r);
 
-        r.gridx = 0; r.gridy = 1;
+        r.gridx = 0;
+        r.gridy = 1;
         right.add(new JLabel(messages.getString("label.postal.code") + ":"), r);
         r.gridx = 1;
         postalCodeField = new JTextField(8);
         right.add(postalCodeField, r);
 
-        r.gridx = 0; r.gridy = 2;
+        r.gridx = 0;
+        r.gridy = 2;
         right.add(new JLabel(messages.getString("label.city") + ":"), r);
         r.gridx = 1;
         cityField = new JTextField(20);
         right.add(cityField, r);
 
-        r.gridx = 0; r.gridy = 3;
+        r.gridx = 0;
+        r.gridy = 3;
         right.add(new JLabel(messages.getString("label.province") + ":"), r);
         r.gridx = 1;
         provinceField = new JTextField(20);
         right.add(provinceField, r);
 
         // Place left and right panels into the main form
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.6; gbc.weighty = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.6;
+        gbc.weighty = 0;
         form.add(left, gbc);
-        gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 0.4;
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 0.4;
         form.add(right, gbc);
 
         // Add button row spanning both columns
@@ -200,7 +213,11 @@ public class CupsConfigPanel extends BaseModulePanel {
         });
         btnPanel.add(addButton);
 
-        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.EAST;
+        gbc.weightx = 0;
         form.add(btnPanel, gbc);
 
         box.add(form, BorderLayout.CENTER);
@@ -260,8 +277,8 @@ public class CupsConfigPanel extends BaseModulePanel {
         int row = 0;
 
         // Add all column selectors
-    addColumnSelector(panel, gbc, row++, "label.column.cups", cupsColumnSelector = new JComboBox<>());
-    addColumnSelector(panel, gbc, row++, "label.column.marketer", marketerColumnSelector = new JComboBox<>());
+        addColumnSelector(panel, gbc, row++, "label.column.cups", cupsColumnSelector = new JComboBox<>());
+        addColumnSelector(panel, gbc, row++, "label.column.marketer", marketerColumnSelector = new JComboBox<>());
         addColumnSelector(panel, gbc, row++, "label.column.center", centerNameColumnSelector = new JComboBox<>());
         addColumnSelector(panel, gbc, row++, "label.column.acronym", centerAcronymColumnSelector = new JComboBox<>());
         addColumnSelector(panel, gbc, row++, "label.column.energy", energyTypeColumnSelector = new JComboBox<>());
@@ -269,10 +286,10 @@ public class CupsConfigPanel extends BaseModulePanel {
         addColumnSelector(panel, gbc, row++, "label.column.postal", postalCodeColumnSelector = new JComboBox<>());
         addColumnSelector(panel, gbc, row++, "label.column.city", cityColumnSelector = new JComboBox<>());
         addColumnSelector(panel, gbc, row++, "label.column.province", provinceColumnSelector = new JComboBox<>());
-        
+
         // Style all mapping combo boxes to match visual design
         UIUtils.styleComboBox(cupsColumnSelector);
-    UIUtils.styleComboBox(marketerColumnSelector);
+        UIUtils.styleComboBox(marketerColumnSelector);
         UIUtils.styleComboBox(centerNameColumnSelector);
         UIUtils.styleComboBox(centerAcronymColumnSelector);
         UIUtils.styleComboBox(energyTypeColumnSelector);
@@ -286,7 +303,8 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     private JPanel createFileManagementPanel() {
         /**
-         * File management controls: add file, sheet selector and preview/import actions.
+         * File management controls: add file, sheet selector and preview/import
+         * actions.
          */
         JPanel panel = new JPanel(new BorderLayout());
         // wrap file management controls in a lighter group border to match style
@@ -353,99 +371,6 @@ public class CupsConfigPanel extends BaseModulePanel {
         return panel;
     }
 
-    private JPanel createColumnConfigPanel() {
-        /**
-         * Column configuration helper panel (unused by default UI but available
-         * as a small reusable component for advanced layouts).
-         */
-        JPanel panel = new JPanel(new GridBagLayout());
-        // Group the column mapping selectors using the lighter border and the CUPS data
-        // mapping title
-        panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.cups.data.mapping")));
-        panel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 5, 5, 5);
-
-        // CUPS Column Selection
-        JLabel cupsLabel = new JLabel(messages.getString("label.column.cups"));
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        panel.add(cupsLabel, gbc);
-
-        cupsColumnSelector = new JComboBox<>();
-        cupsColumnSelector.addActionListener(e -> {
-            if (controller != null)
-                controller.handleColumnSelection();
-        });
-        gbc.gridx = 1;
-        panel.add(cupsColumnSelector, gbc);
-
-        // Center Name Column Selection
-        JLabel centerLabel = new JLabel(messages.getString("label.column.center"));
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        panel.add(centerLabel, gbc);
-
-        centerNameColumnSelector = new JComboBox<>();
-        centerNameColumnSelector.addActionListener(e -> {
-            if (controller != null)
-                controller.handleColumnSelection();
-        });
-        gbc.gridx = 1;
-        panel.add(centerNameColumnSelector, gbc);
-
-        // Range Configuration
-        JPanel rangePanel = new JPanel(new GridLayout(2, 2, 5, 5));
-        rangePanel.setBorder(BorderFactory.createEmptyBorder());
-        rangePanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-
-        rangePanel.add(new JLabel(messages.getString("label.row.start")));
-        startRowField = new JTextField("2");
-        rangePanel.add(startRowField);
-
-        rangePanel.add(new JLabel(messages.getString("label.row.end")));
-        endRowField = new JTextField();
-        rangePanel.add(endRowField);
-
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 2;
-        panel.add(rangePanel, gbc);
-
-        // Add vertical spacing
-        gbc.gridy = 3;
-        gbc.weighty = 1.0;
-        panel.add(Box.createVerticalGlue(), gbc);
-
-        return panel;
-    }
-
-    private JPanel createPreviewPanel() {
-        /**
-         * Creates the preview area that shows imported Excel rows in a table.
-         * The preview table is wrapped in a scroll pane with both axes enabled.
-         */
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder());
-        panel.setBackground(UIUtils.CONTENT_BACKGROUND);
-
-        // Create the table with a default table model
-        previewTable = new JTable();
-        previewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        previewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        UIUtils.styleTable(previewTable);
-
-        // Wrap the table in a scroll pane
-        previewScrollPane = new JScrollPane(previewTable);
-        previewScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        previewScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-
-        panel.add(previewScrollPane, BorderLayout.CENTER);
-
-        return panel;
-    }
-
     // Getters for preview controls
     public JTextField getStartRowField() {
         return startRowField;
@@ -469,18 +394,19 @@ public class CupsConfigPanel extends BaseModulePanel {
         panel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Create table with custom model
-        // Create table with custom model. Column headers are localized via resource bundle.
-    String[] tableColumns = new String[] {
-        messages.getString("label.cups"),
-        messages.getString("label.marketer"),
-        messages.getString("label.center"),
-        messages.getString("label.acronym"),
-        messages.getString("label.energy"),
-        messages.getString("label.street"),
-        messages.getString("label.postal"),
-        messages.getString("label.city"),
-        messages.getString("label.province")
-    };
+        // Create table with custom model. Column headers are localized via resource
+        // bundle.
+        String[] tableColumns = new String[] {
+                messages.getString("label.cups"),
+                messages.getString("label.marketer"),
+                messages.getString("label.center"),
+                messages.getString("label.acronym"),
+                messages.getString("label.energy"),
+                messages.getString("label.street"),
+                messages.getString("label.postal"),
+                messages.getString("label.city"),
+                messages.getString("label.province")
+        };
 
         DefaultTableModel model = new DefaultTableModel(tableColumns, 0) {
             @Override
@@ -503,8 +429,8 @@ public class CupsConfigPanel extends BaseModulePanel {
         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
-    JButton editButton = new JButton(messages.getString("button.edit"));
-    JButton deleteButton = new JButton(messages.getString("button.delete"));
+        JButton editButton = new JButton(messages.getString("button.edit"));
+        JButton deleteButton = new JButton(messages.getString("button.delete"));
 
         editButton.addActionListener(e -> {
             if (controller != null)
@@ -515,8 +441,8 @@ public class CupsConfigPanel extends BaseModulePanel {
                 controller.handleDeleteCenter();
         });
 
-    buttonsPanel.add(editButton);
-    buttonsPanel.add(deleteButton);
+        buttonsPanel.add(editButton);
+        buttonsPanel.add(deleteButton);
 
         panel.add(buttonsPanel, BorderLayout.SOUTH);
         return panel;
@@ -538,16 +464,16 @@ public class CupsConfigPanel extends BaseModulePanel {
     }
 
     private CenterData getManualInputData() {
-    return new CenterData(
-        cupsField.getText(),
-        marketerField.getText(),
-        centerNameField.getText(),
-        centerAcronymField.getText(),
-        (String) energyTypeCombo.getSelectedItem(),
-        streetField.getText(),
-        postalCodeField.getText(),
-        cityField.getText(),
-        provinceField.getText());
+        return new CenterData(
+                cupsField.getText(),
+                marketerField.getText(),
+                centerNameField.getText(),
+                centerAcronymField.getText(),
+                (String) energyTypeCombo.getSelectedItem(),
+                streetField.getText(),
+                postalCodeField.getText(),
+                cityField.getText(),
+                provinceField.getText());
     }
 
     // Getters for the controller

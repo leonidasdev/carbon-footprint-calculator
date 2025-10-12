@@ -7,6 +7,14 @@ import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
 
 import java.awt.*;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.util.ResourceBundle;
 
 /**
@@ -55,6 +63,8 @@ public class ElectricityPanel extends BaseModulePanel {
     private JScrollPane erpTableScrollPane;
     private JScrollPane resultTableScrollPane;
     private JPanel columnConfigPanel;
+    private JSpinner yearSpinner;
+    private JComboBox<String> resultSheetSelector;
     
     public ElectricityPanel(ElectricityController controller, ResourceBundle messages) {
         super(messages);
@@ -120,6 +130,33 @@ public class ElectricityPanel extends BaseModulePanel {
         contentPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         contentPanel.add(mainPanel, BorderLayout.CENTER);
         setBackground(UIUtils.CONTENT_BACKGROUND);
+    }
+
+    /** Load the year from data/year/current_year.txt. Return current year as fallback. */
+    private int loadCurrentYearFromFile() {
+        try {
+            Path p = Paths.get("data", "year", "current_year.txt");
+            if (Files.exists(p)) {
+                String s = Files.readString(p, StandardCharsets.UTF_8).trim();
+                if (!s.isEmpty()) {
+                    try { return Integer.parseInt(s); } catch (NumberFormatException ignored) {}
+                }
+            }
+        } catch (IOException ignored) {}
+        return LocalDate.now().getYear();
+    }
+
+    /** Save the selected year to data/year/current_year.txt (creates directories if needed). */
+    private void saveCurrentYearToFile(int year) {
+        try {
+            Path dir = Paths.get("data", "year");
+            if (!Files.exists(dir)) Files.createDirectories(dir);
+            Path p = dir.resolve("current_year.txt");
+            Files.writeString(p, String.valueOf(year), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            // Show non-blocking warning to the user
+            UIUtils.showErrorDialog(this, messages.getString("error.file.write"), e.getMessage());
+        }
     }
     
     private JPanel createFileManagementPanel() {
@@ -364,7 +401,8 @@ public class ElectricityPanel extends BaseModulePanel {
         JPanel panel = new JPanel(new GridLayout(1, 3, 10, 0));
     panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
     panel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        panel.setPreferredSize(new Dimension(0, 400)); // Set minimum height for preview
+    // Reduce overall preview panel height so top controls (Year/Sheet) align better
+    panel.setPreferredSize(new Dimension(0, 320)); // Set minimum height for preview
 
         // Provider Preview Panel
         JPanel providerPanel = new JPanel(new BorderLayout());
@@ -379,10 +417,15 @@ public class ElectricityPanel extends BaseModulePanel {
     providerTableScrollPane = new JScrollPane(providerPreviewTable);
     providerTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
     providerTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-    providerTableScrollPane.setPreferredSize(new Dimension(320, 360));
+    providerTableScrollPane.setPreferredSize(new Dimension(320, 280));
 
+    // Add a small top spacer so provider table aligns vertically with result controls
+    JPanel providerTopSpacer = new JPanel();
+    providerTopSpacer.setPreferredSize(new Dimension(0, 40));
+    providerTopSpacer.setOpaque(false);
+    providerPanel.add(providerTopSpacer, BorderLayout.NORTH);
     // UIUtils.setupPreviewTable(providerPreviewTable); -- moved to controller after model is set
-        providerPanel.add(providerTableScrollPane, BorderLayout.CENTER);
+    providerPanel.add(providerTableScrollPane, BorderLayout.CENTER);
 
         // ERP Preview Panel
         JPanel erpPanel = new JPanel(new BorderLayout());
@@ -397,14 +440,19 @@ public class ElectricityPanel extends BaseModulePanel {
     erpTableScrollPane = new JScrollPane(erpPreviewTable);
     erpTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
     erpTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-    erpTableScrollPane.setPreferredSize(new Dimension(320, 360));
+    erpTableScrollPane.setPreferredSize(new Dimension(320, 280));
 
+    // Add a small top spacer so ERP table aligns vertically with result controls
+    JPanel erpTopSpacer = new JPanel();
+    erpTopSpacer.setPreferredSize(new Dimension(0, 40));
+    erpTopSpacer.setOpaque(false);
+    erpPanel.add(erpTopSpacer, BorderLayout.NORTH);
     // UIUtils.setupPreviewTable(erpPreviewTable); -- moved to controller after model is set
-        erpPanel.add(erpTableScrollPane, BorderLayout.CENTER);
+    erpPanel.add(erpTableScrollPane, BorderLayout.CENTER);
 
         // Result Preview Panel (to the right of ERP)
         JPanel resultPanel = new JPanel(new BorderLayout());
-    resultPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.preview.result")));
+    resultPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.result")));
     resultPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         resultPreviewTable = new JTable();
@@ -415,12 +463,53 @@ public class ElectricityPanel extends BaseModulePanel {
     resultTableScrollPane = new JScrollPane(resultPreviewTable);
     resultTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
     resultTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-    resultTableScrollPane.setPreferredSize(new Dimension(320, 360));
+    resultTableScrollPane.setPreferredSize(new Dimension(320, 280));
 
     // UIUtils.setupPreviewTable(resultPreviewTable); -- moved to controller after model is set
         resultPanel.add(resultTableScrollPane, BorderLayout.CENTER);
 
-        // Add Apply & Save button below the result preview
+        // Add a small top controls panel for result: year selector
+    // Use small vertical gap to keep controls vertically centered with the table
+    JPanel resultTopPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+    // Reserve vertical space so controls are not squeezed
+    resultTopPanel.setPreferredSize(new Dimension(0, 40));
+    resultTopPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+        JLabel yearLabel = new JLabel("Year:");
+        yearLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
+        resultTopPanel.add(yearLabel);
+    // Initialize yearSpinner with value from data/year/current_year.txt
+    int initialYear = loadCurrentYearFromFile();
+    yearSpinner = new JSpinner(new SpinnerNumberModel(initialYear, 1900, 2100, 1));
+    // Use a NumberEditor and disable grouping to avoid locale grouping (e.g., "2,025")
+    JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "####");
+    yearSpinner.setEditor(yearEditor);
+    ((java.text.DecimalFormat) yearEditor.getFormat()).setGroupingUsed(false);
+    yearSpinner.setPreferredSize(new Dimension(60, 24));
+    // Persist year changes when edited
+    yearSpinner.addChangeListener(new ChangeListener() {
+        private boolean init = true;
+        @Override
+        public void stateChanged(ChangeEvent e) {
+            if (init) { init = false; return; }
+            int year = (Integer) yearSpinner.getValue();
+            saveCurrentYearToFile(year);
+        }
+    });
+        yearSpinner.setAlignmentY(Component.CENTER_ALIGNMENT);
+        resultTopPanel.add(yearSpinner);
+    // Sheet selection for the resulting Excel file
+    resultTopPanel.add(Box.createHorizontalStrut(8));
+        JLabel sheetLabel = new JLabel("Sheet:");
+        sheetLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
+        resultTopPanel.add(sheetLabel);
+    resultSheetSelector = new JComboBox<>(new String[] {"extended", "per center", "total"});
+    resultSheetSelector.setPreferredSize(new Dimension(75, 25));
+    resultSheetSelector.setToolTipText("Select the sheet layout for the generated Excel file");
+    UIUtils.styleComboBox(resultSheetSelector);
+        resultSheetSelector.setAlignmentY(Component.CENTER_ALIGNMENT);
+    resultTopPanel.add(resultSheetSelector);
+
+    // Add Apply & Save button below the result preview
         JPanel resultButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
     resultButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
     applyAndSaveExcelButton = new JButton(messages.getString("button.apply.save.excel"));
@@ -428,6 +517,8 @@ public class ElectricityPanel extends BaseModulePanel {
     applyAndSaveExcelButton.addActionListener(e -> controller.handleApplyAndSaveExcel());
     UIUtils.styleButton(applyAndSaveExcelButton);
     resultButtonPanel.add(applyAndSaveExcelButton);
+    // Attach top controls to north and buttons to south of resultPanel
+    resultPanel.add(resultTopPanel, BorderLayout.NORTH);
     resultPanel.add(resultButtonPanel, BorderLayout.SOUTH);
 
         // Add all three panels
@@ -449,6 +540,12 @@ public class ElectricityPanel extends BaseModulePanel {
     // ERP file getters
     public JLabel getErpFileLabel() { return erpFileLabel; }
     public JComboBox<String> getErpSheetSelector() { return erpSheetSelector; }
+
+    // Result sheet selector getter
+    public JComboBox<String> getResultSheetSelector() { return resultSheetSelector; }
+
+    // Year spinner getter for controller access
+    public JSpinner getYearSpinner() { return yearSpinner; }
 
     /**
      * Set provider file name with ellipsis if too long and set tooltip to full name.

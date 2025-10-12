@@ -404,7 +404,7 @@ public class GasPanel extends BaseModulePanel {
 
         // Result Preview Panel (to the right of ERP)
         JPanel resultPanel = new JPanel(new BorderLayout());
-        resultPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.preview.result")));
+        resultPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.result")));
         resultPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         resultPreviewTable = new JTable();

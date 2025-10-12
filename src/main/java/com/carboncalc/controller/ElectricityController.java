@@ -510,8 +510,19 @@ public class ElectricityController {
                 outputFile = new File(outputFile.getAbsolutePath() + ".xlsx");
             }
             
-            // Generate the Excel report
-            com.carboncalc.util.ElectricityExcelExporter.exportElectricityData(outputFile.getAbsolutePath());
+            // Collect parameters for export
+            String providerPath = providerFile != null ? providerFile.getAbsolutePath() : null;
+            String providerSheet = (String) view.getProviderSheetSelector().getSelectedItem();
+            String erpPath = erpFile != null ? erpFile.getAbsolutePath() : null;
+            String erpSheet = (String) view.getErpSheetSelector().getSelectedItem();
+            com.carboncalc.model.ElectricityMapping mapping = view.getSelectedColumns();
+            int selectedYear = (Integer) view.getYearSpinner().getValue();
+            String sheetMode = (String) view.getResultSheetSelector().getSelectedItem();
+
+            // Generate the Excel report with mapping and year context
+            com.carboncalc.util.ElectricityExcelExporter.exportElectricityData(
+                outputFile.getAbsolutePath(), providerPath, providerSheet, erpPath, erpSheet, mapping, selectedYear, sheetMode
+            );
             
             // Show success message
             JOptionPane.showMessageDialog(view,

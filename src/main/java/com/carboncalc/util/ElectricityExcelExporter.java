@@ -429,16 +429,21 @@ public class ElectricityExcelExporter {
         }
         // Try numeric yyyyMMdd
         try { if (s.length() == 8) return LocalDate.parse(s, DateTimeFormatter.ofPattern("yyyyMMdd")); } catch (Exception ignored) {}
-
-        // Support two-digit year formats commonly used in Spain, e.g. dd/MM/yy or d-M-yy
+        // Support dates with slashes or dashes and optional spaces, and accept 2- or 4-digit year
         try {
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(\\s*)(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{2})(\\s*)$").matcher(s);
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(\\s*)(\\d{1,2})\\s*[\\/\\-]\\s*(\\d{1,2})\\s*[\\/\\-]\\s*(\\d{2,4})(\\s*)$").matcher(s);
             if (m.find()) {
                 int day = Integer.parseInt(m.group(2));
                 int month = Integer.parseInt(m.group(3));
-                int yy = Integer.parseInt(m.group(4));
-                // Map two-digit year to full year: use 00-49 -> 2000-2049, 50-99 -> 1950-1999
-                int year = (yy >= 50) ? (1900 + yy) : (2000 + yy);
+                String yearPart = m.group(4);
+                int year;
+                if (yearPart.length() == 2) {
+                    int yy = Integer.parseInt(yearPart);
+                    // Map two-digit year to full year: use 00-49 -> 2000-2049, 50-99 -> 1950-1999
+                    year = (yy >= 50) ? (1900 + yy) : (2000 + yy);
+                } else {
+                    year = Integer.parseInt(yearPart);
+                }
                 return LocalDate.of(year, month, day);
             }
         } catch (Exception ignored) {}

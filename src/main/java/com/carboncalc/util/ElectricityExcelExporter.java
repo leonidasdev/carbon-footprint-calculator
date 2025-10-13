@@ -200,20 +200,7 @@ public class ElectricityExcelExporter {
     // otherwise fallback to the persisted current_year file.
     int reportingYear = (year > 0) ? year : readCurrentYearFromFile();
 
-    // Create diagnostics sheet to help debug filtering and mapping (one row per processed source row)
-    Sheet diagSheet = wb.getSheet("Diagnostics");
-    int diagRowNum = 0;
-    if (diagSheet == null) {
-        diagSheet = wb.createSheet("Diagnostics");
-        Row hdr = diagSheet.createRow(diagRowNum++);
-        String[] dh = new String[] {"SourceRow","CentroRaw","CUPS","Factura","ParsedStart","ParsedEnd","Consumo","ConsumoAplicable","Included","Reason","ResolvedSociedadEmisora"};
-        for (int j = 0; j < dh.length; j++) {
-            Cell c = hdr.createCell(j);
-            c.setCellValue(dh[j]);
-        }
-    } else {
-        diagRowNum = diagSheet.getLastRowNum() + 1;
-    }
+    // Diagnostics removed: no Diagnostics sheet will be created in the output workbook
 
     for (int i = headerRowIndex + 1; i <= source.getLastRowNum(); i++) {
             Row srcRow = source.getRow(i);
@@ -233,21 +220,7 @@ public class ElectricityExcelExporter {
             boolean endInYear = parsedEnd != null && parsedEnd.getYear() == reportingYear;
 
             if (!startInYear && !endInYear) {
-                // record diagnostic: neither date is in reporting year (or both null)
-                diagReason = "SKIP: start/end not in reporting year " + reportingYear;
-                Row dr = diagSheet.createRow(diagRowNum++);
-                int dc = 0;
-                dr.createCell(dc++).setCellValue(i);
-                dr.createCell(dc++).setCellValue(getCellStringByIndex(srcRow, mapping.getCenterIndex(), df, eval));
-                dr.createCell(dc++).setCellValue(cups);
-                dr.createCell(dc++).setCellValue(factura);
-                dr.createCell(dc++).setCellValue(parsedStart != null ? parsedStart.toString() : (fechaInicio != null ? fechaInicio : ""));
-                dr.createCell(dc++).setCellValue(parsedEnd != null ? parsedEnd.toString() : (fechaFin != null ? fechaFin : ""));
-                dr.createCell(dc++).setCellValue(consumo);
-                dr.createCell(dc++).setCellValue(0.0);
-                dr.createCell(dc++).setCellValue(false);
-                dr.createCell(dc++).setCellValue(diagReason);
-                dr.createCell(dc++).setCellValue(getCellStringByIndex(srcRow, mapping.getEmissionEntityIndex(), df, eval));
+                // skipped: neither date is in reporting year
                 continue;
             }
 
@@ -281,20 +254,7 @@ public class ElectricityExcelExporter {
             if (validInvoices != null && !validInvoices.isEmpty()) {
                 String invoiceKey = factura != null ? factura.trim() : "";
                 if (invoiceKey.isEmpty() || !validInvoices.contains(invoiceKey)) {
-                    // record diagnostic
-                    Row dr = diagSheet.createRow(diagRowNum++);
-                    int dc = 0;
-                    dr.createCell(dc++).setCellValue(i);
-                    dr.createCell(dc++).setCellValue(getCellStringByIndex(srcRow, mapping.getCenterIndex(), df, eval));
-                    dr.createCell(dc++).setCellValue(cups);
-                    dr.createCell(dc++).setCellValue(factura);
-                    dr.createCell(dc++).setCellValue(parsedStart.toString());
-                    dr.createCell(dc++).setCellValue(parsedEnd.toString());
-                    dr.createCell(dc++).setCellValue(consumo);
-                    dr.createCell(dc++).setCellValue(0.0);
-                    dr.createCell(dc++).setCellValue(false);
-                    dr.createCell(dc++).setCellValue("SKIP: filtered by ERP validInvoices");
-                    dr.createCell(dc++).setCellValue(getCellStringByIndex(srcRow, mapping.getEmissionEntityIndex(), df, eval));
+                    // skipped: filtered by ERP validInvoices
                     continue;
                 }
             }
@@ -313,20 +273,7 @@ public class ElectricityExcelExporter {
             agg[1] += emisionesMarketT;
             agg[2] += emisionesLocationT;
 
-            // record included diagnostic
-            Row drIncluded = diagSheet.createRow(diagRowNum++);
-            int dcc = 0;
-            drIncluded.createCell(dcc++).setCellValue(i);
-            drIncluded.createCell(dcc++).setCellValue(getCellStringByIndex(srcRow, mapping.getCenterIndex(), df, eval));
-            drIncluded.createCell(dcc++).setCellValue(cups);
-            drIncluded.createCell(dcc++).setCellValue(factura);
-            drIncluded.createCell(dcc++).setCellValue(parsedStart.toString());
-            drIncluded.createCell(dcc++).setCellValue(parsedEnd.toString());
-            drIncluded.createCell(dcc++).setCellValue(consumo);
-            drIncluded.createCell(dcc++).setCellValue(consumoAplicable);
-            drIncluded.createCell(dcc++).setCellValue(true);
-            drIncluded.createCell(dcc++).setCellValue("INCLUDED");
-            drIncluded.createCell(dcc++).setCellValue(marketerToUse != null ? marketerToUse : "");
+            // included (no diagnostics written)
 
             Row out = target.createRow(outRow++);
             int col = 0;

@@ -593,9 +593,12 @@ public class ElectricityController {
                                     if (row == null) continue;
                                     String invoice = getCellString(row.getCell(invoiceCol), df, eval);
                                     String conformity = getCellString(row.getCell(conformityCol), df, eval);
-                                    int y = extractYearFromString(conformity);
-                                    if (y >= selectedYear && invoice != null && !invoice.isEmpty()) {
-                                        validInvoices.add(invoice.trim());
+                                    if (invoice != null && !invoice.isEmpty()) {
+                                        String confTrim = conformity == null ? "" : conformity.trim();
+                                        // An invoice is considered valid only if ERP provides a conformity date (non-empty)
+                                        if (!confTrim.isEmpty()) {
+                                            validInvoices.add(invoice.trim());
+                                        }
                                     }
                                 }
                             }
@@ -630,9 +633,20 @@ public class ElectricityController {
     // Extract a 4-digit year from a string if possible. Returns -1 if none found.
     private int extractYearFromString(String s) {
         if (s == null) return -1;
+        // First try explicit 4-digit year (e.g., 2023)
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("(19|20)\\d{2}").matcher(s);
         if (m.find()) {
             try { return Integer.parseInt(m.group()); } catch (NumberFormatException ignored) {}
+        }
+
+        // Then try Spanish-style two-digit year in dates like dd/MM/yy or dd-MM-yy
+        java.util.regex.Matcher m2 = java.util.regex.Pattern.compile("(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{2})").matcher(s);
+        if (m2.find()) {
+            try {
+                int yy = Integer.parseInt(m2.group(3));
+                int year = (yy >= 50) ? (1900 + yy) : (2000 + yy);
+                return year;
+            } catch (Exception ignored) {}
         }
         return -1;
     }

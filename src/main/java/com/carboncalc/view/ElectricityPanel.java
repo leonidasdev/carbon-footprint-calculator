@@ -632,16 +632,12 @@ public class ElectricityPanel extends BaseModulePanel {
     }
 
     private int getSelectedIndex(JComboBox<String> comboBox) {
-        String selectedItem = (String) comboBox.getSelectedItem();
-        if (selectedItem == null || selectedItem.isEmpty()) {
-            return -1;
-        }
-        for (int i = 0; i < comboBox.getItemCount(); i++) {
-            if (selectedItem.equals(comboBox.getItemAt(i))) {
-                return i;
-            }
-        }
-        return -1;
+        if (comboBox == null) return -1;
+        // The combo boxes are populated with an initial empty item followed by the sheet header names.
+        // Therefore the actual column index in the sheet equals the selectedIndex - 1.
+        int sel = comboBox.getSelectedIndex();
+        if (sel <= 0) return -1; // 0 is the empty option or nothing selected
+        return sel - 1;
     }
 
     public void addCupsToList(String cups, String emissionEntity) {

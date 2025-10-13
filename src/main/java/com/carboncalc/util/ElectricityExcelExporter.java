@@ -37,6 +37,7 @@ public class ElectricityExcelExporter {
         "Fecha fin suministro",
         "Consumo kWh",
         "Consumo kWh aplicable por año",
+        "Porcentaje consumo aplicable al centro",
         "Consumo kWh aplicable por año al centro",
         "Emisiones tCO2 market based",
         "Emisiones tCO2 location based"
@@ -178,6 +179,21 @@ public class ElectricityExcelExporter {
             // ignore
         }
 
+    // Prepare some cell styles (date, percentage, emissions number formats)
+    Workbook wb = target.getWorkbook();
+    CreationHelper ch = wb.getCreationHelper();
+    CellStyle dateStyle = wb.createCellStyle();
+    short dateFmt = wb.createDataFormat().getFormat("dd/MM/yyyy");
+    dateStyle.setDataFormat(dateFmt);
+
+    CellStyle percentStyle = wb.createCellStyle();
+    short percentFmt = wb.createDataFormat().getFormat("0.00");
+    percentStyle.setDataFormat(percentFmt);
+
+    CellStyle emissionsStyle = wb.createCellStyle();
+    short emissionsFmt = wb.createDataFormat().getFormat("0.000000");
+    emissionsStyle.setDataFormat(emissionsFmt);
+
     for (int i = headerRowIndex + 1; i <= source.getLastRowNum(); i++) {
             Row srcRow = source.getRow(i);
             if (srcRow == null) continue;
@@ -187,12 +203,21 @@ public class ElectricityExcelExporter {
             String fechaFin = getCellStringByIndex(srcRow, mapping.getEndDateIndex(), df, eval);
             String consumoStr = getCellStringByIndex(srcRow, mapping.getConsumptionIndex(), df, eval);
             double consumo = parseDoubleSafe(consumoStr);
+            // Only include rows that explicitly provide both start and end supply dates
+            java.time.LocalDate parsedStart = parseDateLenient(fechaInicio);
+            java.time.LocalDate parsedEnd = parseDateLenient(fechaFin);
+            if (parsedStart == null || parsedEnd == null) {
+                // skip rows without both valid start and end dates
+                continue;
+            }
             double consumoAplicable = computeApplicableKwh(fechaInicio, fechaFin, consumo, year);
 
             // Determine how many centers share this CUPS
             int centersCount = 1;
             if (cups != null && !cups.trim().isEmpty()) centersCount = centersPerCups.getOrDefault(cups.trim(), 1);
             double consumoPorCentro = centersCount > 0 ? consumoAplicable / (double) centersCount : consumoAplicable;
+            // Percentage of applicable consumption assigned to this center (equally divided among centers sharing the same CUPS)
+            double porcentajePorCentro = (centersCount > 0) ? (100.0 / (double) centersCount) : 100.0;
 
             // Emissions placeholders (market-based and location-based)
             // Market-based emissions: determine marketer and factor_emision from per-year CSV, then compute tonnes
@@ -233,13 +258,42 @@ public class ElectricityExcelExporter {
             out.createCell(col++).setCellValue(getCellStringStatic(srcRow.getCell(mapping.getEmissionEntityIndex()), df, eval)); // sociedad emisora
             out.createCell(col++).setCellValue(cups);
             out.createCell(col++).setCellValue(factura);
-            out.createCell(col++).setCellValue(fechaInicio);
-            out.createCell(col++).setCellValue(fechaFin);
+
+            // Fecha inicio (as date cell)
+            Cell startCell = out.createCell(col++);
+            try {
+                startCell.setCellValue(java.sql.Date.valueOf(parsedStart));
+                startCell.setCellStyle(dateStyle);
+            } catch (Exception ex) {
+                startCell.setCellValue(fechaInicio != null ? fechaInicio : "");
+            }
+
+            // Fecha fin (as date cell)
+            Cell endCell = out.createCell(col++);
+            try {
+                endCell.setCellValue(java.sql.Date.valueOf(parsedEnd));
+                endCell.setCellStyle(dateStyle);
+            } catch (Exception ex) {
+                endCell.setCellValue(fechaFin != null ? fechaFin : "");
+            }
+
+            // Numeric values
             out.createCell(col++).setCellValue(consumo);
             out.createCell(col++).setCellValue(consumoAplicable);
+
+            Cell pctCell = out.createCell(col++);
+            pctCell.setCellValue(porcentajePorCentro);
+            pctCell.setCellStyle(percentStyle);
+
             out.createCell(col++).setCellValue(consumoPorCentro);
-            out.createCell(col++).setCellValue(String.format(Locale.ROOT, "%.6f", emisionesMarketT));
-            out.createCell(col++).setCellValue(String.format(Locale.ROOT, "%.6f", emisionesLocationT));
+
+            Cell marketCell = out.createCell(col++);
+            marketCell.setCellValue(emisionesMarketT);
+            marketCell.setCellStyle(emissionsStyle);
+
+            Cell locationCell = out.createCell(col++);
+            locationCell.setCellValue(emisionesLocationT);
+            locationCell.setCellStyle(emissionsStyle);
         }
         // Return per-center aggregates: map centro -> [consumo, emisionesMarket, emisionesLocation]
         return perCenterAgg;
@@ -375,6 +429,19 @@ public class ElectricityExcelExporter {
         }
         // Try numeric yyyyMMdd
         try { if (s.length() == 8) return LocalDate.parse(s, DateTimeFormatter.ofPattern("yyyyMMdd")); } catch (Exception ignored) {}
+
+        // Support two-digit year formats commonly used in Spain, e.g. dd/MM/yy or d-M-yy
+        try {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(\\s*)(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{2})(\\s*)$").matcher(s);
+            if (m.find()) {
+                int day = Integer.parseInt(m.group(2));
+                int month = Integer.parseInt(m.group(3));
+                int yy = Integer.parseInt(m.group(4));
+                // Map two-digit year to full year: use 00-49 -> 2000-2049, 50-99 -> 1950-1999
+                int year = (yy >= 50) ? (1900 + yy) : (2000 + yy);
+                return LocalDate.of(year, month, day);
+            }
+        } catch (Exception ignored) {}
         return null;
     }
 

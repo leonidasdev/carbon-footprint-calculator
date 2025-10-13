@@ -29,10 +29,14 @@ public class GasController {
     private Workbook erpWorkbook;
     private File providerFile;
     private File erpFile;
+    private int currentYear;
+    private static final java.nio.file.Path CURRENT_YEAR_FILE = java.nio.file.Paths.get("data", "year", "current_year.txt");
     
     public GasController(ResourceBundle messages) {
         this.messages = messages;
     this.csvDataService = new com.carboncalc.service.CupsServiceCsv();
+    int persisted = loadPersistedYear();
+    this.currentYear = persisted > 0 ? persisted : java.time.Year.now().getValue();
     }
     
     public void setView(GasPanel view) {
@@ -80,6 +84,49 @@ public class GasController {
                     JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    public int getCurrentYear() {
+        return currentYear;
+    }
+
+    public void handleYearSelection(int year) {
+        this.currentYear = year;
+        persistCurrentYear(year);
+    }
+
+    private int loadPersistedYear() {
+        try {
+            java.nio.file.Path p = CURRENT_YEAR_FILE;
+            if (!java.nio.file.Files.exists(p)) return -1;
+            String s = java.nio.file.Files.readString(p).trim();
+            if (s.isEmpty()) return -1;
+            return Integer.parseInt(s);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private void persistCurrentYear(int year) {
+        try {
+            java.nio.file.Path dir = CURRENT_YEAR_FILE.getParent();
+            if (!java.nio.file.Files.exists(dir)) {
+                java.nio.file.Files.createDirectories(dir);
+            }
+            java.nio.file.Files.writeString(CURRENT_YEAR_FILE, String.valueOf(year));
+        } catch (Exception e) {
+            System.err.println("Failed to persist current year: " + e.getMessage());
+        }
+    }
+
+    // Extract a 4-digit year from a string if possible. Returns -1 if none found.
+    private int extractYearFromString(String s) {
+        if (s == null) return -1;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(19|20)\\d{2}").matcher(s);
+        if (m.find()) {
+            try { return Integer.parseInt(m.group()); } catch (NumberFormatException ignored) {}
+        }
+        return -1;
     }
     
     public void handleErpFileSelection() {
@@ -395,8 +442,67 @@ public class GasController {
                 outputFile = new File(outputFile.getAbsolutePath() + ".xlsx");
             }
             
-            // Generate the Excel report
-            com.carboncalc.util.GasExcelExporter.exportGasData(outputFile.getAbsolutePath());
+            // Collect parameters for export similar to ElectricityController
+            String providerPath = providerFile != null ? providerFile.getAbsolutePath() : null;
+            String providerSheet = (String) view.getProviderSheetSelector().getSelectedItem();
+            String erpPath = erpFile != null ? erpFile.getAbsolutePath() : null;
+            String erpSheet = (String) view.getErpSheetSelector().getSelectedItem();
+            com.carboncalc.model.GasMapping mapping = view.getSelectedColumns();
+            int selectedYear = (Integer) view.getYearSpinner().getValue();
+            String sheetMode = (String) view.getResultSheetSelector().getSelectedItem();
+
+            // Build set of valid invoice numbers from ERP file (conformity date >= selectedYear)
+            java.util.Set<String> validInvoices = new java.util.HashSet<>();
+            if (erpPath != null && erpSheet != null && view.getErpInvoiceNumberSelector().getSelectedItem() != null) {
+                try (java.io.FileInputStream fis = new java.io.FileInputStream(erpPath)) {
+                    org.apache.poi.ss.usermodel.Workbook erpWb = erpPath.toLowerCase().endsWith(".xlsx") ? new XSSFWorkbook(fis) : new org.apache.poi.hssf.usermodel.HSSFWorkbook(fis);
+                    Sheet sheet = erpWb.getSheet(erpSheet);
+                    if (sheet != null) {
+                        DataFormatter df = new DataFormatter();
+                        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
+                        int headerRowIndex = -1;
+                        for (int r = sheet.getFirstRowNum(); r <= sheet.getLastRowNum(); r++) {
+                            Row row = sheet.getRow(r);
+                            if (row == null) continue;
+                            boolean nonEmpty = false;
+                            for (Cell c : row) { if (!getCellValueAsString(c).isEmpty()) { nonEmpty = true; break; } }
+                            if (nonEmpty) { headerRowIndex = r; break; }
+                        }
+                        if (headerRowIndex != -1) {
+                            Row headerRow = sheet.getRow(headerRowIndex);
+                            int invoiceCol = -1;
+                            int conformityCol = -1;
+                            String selInvoiceHeader = (String) view.getErpInvoiceNumberSelector().getSelectedItem();
+                            String selConformityHeader = (String) view.getConformityDateSelector().getSelectedItem();
+                            for (Cell c : headerRow) {
+                                String h = getCellValueAsString(c);
+                                if (selInvoiceHeader != null && selInvoiceHeader.equals(h)) invoiceCol = c.getColumnIndex();
+                                if (selConformityHeader != null && selConformityHeader.equals(h)) conformityCol = c.getColumnIndex();
+                            }
+                            if (invoiceCol != -1 && conformityCol != -1) {
+                                for (int r = headerRowIndex + 1; r <= sheet.getLastRowNum(); r++) {
+                                    Row row = sheet.getRow(r);
+                                    if (row == null) continue;
+                                    String invoice = getCellValueAsString(row.getCell(invoiceCol));
+                                    String conformity = getCellValueAsString(row.getCell(conformityCol));
+                                    int y = extractYearFromString(conformity);
+                                    if (y >= selectedYear && invoice != null && !invoice.isEmpty()) {
+                                        validInvoices.add(invoice.trim());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    erpWb.close();
+                } catch (Exception ex) {
+                    // ignore ERP parsing errors and continue with empty filter
+                }
+            }
+
+            // Generate the Excel report with mapping, year context and invoice filter
+            com.carboncalc.util.GasExcelExporter.exportGasData(
+                outputFile.getAbsolutePath(), providerPath, providerSheet, erpPath, erpSheet, mapping, selectedYear, sheetMode, validInvoices
+            );
             
             // Show success message
             JOptionPane.showMessageDialog(view,

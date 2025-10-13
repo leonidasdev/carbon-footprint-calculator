@@ -21,6 +21,9 @@ import com.carboncalc.model.CupsCenterMapping;
 import com.carboncalc.service.EmissionFactorServiceCsv;
 import com.carboncalc.model.factors.EmissionFactor;
 import com.carboncalc.model.ElectricityMapping;
+import com.carboncalc.util.enums.DetailedHeader;
+import com.carboncalc.util.enums.TotalHeader;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -29,28 +32,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class ElectricityExcelExporter {
-    private static final String[] DETAILED_HEADERS = {
-        "Id",
-        "Centro",
-        "Sociedad emisora",
-        "CUPS",
-        "Factura",
-        "Fecha inicio suministro",
-        "Fecha fin suministro",
-        "Consumo kWh",
-        "Porcentaje consumo aplicable al año",
-        "Consumo kWh aplicable por año",
-        "Porcentaje consumo aplicable al centro",
-        "Consumo kWh aplicable por año al centro",
-        "Emisiones tCO2 market based",
-        "Emisiones tCO2 location based"
-    };
-
-    private static final String[] TOTAL_HEADERS = {
-        "Total Consumo kWh",
-        "Total Emisiones tCO2 Market Based",
-        "Total Emisiones tCO2 Location Based"
-    };
 
     public static void exportElectricityData(String filePath) throws IOException {
         // Backward-compatible call: no data provided -> create empty template
@@ -114,9 +95,10 @@ public class ElectricityExcelExporter {
 
     private static void createDetailedSheet(Sheet sheet, CellStyle headerStyle) {
         Row headerRow = sheet.createRow(0);
-        for (int i = 0; i < DETAILED_HEADERS.length; i++) {
+        DetailedHeader[] values = DetailedHeader.values();
+        for (int i = 0; i < values.length; i++) {
             Cell cell = headerRow.createCell(i);
-            cell.setCellValue(DETAILED_HEADERS[i]);
+            cell.setCellValue(values[i].label());
             cell.setCellStyle(headerStyle);
             sheet.autoSizeColumn(i);
         }
@@ -214,7 +196,7 @@ public class ElectricityExcelExporter {
             // Parse start and end dates (may be missing). Include row if either date is in reporting year
             java.time.LocalDate parsedStart = parseDateLenient(fechaInicio);
             java.time.LocalDate parsedEnd = parseDateLenient(fechaFin);
-            String diagReason = "";
+            // diagnostic reason removed - no diagnostics sheet in final output
 
             boolean startInYear = parsedStart != null && parsedStart.getYear() == reportingYear;
             boolean endInYear = parsedEnd != null && parsedEnd.getYear() == reportingYear;
@@ -523,9 +505,10 @@ public class ElectricityExcelExporter {
 
     private static void createTotalSheet(Sheet sheet, CellStyle headerStyle) {
         Row headerRow = sheet.createRow(0);
-        for (int i = 0; i < TOTAL_HEADERS.length; i++) {
+        TotalHeader[] values = TotalHeader.values();
+        for (int i = 0; i < values.length; i++) {
             Cell cell = headerRow.createCell(i);
-            cell.setCellValue(TOTAL_HEADERS[i]);
+            cell.setCellValue(values[i].label());
             cell.setCellStyle(headerStyle);
             sheet.autoSizeColumn(i);
         }

@@ -4,6 +4,8 @@ import com.carboncalc.model.CenterData;
 import com.carboncalc.model.CupsCenterMapping;
 import com.carboncalc.view.CupsConfigPanel;
 import com.carboncalc.model.enums.EnergyType;
+import com.carboncalc.service.CupsService;
+import com.carboncalc.service.CupsServiceCsv;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -15,34 +17,54 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Vector;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Controller for the CUPS configuration panel.
+ *
+ * Responsibilities:
+ * - Load persisted CUPS->Center mappings from CSV and populate the UI table.
+ * - Allow import from Excel (preview) and mapping column selection.
+ * - Provide add/edit/delete operations against the CSV-backed service.
+ *
+ * Implementation notes:
+ * - UI initialization may run before the Swing components are available; the
+ * controller schedules a small retry loop on the EDT to wait for the view
+ * controls to be ready.
+ */
 public class CupsConfigController {
     private final ResourceBundle messages;
     private CupsConfigPanel view;
     private Workbook currentWorkbook;
     private File currentFile;
-    private final com.carboncalc.service.CupsService csvService = new com.carboncalc.service.CupsServiceCsv();
+    private final CupsService csvService = new CupsServiceCsv();
     // Map localized label (lowercase) -> EnergyType for quick resolution
-    private final java.util.Map<String, EnergyType> energyLabelToEnum = new java.util.HashMap<>();
-    
+    private final Map<String, EnergyType> energyLabelToEnum = new HashMap<>();
+
     public CupsConfigController(ResourceBundle messages) {
         this.messages = messages;
         // Build mapping from localized display label to canonical EnergyType
         for (EnergyType et : EnergyType.values()) {
             String key = "energy.type." + et.id();
             String label = messages.containsKey(key) ? messages.getString(key) : et.name();
-            energyLabelToEnum.put(label.toLowerCase(java.util.Locale.ROOT), et);
+            // Normalize keys to ROOT locale lowercase for consistent lookup
+            energyLabelToEnum.put(label.toLowerCase(Locale.ROOT), et);
             // Also accept enum name and id as inputs
-            energyLabelToEnum.put(et.name().toLowerCase(java.util.Locale.ROOT), et);
-            energyLabelToEnum.put(et.id().toLowerCase(java.util.Locale.ROOT), et);
+            energyLabelToEnum.put(et.name().toLowerCase(Locale.ROOT), et);
+            energyLabelToEnum.put(et.id().toLowerCase(Locale.ROOT), et);
         }
     }
 
     /**
-     * Resolve a localized label or id/name to the canonical EnergyType, or null if unknown.
+     * Resolve a localized label or id/name to the canonical EnergyType, or null if
+     * unknown.
      */
     private EnergyType resolveEnergyType(String labelOrToken) {
-        if (labelOrToken == null) return null;
+        if (labelOrToken == null)
+            return null;
         String key = labelOrToken.trim().toLowerCase(java.util.Locale.ROOT);
         return energyLabelToEnum.getOrDefault(key, null);
     }
@@ -52,7 +74,8 @@ public class CupsConfigController {
      * display label if available, or the original token.
      */
     private String localizedLabelFor(String storedToken) {
-        if (storedToken == null) return messages.getString("energy.type.electricity");
+        if (storedToken == null)
+            return messages.getString("energy.type.electricity");
         try {
             EnergyType et = EnergyType.from(storedToken);
             String key = "energy.type." + et.id();
@@ -68,7 +91,7 @@ public class CupsConfigController {
         }
         return storedToken;
     }
-    
+
     public void setView(CupsConfigPanel view) {
         this.view = view;
         // When the view is attached, load existing centers from CSV so the table
@@ -77,7 +100,7 @@ public class CupsConfigController {
         // SwingUtilities.invokeLater()) by BaseModulePanel, so the UI controls
         // may not exist yet. Schedule the load to run afterwards on the EDT and
         // retry a few times if the components are still not ready.
-        final java.util.concurrent.atomic.AtomicInteger attempts = new java.util.concurrent.atomic.AtomicInteger(0);
+        final AtomicInteger attempts = new AtomicInteger(0);
         Runnable tryLoad = new Runnable() {
             @Override
             public void run() {
@@ -92,9 +115,9 @@ public class CupsConfigController {
                             // Give up after retries
                             System.err.println("CupsConfigPanelController: centersTable not ready after retries");
                             JOptionPane.showMessageDialog(view,
-                                messages.getString("error.loading.cups"),
-                                messages.getString("error.title"),
-                                JOptionPane.ERROR_MESSAGE);
+                                    messages.getString("error.loading.cups"),
+                                    messages.getString("error.title"),
+                                    JOptionPane.ERROR_MESSAGE);
                             return;
                         }
                     }
@@ -104,9 +127,9 @@ public class CupsConfigController {
                     // Log the exception for diagnostics and show a user-friendly message
                     e.printStackTrace(System.err);
                     JOptionPane.showMessageDialog(view,
-                        messages.getString("error.loading.cups"),
-                        messages.getString("error.title"),
-                        JOptionPane.ERROR_MESSAGE);
+                            messages.getString("error.loading.cups"),
+                            messages.getString("error.title"),
+                            JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
@@ -122,22 +145,23 @@ public class CupsConfigController {
         DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
         model.setRowCount(0);
         for (CupsCenterMapping m : mappings) {
-            // Convert stored energy token (e.g. ELECTRICITY) to localized display label if possible
+            // Convert stored energy token (e.g. ELECTRICITY) to localized display label if
+            // possible
             String displayEnergy = localizedLabelFor(m.getEnergyType());
             model.addRow(new Object[] {
-                m.getCups(),
-                m.getMarketer(),
-                m.getCenterName(),
-                m.getAcronym(),
-                displayEnergy,
-                m.getStreet(),
-                m.getPostalCode(),
-                m.getCity(),
-                m.getProvince()
+                    m.getCups(),
+                    m.getMarketer(),
+                    m.getCenterName(),
+                    m.getAcronym(),
+                    displayEnergy,
+                    m.getStreet(),
+                    m.getPostalCode(),
+                    m.getCity(),
+                    m.getProvince()
             });
         }
     }
-    
+
     public void handleFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
@@ -145,7 +169,7 @@ public class CupsConfigController {
             loadExcelFile(fileChooser.getSelectedFile());
         }
     }
-    
+
     private void loadExcelFile(File file) {
         try {
             currentFile = file;
@@ -153,82 +177,88 @@ public class CupsConfigController {
             updateSheetList();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(view,
-                messages.getString("error.file.read"),
-                messages.getString("error.title"),
-                JOptionPane.ERROR_MESSAGE);
+                    messages.getString("error.file.read"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
     private void updateSheetList() {
         JComboBox<String> sheetSelector = view.getSheetSelector();
         sheetSelector.removeAllItems();
-        
+
         for (int i = 0; i < currentWorkbook.getNumberOfSheets(); i++) {
             sheetSelector.addItem(currentWorkbook.getSheetName(i));
         }
-        
+
         if (sheetSelector.getItemCount() > 0) {
             sheetSelector.setSelectedIndex(0);
             updateColumnSelectors();
             updatePreview();
         }
     }
-    
+
     private void updateColumnSelectors() {
-        if (currentWorkbook == null) return;
-        
+        if (currentWorkbook == null)
+            return;
+
         Sheet sheet = currentWorkbook.getSheetAt(view.getSheetSelector().getSelectedIndex());
         Row headerRow = sheet.getRow(0);
-        if (headerRow == null) return;
-        
+        if (headerRow == null)
+            return;
+
         Vector<String> columns = new Vector<>();
         for (Cell cell : headerRow) {
             columns.add(cell.toString());
         }
-        
+
         updateComboBox(view.getCupsColumnSelector(), columns);
         // If marketer selector exists, populate it as well
         try {
             JComboBox<String> marketerSelector = view.getMarketerColumnSelector();
-            if (marketerSelector != null) updateComboBox(marketerSelector, columns);
-        } catch (Exception ignored) {}
+            if (marketerSelector != null)
+                updateComboBox(marketerSelector, columns);
+        } catch (Exception ignored) {
+        }
         updateComboBox(view.getCenterNameColumnSelector(), columns);
     }
-    
+
     private void updateComboBox(JComboBox<String> comboBox, Vector<String> items) {
         comboBox.removeAllItems();
         for (String item : items) {
             comboBox.addItem(item);
         }
     }
-    
+
     public void handleSheetSelection() {
         updateColumnSelectors();
         updatePreview();
     }
-    
+
     public void handleColumnSelection() {
-        // Optional: Add any validation or preview update logic when columns are selected
+        // Optional: Add any validation or preview update logic when columns are
+        // selected
     }
-    
+
     public void handlePreviewRequest() {
         updatePreview();
     }
-    
+
     private void updatePreview() {
-        if (currentWorkbook == null) return;
-        
+        if (currentWorkbook == null)
+            return;
+
         Sheet sheet = currentWorkbook.getSheetAt(view.getSheetSelector().getSelectedIndex());
         DefaultTableModel model = new DefaultTableModel();
-        
+
         // Add headers
         Row headerRow = sheet.getRow(0);
-            if (headerRow != null) {
-                for (Cell cell : headerRow) {
-                    model.addColumn(cell.toString());
-                }
+        if (headerRow != null) {
+            for (Cell cell : headerRow) {
+                model.addColumn(cell.toString());
             }
-        
+        }
+
         // Add data (limit to first 100 rows for preview)
         int maxRows = Math.min(sheet.getLastRowNum(), 100);
         for (int i = 1; i <= maxRows; i++) {
@@ -242,20 +272,20 @@ public class CupsConfigController {
                 model.addRow(rowData);
             }
         }
-        
+
         view.getPreviewTable().setModel(model);
     }
-    
+
     public void handleExportRequest() {
         // TODO: Implement export functionality
     }
-    
+
     public void handleAddCenter(CenterData centerData) {
         if (!validateCenterData(centerData)) {
             JOptionPane.showMessageDialog(view,
-                messages.getString("error.validation.required.fields"),
-                messages.getString("error.title"),
-                JOptionPane.ERROR_MESSAGE);
+                    messages.getString("error.validation.required.fields"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -264,33 +294,34 @@ public class CupsConfigController {
         String normalizedCups = com.carboncalc.util.ValidationUtils.normalizeCups(rawCups);
         if (!com.carboncalc.util.ValidationUtils.isValidCups(normalizedCups)) {
             JOptionPane.showMessageDialog(view,
-                messages.getString("error.invalid.cups"),
-                messages.getString("error.title"),
-                JOptionPane.ERROR_MESSAGE);
+                    messages.getString("error.invalid.cups"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         // Uppercase acronym as requested
         String acronym = centerData.getCenterAcronym();
-        if (acronym != null) acronym = acronym.toUpperCase(java.util.Locale.getDefault());
+        if (acronym != null)
+            acronym = acronym.toUpperCase(java.util.Locale.getDefault());
 
-        // Resolve selected (localized) energy label to canonical EnergyType and persist its name.
+        // Resolve selected (localized) energy label to canonical EnergyType and persist
+        // its name.
         String selectedEnergyLabel = centerData.getEnergyType();
         EnergyType resolved = resolveEnergyType(selectedEnergyLabel);
         String energyToSave = resolved != null ? resolved.name() : selectedEnergyLabel;
 
         try {
             csvService.appendCupsCenter(
-                normalizedCups,
-                centerData.getMarketer(),
-                centerData.getCenterName(),
-                acronym,
-                energyToSave,
-                centerData.getStreet(),
-                centerData.getPostalCode(),
-                centerData.getCity(),
-                centerData.getProvince()
-            );
+                    normalizedCups,
+                    centerData.getMarketer(),
+                    centerData.getCenterName(),
+                    acronym,
+                    energyToSave,
+                    centerData.getStreet(),
+                    centerData.getPostalCode(),
+                    centerData.getCity(),
+                    centerData.getProvince());
             // Reload table from saved CSV so it's sorted and IDs are assigned
             List<CupsCenterMapping> mappings = csvService.loadCupsData();
             DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
@@ -298,34 +329,34 @@ public class CupsConfigController {
             model.setRowCount(0);
             for (CupsCenterMapping m : mappings) {
                 model.addRow(new Object[] {
-                    m.getCups(),
-                    m.getMarketer(),
-                    m.getCenterName(),
-                    m.getAcronym(),
-                    m.getEnergyType(),
-                    m.getStreet(),
-                    m.getPostalCode(),
-                    m.getCity(),
-                    m.getProvince()
+                        m.getCups(),
+                        m.getMarketer(),
+                        m.getCenterName(),
+                        m.getAcronym(),
+                        m.getEnergyType(),
+                        m.getStreet(),
+                        m.getPostalCode(),
+                        m.getCity(),
+                        m.getProvince()
                 });
             }
 
             clearManualInputFields();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(view,
-                messages.getString("error.save.failed"),
-                messages.getString("error.title"),
-                JOptionPane.ERROR_MESSAGE);
+                    messages.getString("error.save.failed"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
     public void handleEditCenter() {
         int selectedRow = view.getCentersTable().getSelectedRow();
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(view,
-                messages.getString("error.no.selection"),
-                messages.getString("error.title"),
-                JOptionPane.WARNING_MESSAGE);
+                    messages.getString("error.no.selection"),
+                    messages.getString("error.title"),
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
         DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
@@ -350,7 +381,8 @@ public class CupsConfigController {
             JComboBox<String> energyCombo = view.getEnergyTypeCombo();
             String display = localizedLabelFor(energy);
             energyCombo.setSelectedItem(display != null ? display : messages.getString("energy.type.electricity"));
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         view.getStreetField().setText(street);
         view.getPostalCodeField().setText(postal);
         view.getCityField().setText(city);
@@ -363,29 +395,30 @@ public class CupsConfigController {
         try {
             csvService.deleteCupsCenter(cups, centerName);
         } catch (Exception e) {
-            // If deletion fails, show but keep edited row removed from UI to avoid duplicates
+            // If deletion fails, show but keep edited row removed from UI to avoid
+            // duplicates
             JOptionPane.showMessageDialog(view,
-                messages.getString("error.save.failed"),
-                messages.getString("error.title"),
-                JOptionPane.ERROR_MESSAGE);
+                    messages.getString("error.save.failed"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
     public void handleDeleteCenter() {
         int selectedRow = view.getCentersTable().getSelectedRow();
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(view,
-                messages.getString("error.no.selection"),
-                messages.getString("error.title"),
-                JOptionPane.WARNING_MESSAGE);
+                    messages.getString("error.no.selection"),
+                    messages.getString("error.title"),
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         int confirm = JOptionPane.showConfirmDialog(view,
-            messages.getString("confirm.delete.center"),
-            messages.getString("confirm.title"),
-            JOptionPane.YES_NO_OPTION);
-            
+                messages.getString("confirm.delete.center"),
+                messages.getString("confirm.title"),
+                JOptionPane.YES_NO_OPTION);
+
         if (confirm == JOptionPane.YES_OPTION) {
             DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
 
@@ -401,22 +434,22 @@ public class CupsConfigController {
                 model.setRowCount(0);
                 for (CupsCenterMapping m : mappings) {
                     model.addRow(new Object[] {
-                        m.getCups(),
-                        m.getMarketer(),
-                        m.getCenterName(),
-                        m.getAcronym(),
-                        m.getEnergyType(),
-                        m.getStreet(),
-                        m.getPostalCode(),
-                        m.getCity(),
-                        m.getProvince()
+                            m.getCups(),
+                            m.getMarketer(),
+                            m.getCenterName(),
+                            m.getAcronym(),
+                            m.getEnergyType(),
+                            m.getStreet(),
+                            m.getPostalCode(),
+                            m.getCity(),
+                            m.getProvince()
                     });
                 }
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
-                    messages.getString("error.save.failed"),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
+                        messages.getString("error.save.failed"),
+                        messages.getString("error.title"),
+                        JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -426,24 +459,24 @@ public class CupsConfigController {
             List<CenterData> centers = extractCentersFromTable();
             // TODO: Save to CSV using CSVDataService
             JOptionPane.showMessageDialog(view,
-                messages.getString("message.save.success") + " (" + centers.size() + ")",
-                messages.getString("message.title.success"),
-                JOptionPane.INFORMATION_MESSAGE);
+                    messages.getString("message.save.success") + " (" + centers.size() + ")",
+                    messages.getString("message.title.success"),
+                    JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(view,
-                messages.getString("error.save.failed"),
-                messages.getString("error.title"),
-                JOptionPane.ERROR_MESSAGE);
+                    messages.getString("error.save.failed"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
     private boolean validateCenterData(CenterData data) {
         return data.getCups() != null && !data.getCups().trim().isEmpty() &&
-               data.getCenterName() != null && !data.getCenterName().trim().isEmpty() &&
-               data.getCenterAcronym() != null && !data.getCenterAcronym().trim().isEmpty() &&
-               data.getEnergyType() != null;
+                data.getCenterName() != null && !data.getCenterName().trim().isEmpty() &&
+                data.getCenterAcronym() != null && !data.getCenterAcronym().trim().isEmpty() &&
+                data.getEnergyType() != null;
     }
-    
+
     private void clearManualInputFields() {
         view.getCupsField().setText("");
         view.getMarketerField().setText("");
@@ -455,25 +488,25 @@ public class CupsConfigController {
         view.getCityField().setText("");
         view.getProvinceField().setText("");
     }
-    
+
     private List<CenterData> extractCentersFromTable() {
         List<CenterData> centers = new ArrayList<>();
         DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
-        
+
         for (int i = 0; i < model.getRowCount(); i++) {
             centers.add(new CenterData(
-                (String) model.getValueAt(i, 0), // CUPS
-                (String) model.getValueAt(i, 1), // Marketer
-                (String) model.getValueAt(i, 2), // Center Name
-                (String) model.getValueAt(i, 3), // Center Acronym
-                (String) model.getValueAt(i, 4), // Energy Type
-                (String) model.getValueAt(i, 5), // Street
-                (String) model.getValueAt(i, 6), // Postal Code
-                (String) model.getValueAt(i, 7), // City
-                (String) model.getValueAt(i, 8)  // Province
+                    (String) model.getValueAt(i, 0), // CUPS
+                    (String) model.getValueAt(i, 1), // Marketer
+                    (String) model.getValueAt(i, 2), // Center Name
+                    (String) model.getValueAt(i, 3), // Center Acronym
+                    (String) model.getValueAt(i, 4), // Energy Type
+                    (String) model.getValueAt(i, 5), // Street
+                    (String) model.getValueAt(i, 6), // Postal Code
+                    (String) model.getValueAt(i, 7), // City
+                    (String) model.getValueAt(i, 8) // Province
             ));
         }
-        
+
         return centers;
     }
 }

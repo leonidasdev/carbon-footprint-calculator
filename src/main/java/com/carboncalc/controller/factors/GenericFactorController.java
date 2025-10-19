@@ -1,17 +1,31 @@
 package com.carboncalc.controller.factors;
 
 import com.carboncalc.view.EmissionFactorsPanel;
+import com.carboncalc.view.factors.GenericFactorPanel;
 import com.carboncalc.service.EmissionFactorService;
-import javax.swing.JOptionPane;
+import com.carboncalc.model.factors.EmissionFactor;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.io.IOException;
+import java.util.List;
 
 /**
- * Minimal generic controller for non-electricity factor types. For now it
- * simply loads factors for the given type/year into the shared factors table.
+ * Minimal generic controller for non-electricity factor types.
+ *
+ * This controller is intentionally lightweight: it delegates loading of factor
+ * data for a given energy type and year to the {@link EmissionFactorService}
+ * and populates the shared factors table in the top-level
+ * {@link EmissionFactorsPanel}.
+ *
+ * Notes:
+ * - It does not implement per-row editing or dirty tracking; those are left
+ *   for specialized subcontrollers when needed.
  */
 public class GenericFactorController implements FactorSubController {
     private final java.util.ResourceBundle messages;
     private final EmissionFactorService emissionFactorService;
     private EmissionFactorsPanel view;
+    private GenericFactorPanel panel;
     private final String factorType;
 
     public GenericFactorController(java.util.ResourceBundle messages, EmissionFactorService emissionFactorService, String factorType) {
@@ -22,31 +36,38 @@ public class GenericFactorController implements FactorSubController {
 
     @Override
     public void setView(EmissionFactorsPanel view) {
+        // The shared top-level view is injected so this controller can
+        // populate the global factors table when activated.
         this.view = view;
     }
 
     @Override
     public void onActivate(int year) {
+        // Load factors for the requested year and replace the table model
         try {
-            java.util.List<? extends com.carboncalc.model.factors.EmissionFactor> factors = emissionFactorService.loadEmissionFactors(factorType, year);
-            javax.swing.table.DefaultTableModel model = (javax.swing.table.DefaultTableModel) view.getFactorsTable().getModel();
+            List<? extends EmissionFactor> factors = emissionFactorService.loadEmissionFactors(factorType, year);
+            DefaultTableModel model = (DefaultTableModel) view.getFactorsTable().getModel();
             model.setRowCount(0);
-            for (com.carboncalc.model.factors.EmissionFactor f : factors) {
+            for (EmissionFactor f : factors) {
                 model.addRow(new Object[]{f.getEntity(), f.getYear(), f.getBaseFactor(), f.getUnit()});
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(view, messages.getString("error.load.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            // Log and show friendly message
+            e.printStackTrace();
+            String msg = messages.getString("error.load.general.factors") + "\n" + e.getClass().getSimpleName() + ": " + e.getMessage();
+            JOptionPane.showMessageDialog(view, msg, messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         }
     }
 
     @Override
     public boolean onDeactivate() {
+        // No special teardown required for generic controller
         return true;
     }
 
     @Override
     public void onYearChanged(int newYear) {
-        // Reload for the new year
+        // Reload when the spinner/year changes
         onActivate(newYear);
     }
 
@@ -54,5 +75,25 @@ public class GenericFactorController implements FactorSubController {
     public boolean hasUnsavedChanges() {
         // Generic controller does not track unsaved edits yet
         return false;
+    }
+
+    @Override
+    public JComponent getPanel() {
+        if (panel == null) {
+            try {
+                panel = new GenericFactorPanel(messages);
+            } catch (Exception e) {
+                // Defensive: return an empty placeholder if panel construction fails
+                e.printStackTrace();
+                return new JPanel();
+            }
+        }
+        return panel;
+    }
+
+    @Override
+    public boolean save(int year) throws IOException {
+        // Generic controller uses an import/workflow instead of programmatic saves
+        return true;
     }
 }

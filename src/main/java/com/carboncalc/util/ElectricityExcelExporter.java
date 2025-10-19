@@ -35,12 +35,13 @@ public class ElectricityExcelExporter {
 
     public static void exportElectricityData(String filePath) throws IOException {
         // Backward-compatible call: no data provided -> create empty template
-    exportElectricityData(filePath, null, null, null, null, new ElectricityMapping(), LocalDate.now().getYear(), "extended", Collections.emptySet());
+        exportElectricityData(filePath, null, null, null, null, new ElectricityMapping(), LocalDate.now().getYear(),
+                "extended", Collections.emptySet());
     }
 
     public static void exportElectricityData(String filePath, String providerPath, String providerSheet,
-        String erpPath, String erpSheet, ElectricityMapping mapping, int year,
-        String sheetMode, Set<String> validInvoices) throws IOException {
+            String erpPath, String erpSheet, ElectricityMapping mapping, int year,
+            String sheetMode, Set<String> validInvoices) throws IOException {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
             // Create sheets based on mode
@@ -52,7 +53,9 @@ public class ElectricityExcelExporter {
                 // If provider data is available, try to open and read rows
                 if (providerPath != null && providerSheet != null) {
                     try (FileInputStream fis = new FileInputStream(providerPath)) {
-                        org.apache.poi.ss.usermodel.Workbook src = providerPath.toLowerCase().endsWith(".xlsx") ? new XSSFWorkbook(fis) : new HSSFWorkbook(fis);
+                        org.apache.poi.ss.usermodel.Workbook src = providerPath.toLowerCase().endsWith(".xlsx")
+                                ? new XSSFWorkbook(fis)
+                                : new HSSFWorkbook(fis);
                         Sheet sheet = src.getSheet(providerSheet);
                         if (sheet != null) {
                             // Load per-year general factors to compute location-based emissions
@@ -60,11 +63,13 @@ public class ElectricityExcelExporter {
                             try {
                                 ElectricityGeneralFactorServiceCsv gfsvc = new ElectricityGeneralFactorServiceCsv();
                                 ElectricityGeneralFactors gf = gfsvc.loadFactors(year);
-                                if (gf != null) locationFactor = gf.getLocationBasedFactor();
+                                if (gf != null)
+                                    locationFactor = gf.getLocationBasedFactor();
                             } catch (Exception ex) {
                                 // ignore and use 0.0
                             }
-                            Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year, validInvoices, locationFactor);
+                            Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
+                                    validInvoices, locationFactor);
                             // create per-center sheet from aggregates
                             Sheet perCenter = workbook.createSheet("Por centro");
                             createPerCenterSheet(perCenter, headerStyle, aggregates);
@@ -104,32 +109,43 @@ public class ElectricityExcelExporter {
         }
     }
 
-    private static Map<String, double[]> writeExtendedRows(Sheet target, Sheet source, ElectricityMapping mapping, int year, Set<String> validInvoices, double locationFactorKgPerKwh) {
+    private static Map<String, double[]> writeExtendedRows(Sheet target, Sheet source, ElectricityMapping mapping,
+            int year, Set<String> validInvoices, double locationFactorKgPerKwh) {
         DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = source.getWorkbook().getCreationHelper().createFormulaEvaluator();
-    Map<String, double[]> perCenterAgg = new HashMap<>();
-    int headerRowIndex = -1;
+        Map<String, double[]> perCenterAgg = new HashMap<>();
+        int headerRowIndex = -1;
         for (int i = source.getFirstRowNum(); i <= source.getLastRowNum(); i++) {
             Row r = source.getRow(i);
-            if (r == null) continue;
+            if (r == null)
+                continue;
             boolean nonEmpty = false;
             for (Cell c : r) {
-                if (!getCellStringStatic(c, df, eval).isEmpty()) { nonEmpty = true; break; }
+                if (!getCellStringStatic(c, df, eval).isEmpty()) {
+                    nonEmpty = true;
+                    break;
+                }
             }
-            if (nonEmpty) { headerRowIndex = i; break; }
+            if (nonEmpty) {
+                headerRowIndex = i;
+                break;
+            }
         }
-    if (headerRowIndex == -1) return perCenterAgg;
+        if (headerRowIndex == -1)
+            return perCenterAgg;
 
-    int outRow = target.getLastRowNum() + 1;
-    int idCounter = 1;
-        // Build a map CUPS -> count of centers that reference it (from data/cups_center/cups.csv)
+        int outRow = target.getLastRowNum() + 1;
+        int idCounter = 1;
+        // Build a map CUPS -> count of centers that reference it (from
+        // data/cups_center/cups.csv)
         Map<String, Integer> centersPerCups = new HashMap<>();
         try {
             CupsServiceCsv cupsSvc = new CupsServiceCsv();
             List<CupsCenterMapping> all = cupsSvc.loadCupsData();
             for (CupsCenterMapping m : all) {
                 String key = m.getCups() != null ? m.getCups().trim() : "";
-                if (key.isEmpty()) continue;
+                if (key.isEmpty())
+                    continue;
                 centersPerCups.put(key, centersPerCups.getOrDefault(key, 0) + 1);
             }
         } catch (Exception ex) {
@@ -144,7 +160,8 @@ public class ElectricityExcelExporter {
             for (CupsCenterMapping m : all2) {
                 String key = m.getCups() != null ? m.getCups().trim() : "";
                 String marketer = m.getMarketer() != null ? m.getMarketer().trim() : "";
-                if (!key.isEmpty() && !marketer.isEmpty()) cupsToMarketer.put(key, marketer);
+                if (!key.isEmpty() && !marketer.isEmpty())
+                    cupsToMarketer.put(key, marketer);
             }
         } catch (Exception ex) {
             // ignore
@@ -164,36 +181,40 @@ public class ElectricityExcelExporter {
             // ignore
         }
 
-    // Prepare some cell styles (date, percentage, emissions number formats)
-    Workbook wb = target.getWorkbook();
-    CellStyle dateStyle = wb.createCellStyle();
-    short dateFmt = wb.createDataFormat().getFormat("dd/MM/yyyy");
-    dateStyle.setDataFormat(dateFmt);
+        // Prepare some cell styles (date, percentage, emissions number formats)
+        Workbook wb = target.getWorkbook();
+        CellStyle dateStyle = wb.createCellStyle();
+        short dateFmt = wb.createDataFormat().getFormat("dd/MM/yyyy");
+        dateStyle.setDataFormat(dateFmt);
 
-    CellStyle percentStyle = wb.createCellStyle();
-    short percentFmt = wb.createDataFormat().getFormat("0.00");
-    percentStyle.setDataFormat(percentFmt);
+        CellStyle percentStyle = wb.createCellStyle();
+        short percentFmt = wb.createDataFormat().getFormat("0.00");
+        percentStyle.setDataFormat(percentFmt);
 
-    CellStyle emissionsStyle = wb.createCellStyle();
-    short emissionsFmt = wb.createDataFormat().getFormat("0.000000");
-    emissionsStyle.setDataFormat(emissionsFmt);
+        CellStyle emissionsStyle = wb.createCellStyle();
+        short emissionsFmt = wb.createDataFormat().getFormat("0.000000");
+        emissionsStyle.setDataFormat(emissionsFmt);
 
-    // Determine the reporting year: prefer the 'year' parameter passed by caller (UI selection),
-    // otherwise fallback to the persisted current_year file.
-    int reportingYear = (year > 0) ? year : readCurrentYearFromFile();
+        // Determine the reporting year: prefer the 'year' parameter passed by caller
+        // (UI selection),
+        // otherwise fallback to the persisted current_year file.
+        int reportingYear = (year > 0) ? year : readCurrentYearFromFile();
 
-    // Diagnostics removed: no Diagnostics sheet will be created in the output workbook
+        // Diagnostics removed: no Diagnostics sheet will be created in the output
+        // workbook
 
-    for (int i = headerRowIndex + 1; i <= source.getLastRowNum(); i++) {
+        for (int i = headerRowIndex + 1; i <= source.getLastRowNum(); i++) {
             Row srcRow = source.getRow(i);
-            if (srcRow == null) continue;
+            if (srcRow == null)
+                continue;
             String cups = getCellStringByIndex(srcRow, mapping.getCupsIndex(), df, eval);
             String factura = getCellStringByIndex(srcRow, mapping.getInvoiceNumberIndex(), df, eval);
             String fechaInicio = getCellStringByIndex(srcRow, mapping.getStartDateIndex(), df, eval);
             String fechaFin = getCellStringByIndex(srcRow, mapping.getEndDateIndex(), df, eval);
             String consumoStr = getCellStringByIndex(srcRow, mapping.getConsumptionIndex(), df, eval);
             double consumo = parseDoubleSafe(consumoStr);
-            // Parse start and end dates (may be missing). Include row if either date is in reporting year
+            // Parse start and end dates (may be missing). Include row if either date is in
+            // reporting year
             java.time.LocalDate parsedStart = parseDateLenient(fechaInicio);
             java.time.LocalDate parsedEnd = parseDateLenient(fechaFin);
             // diagnostic reason removed - no diagnostics sheet in final output
@@ -206,10 +227,12 @@ public class ElectricityExcelExporter {
                 continue;
             }
 
-            // Compute consumoAplicable: if both dates present use prorating, otherwise conservatively use the whole consumption
+            // Compute consumoAplicable: if both dates present use prorating, otherwise
+            // conservatively use the whole consumption
             double consumoAplicable;
             if (parsedStart == null || parsedEnd == null) {
-                // Only one date present and it's in the reporting year (we already checked). Use total consumo as conservative allocation.
+                // Only one date present and it's in the reporting year (we already checked).
+                // Use total consumo as conservative allocation.
                 consumoAplicable = consumo;
             } else {
                 consumoAplicable = computeApplicableKwh(fechaInicio, fechaFin, consumo, reportingYear);
@@ -217,19 +240,26 @@ public class ElectricityExcelExporter {
 
             // Determine how many centers share this CUPS
             int centersCount = 1;
-            if (cups != null && !cups.trim().isEmpty()) centersCount = centersPerCups.getOrDefault(cups.trim(), 1);
+            if (cups != null && !cups.trim().isEmpty())
+                centersCount = centersPerCups.getOrDefault(cups.trim(), 1);
             double consumoPorCentro = centersCount > 0 ? consumoAplicable / (double) centersCount : consumoAplicable;
-            // Percentage of applicable consumption assigned to this center (equally divided among centers sharing the same CUPS)
+            // Percentage of applicable consumption assigned to this center (equally divided
+            // among centers sharing the same CUPS)
             double porcentajePorCentro = (centersCount > 0) ? (100.0 / (double) centersCount) : 100.0;
 
             // Emissions placeholders (market-based and location-based)
-            // Market-based emissions: determine marketer from CUPS mapping or emission-entity column, then compute tonnes
+            // Market-based emissions: determine marketer from CUPS mapping or
+            // emission-entity column, then compute tonnes
             String marketerFromCups = cups != null ? cupsToMarketer.getOrDefault(cups.trim(), "") : "";
-            String marketerToUse = (marketerFromCups != null && !marketerFromCups.isEmpty()) ? marketerFromCups : getCellStringByIndex(srcRow, mapping.getEmissionEntityIndex(), df, eval);
-            double factorEmision = marketerToUse != null ? marketerToFactor.getOrDefault(normalizeKey(marketerToUse), 0.0) : 0.0;
+            String marketerToUse = (marketerFromCups != null && !marketerFromCups.isEmpty()) ? marketerFromCups
+                    : getCellStringByIndex(srcRow, mapping.getEmissionEntityIndex(), df, eval);
+            double factorEmision = marketerToUse != null
+                    ? marketerToFactor.getOrDefault(normalizeKey(marketerToUse), 0.0)
+                    : 0.0;
             double emisionesMarketT = (consumoPorCentro * factorEmision) / 1000.0;
 
-            // Location-based emissions: use consumoPorCentro (kWh applicable per year assigned to this center)
+            // Location-based emissions: use consumoPorCentro (kWh applicable per year
+            // assigned to this center)
             double emisionesLocationT = (consumoPorCentro * locationFactorKgPerKwh) / 1000.0;
 
             // Filter by validInvoices if provided
@@ -244,7 +274,8 @@ public class ElectricityExcelExporter {
             // Update per-center aggregates
             String centerName = getCellStringByIndex(srcRow, mapping.getCenterIndex(), df, eval);
             if (centerName == null || centerName.trim().isEmpty()) {
-                centerName = (cups != null && !cups.trim().isEmpty()) ? cups.trim() : (factura != null ? factura : "SIN_CENTRO");
+                centerName = (cups != null && !cups.trim().isEmpty()) ? cups.trim()
+                        : (factura != null ? factura : "SIN_CENTRO");
             }
             double[] agg = perCenterAgg.get(centerName);
             if (agg == null) {
@@ -261,8 +292,10 @@ public class ElectricityExcelExporter {
             int col = 0;
             out.createCell(col++).setCellValue(idCounter++); // id: simple increment starting at 1
             out.createCell(col++).setCellValue(getCellStringStatic(srcRow.getCell(mapping.getCenterIndex()), df, eval)); // centro
-            // Write the resolved 'sociedad emisora' value (prefer CUPS->marketer mapping, fallback to emission-entity column)
-            String sociedadEmisora = marketerToUse != null && !marketerToUse.isEmpty() ? marketerToUse : getCellStringByIndex(srcRow, mapping.getEmissionEntityIndex(), df, eval);
+            // Write the resolved 'sociedad emisora' value (prefer CUPS->marketer mapping,
+            // fallback to emission-entity column)
+            String sociedadEmisora = marketerToUse != null && !marketerToUse.isEmpty() ? marketerToUse
+                    : getCellStringByIndex(srcRow, mapping.getEmissionEntityIndex(), df, eval);
             out.createCell(col++).setCellValue(sociedadEmisora);
             out.createCell(col++).setCellValue(cups);
             out.createCell(col++).setCellValue(factura);
@@ -309,7 +342,8 @@ public class ElectricityExcelExporter {
             locationCell.setCellValue(emisionesLocationT);
             locationCell.setCellStyle(emissionsStyle);
         }
-        // Return per-center aggregates: map centro -> [consumo, emisionesMarket, emisionesLocation]
+        // Return per-center aggregates: map centro -> [consumo, emisionesMarket,
+        // emisionesLocation]
         return perCenterAgg;
     }
 
@@ -321,7 +355,8 @@ public class ElectricityExcelExporter {
         header.createCell(2).setCellValue("Emisiones tCO2 market based");
         header.createCell(3).setCellValue("Emisiones tCO2 location based");
         if (headerStyle != null) {
-            for (int i = 0; i < 4; i++) header.getCell(i).setCellStyle(headerStyle);
+            for (int i = 0; i < 4; i++)
+                header.getCell(i).setCellStyle(headerStyle);
         }
 
         int r = 1;
@@ -334,48 +369,59 @@ public class ElectricityExcelExporter {
             row.createCell(3).setCellValue(v[2]);
         }
         // Autosize
-        for (int i = 0; i < 4; i++) sheet.autoSizeColumn(i);
+        for (int i = 0; i < 4; i++)
+            sheet.autoSizeColumn(i);
     }
 
-    private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates) {
-            // Header
-            Row header = sheet.createRow(0);
-            header.createCell(0).setCellValue("Total Consumo kWh");
-            header.createCell(1).setCellValue("Total Emisiones tCO2 Market Based");
-            header.createCell(2).setCellValue("Total Emisiones tCO2 Location Based");
-            if (headerStyle != null) {
-                for (int i = 0; i < 3; i++) header.getCell(i).setCellStyle(headerStyle);
-            }
-
-            double totalConsumo = 0.0;
-            double totalMarket = 0.0;
-            double totalLocation = 0.0;
-            for (double[] v : aggregates.values()) {
-                if (v == null || v.length < 3) continue;
-                totalConsumo += v[0];
-                totalMarket += v[1];
-                totalLocation += v[2];
-            }
-
-            Row row = sheet.createRow(1);
-            row.createCell(0).setCellValue(totalConsumo);
-            row.createCell(1).setCellValue(totalMarket);
-            row.createCell(2).setCellValue(totalLocation);
-
-            for (int i = 0; i < 3; i++) sheet.autoSizeColumn(i);
+    private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
+            Map<String, double[]> aggregates) {
+        // Header
+        Row header = sheet.createRow(0);
+        header.createCell(0).setCellValue("Total Consumo kWh");
+        header.createCell(1).setCellValue("Total Emisiones tCO2 Market Based");
+        header.createCell(2).setCellValue("Total Emisiones tCO2 Location Based");
+        if (headerStyle != null) {
+            for (int i = 0; i < 3; i++)
+                header.getCell(i).setCellStyle(headerStyle);
         }
 
+        double totalConsumo = 0.0;
+        double totalMarket = 0.0;
+        double totalLocation = 0.0;
+        for (double[] v : aggregates.values()) {
+            if (v == null || v.length < 3)
+                continue;
+            totalConsumo += v[0];
+            totalMarket += v[1];
+            totalLocation += v[2];
+        }
+
+        Row row = sheet.createRow(1);
+        row.createCell(0).setCellValue(totalConsumo);
+        row.createCell(1).setCellValue(totalMarket);
+        row.createCell(2).setCellValue(totalLocation);
+
+        for (int i = 0; i < 3; i++)
+            sheet.autoSizeColumn(i);
+    }
+
     private static String getCellStringStatic(Cell cell, DataFormatter df, FormulaEvaluator eval) {
-        if (cell == null) return "";
+        if (cell == null)
+            return "";
         try {
             if (cell.getCellType() == CellType.FORMULA) {
                 CellValue cv = eval.evaluate(cell);
-                if (cv == null) return "";
+                if (cv == null)
+                    return "";
                 switch (cv.getCellType()) {
-                    case STRING: return cv.getStringValue();
-                    case NUMERIC: return String.valueOf(cv.getNumberValue());
-                    case BOOLEAN: return String.valueOf(cv.getBooleanValue());
-                    default: return df.formatCellValue(cell, eval);
+                    case STRING:
+                        return cv.getStringValue();
+                    case NUMERIC:
+                        return String.valueOf(cv.getNumberValue());
+                    case BOOLEAN:
+                        return String.valueOf(cv.getBooleanValue());
+                    default:
+                        return df.formatCellValue(cell, eval);
                 }
             }
             return df.formatCellValue(cell);
@@ -385,13 +431,15 @@ public class ElectricityExcelExporter {
     }
 
     private static String getCellStringByIndex(Row row, int index, DataFormatter df, FormulaEvaluator eval) {
-        if (index < 0 || row == null) return "";
+        if (index < 0 || row == null)
+            return "";
         Cell cell = row.getCell(index);
         return getCellStringStatic(cell, df, eval);
     }
 
     private static double parseDoubleSafe(String s) {
-        if (s == null || s.isEmpty()) return 0.0;
+        if (s == null || s.isEmpty())
+            return 0.0;
         try {
             // Accept comma decimals as well
             s = s.replace(',', '.');
@@ -403,25 +451,30 @@ public class ElectricityExcelExporter {
 
     /**
      * Compute the amount of kWh applicable to the given year from a supply period.
-     * Uses simple day-count proportional allocation between fechaInicio and fechaFin.
+     * Uses simple day-count proportional allocation between fechaInicio and
+     * fechaFin.
      */
     private static double computeApplicableKwh(String fechaInicio, String fechaFin, double totalKwh, int year) {
         try {
             java.time.LocalDate start = parseDateLenient(fechaInicio);
             java.time.LocalDate end = parseDateLenient(fechaFin);
-            if (start == null || end == null || totalKwh <= 0) return 0.0;
-            if (end.isBefore(start)) return 0.0;
+            if (start == null || end == null || totalKwh <= 0)
+                return 0.0;
+            if (end.isBefore(start))
+                return 0.0;
 
             LocalDate yearStart = LocalDate.of(year, 1, 1);
             LocalDate yearEnd = LocalDate.of(year, 12, 31);
 
             LocalDate overlapStart = start.isAfter(yearStart) ? start : yearStart;
             LocalDate overlapEnd = end.isBefore(yearEnd) ? end : yearEnd;
-            if (overlapEnd.isBefore(overlapStart)) return 0.0;
+            if (overlapEnd.isBefore(overlapStart))
+                return 0.0;
 
             long totalDays = ChronoUnit.DAYS.between(start, end) + 1;
             long overlappedDays = ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
-            if (totalDays <= 0) return 0.0;
+            if (totalDays <= 0)
+                return 0.0;
             return (totalKwh * ((double) overlappedDays / (double) totalDays));
         } catch (Exception e) {
             return 0.0;
@@ -429,37 +482,50 @@ public class ElectricityExcelExporter {
     }
 
     private static LocalDate parseDateLenient(String s) {
-        if (s == null) return null;
+        if (s == null)
+            return null;
         // Normalize: trim, replace NBSP and multiple spaces
         String in = s.trim().replace('\u00A0', ' ').replaceAll("\\s+", " ");
-        if (in.isEmpty()) return null;
+        if (in.isEmpty())
+            return null;
 
-        // Try a set of common patterns (both D/M and M/D variants, 2- and 4-digit years)
+        // Try a set of common patterns (both D/M and M/D variants, 2- and 4-digit
+        // years)
         DateTimeFormatter[] fmts = new DateTimeFormatter[] {
-            DateTimeFormatter.ISO_LOCAL_DATE,
-            DateTimeFormatter.ofPattern("d/M/yyyy"),
-            DateTimeFormatter.ofPattern("d-M-yyyy"),
-            DateTimeFormatter.ofPattern("dd/MM/yyyy"),
-            DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-            DateTimeFormatter.ofPattern("d/M/yy"),
-            DateTimeFormatter.ofPattern("d-M-yy"),
-            DateTimeFormatter.ofPattern("dd/MM/yy"),
-            DateTimeFormatter.ofPattern("dd-MM-yy"),
-            DateTimeFormatter.ofPattern("M/d/yyyy"),
-            DateTimeFormatter.ofPattern("M-d-yyyy"),
-            DateTimeFormatter.ofPattern("M/d/yy"),
-            DateTimeFormatter.ofPattern("M-d-yy")
+                DateTimeFormatter.ISO_LOCAL_DATE,
+                DateTimeFormatter.ofPattern("d/M/yyyy"),
+                DateTimeFormatter.ofPattern("d-M-yyyy"),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+                DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+                DateTimeFormatter.ofPattern("d/M/yy"),
+                DateTimeFormatter.ofPattern("d-M-yy"),
+                DateTimeFormatter.ofPattern("dd/MM/yy"),
+                DateTimeFormatter.ofPattern("dd-MM-yy"),
+                DateTimeFormatter.ofPattern("M/d/yyyy"),
+                DateTimeFormatter.ofPattern("M-d-yyyy"),
+                DateTimeFormatter.ofPattern("M/d/yy"),
+                DateTimeFormatter.ofPattern("M-d-yy")
         };
         for (DateTimeFormatter f : fmts) {
-            try { return LocalDate.parse(in, f); } catch (Exception ignored) {}
+            try {
+                return LocalDate.parse(in, f);
+            } catch (Exception ignored) {
+            }
         }
 
         // Try numeric yyyyMMdd
-        try { if (in.length() == 8 && in.matches("\\d{8}")) return LocalDate.parse(in, DateTimeFormatter.ofPattern("yyyyMMdd")); } catch (Exception ignored) {}
-
-        // As a last resort, attempt to extract d/m/y groups and try both orders (day/month and month/day)
         try {
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(\\s*)(\\d{1,2})\\s*[\\/\\-]\\s*(\\d{1,2})\\s*[\\/\\-]\\s*(\\d{2,4})(\\s*)$").matcher(in);
+            if (in.length() == 8 && in.matches("\\d{8}"))
+                return LocalDate.parse(in, DateTimeFormatter.ofPattern("yyyyMMdd"));
+        } catch (Exception ignored) {
+        }
+
+        // As a last resort, attempt to extract d/m/y groups and try both orders
+        // (day/month and month/day)
+        try {
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("^(\\s*)(\\d{1,2})\\s*[\\/\\-]\\s*(\\d{1,2})\\s*[\\/\\-]\\s*(\\d{2,4})(\\s*)$")
+                    .matcher(in);
             if (m.find()) {
                 int a = Integer.parseInt(m.group(2));
                 int b = Integer.parseInt(m.group(3));
@@ -472,18 +538,29 @@ public class ElectricityExcelExporter {
                     year = Integer.parseInt(yearPart);
                 }
                 // Try as day=a, month=b
-                try { return LocalDate.of(year, b, a); } catch (Exception ignored) {}
+                try {
+                    return LocalDate.of(year, b, a);
+                } catch (Exception ignored) {
+                }
                 // Try as month=a, day=b
-                try { return LocalDate.of(year, a, b); } catch (Exception ignored) {}
+                try {
+                    return LocalDate.of(year, a, b);
+                } catch (Exception ignored) {
+                }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return null;
     }
 
     private static String normalizeKey(String s) {
-        if (s == null) return "";
+        if (s == null)
+            return "";
         String cleaned = s.replace('\u00A0', ' ').trim();
-        try { cleaned = Normalizer.normalize(cleaned, Normalizer.Form.NFKC); } catch (Exception ignored) {}
+        try {
+            cleaned = Normalizer.normalize(cleaned, Normalizer.Form.NFKC);
+        } catch (Exception ignored) {
+        }
         return cleaned.toLowerCase(Locale.ROOT);
     }
 
@@ -495,11 +572,15 @@ public class ElectricityExcelExporter {
                 if (lines != null && !lines.isEmpty()) {
                     String s = lines.get(0).trim();
                     if (!s.isEmpty()) {
-                        try { return Integer.parseInt(s); } catch (NumberFormatException ignored) {}
+                        try {
+                            return Integer.parseInt(s);
+                        } catch (NumberFormatException ignored) {
+                        }
                     }
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return LocalDate.now().getYear();
     }
 

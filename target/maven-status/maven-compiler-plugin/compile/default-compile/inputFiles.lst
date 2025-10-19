@@ -10,6 +10,7 @@ C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\pro
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\controller\factors\GenericFactorController.java
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\service\ElectricityGeneralFactorService.java
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\view\MainWindow.java
+C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\controller\factors\FuelFactorController.java
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\util\GasExcelExporter.java
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\controller\CupsConfigController.java
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\view\GasPanel.java
@@ -18,6 +19,8 @@ C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\pro
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\view\OptionsPanel.java
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\model\factors\ElectricityGeneralFactors.java
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\model\factors\GasEmissionFactor.java
+C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\controller\factors\RefrigerantFactorController.java
+C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\controller\factors\GasFactorController.java
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\util\Settings.java
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\controller\GasController.java
 C:\Users\Leonidas Brando\OneDrive - Universidad Politécnica de Madrid\extra\projects\carbon-footprint-calculator\src\main\java\com\carboncalc\model\enums\EnergyType.java

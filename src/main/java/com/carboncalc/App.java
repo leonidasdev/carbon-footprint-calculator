@@ -22,7 +22,8 @@ public class App {
      * Application entry point.
      *
      * Responsibilities performed here:
-     * - Load persisted language preference (via {@link com.carboncalc.util.Settings}).
+     * - Load persisted language preference (via
+     * {@link com.carboncalc.util.Settings}).
      * - Configure a small set of UI defaults and look-and-feel settings.
      * - Start the Swing UI on the EDT using localized messages.
      */
@@ -41,8 +42,10 @@ public class App {
         try {
             String code = Settings.loadLanguageCode();
             if (code != null && !code.isBlank()) {
-                if (code.equals("es")) locale = new Locale("es");
-                else if (code.equals("en")) locale = new Locale("en");
+                if (code.equals("es"))
+                    locale = new Locale("es");
+                else if (code.equals("en"))
+                    locale = new Locale("en");
             }
         } catch (IOException e) {
             // ignore and proceed with system default

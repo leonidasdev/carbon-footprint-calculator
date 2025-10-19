@@ -1,9 +1,15 @@
 package com.carboncalc.util;
 
+import java.text.NumberFormat;
+import java.text.Normalizer;
+import java.util.Locale;
+
 /**
- * ValidationUtils
+ * Small collection of input validation helpers used by UI controllers.
  *
- * Small set of input validation helpers used by UI controllers.
+ * <p>Utilities are intentionally conservative: parsing is forgiving (accepts
+ * both comma and dot as decimal separators) but validation ranges are strict
+ * to avoid saving obviously incorrect data.</p>
  */
 public final class ValidationUtils {
     private ValidationUtils() {}
@@ -28,7 +34,7 @@ public final class ValidationUtils {
     /**
      * Try to parse a decimal number from a String in a forgiving way.
      * Accepts dot or comma as decimal separator and trims whitespace.
-     * Returns null when parsing fails.
+     * Returns {@code null} when parsing fails.
      */
     public static Double tryParseDouble(String text) {
         if (text == null) return null;
@@ -44,7 +50,7 @@ public final class ValidationUtils {
             } catch (NumberFormatException ex) {
                 // Last resort: use locale-aware parsing
                 try {
-                    java.text.NumberFormat nf = java.text.NumberFormat.getInstance();
+                    NumberFormat nf = NumberFormat.getInstance();
                     Number n = nf.parse(t);
                     return n == null ? null : n.doubleValue();
                 } catch (Exception ex2) {
@@ -69,9 +75,9 @@ public final class ValidationUtils {
         if (cups == null) return null;
         String s = cups.trim().replace('\u00A0', ' ');
         try {
-            s = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFKC);
+            s = Normalizer.normalize(s, Normalizer.Form.NFKC);
         } catch (Exception ignored) {}
-        return s.toUpperCase(java.util.Locale.getDefault());
+        return s.toUpperCase(Locale.getDefault());
     }
 
     /**

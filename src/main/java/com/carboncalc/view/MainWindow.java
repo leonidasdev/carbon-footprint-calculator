@@ -30,99 +30,99 @@ public class MainWindow extends JFrame {
     private final ResourceBundle messages;
     private final CardLayout cardLayout;
     private final JPanel contentPanel;
-    private JPanel navigationPanel;  // Removed final to allow panel replacement
+    private JPanel navigationPanel; // Removed final to allow panel replacement
     private JPanel mainNavContainer; // Container for the navigation panel
-    
+
     public MainWindow(MainController controller, ResourceBundle messages) {
         this.messages = messages;
         this.cardLayout = new CardLayout();
         this.contentPanel = new JPanel(cardLayout);
-        
+
         initializeUI();
         setupNavigation();
         setupContent();
     }
-    
+
     private void initializeUI() {
         setTitle(messages.getString("application.title"));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(0, 0));
-        
-    // Set main window background using centralized constant
-    getContentPane().setBackground(UIUtils.CONTENT_BACKGROUND);
-        
+
+        // Set main window background using centralized constant
+        getContentPane().setBackground(UIUtils.CONTENT_BACKGROUND);
+
         // Setup main navigation container with dark blue background
         mainNavContainer = new JPanel(new BorderLayout());
         mainNavContainer.setPreferredSize(new Dimension(250, 0));
-    mainNavContainer.setBackground(UIUtils.UPM_BLUE);
+        mainNavContainer.setBackground(UIUtils.UPM_BLUE);
         mainNavContainer.setOpaque(true);
         mainNavContainer.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
-        
-    // Create the inner navigation panel that will hold the buttons
-    navigationPanel = new JPanel(new GridLayout(0, 1, 5, 5));
-    navigationPanel.setBackground(UIUtils.UPM_BLUE);
+
+        // Create the inner navigation panel that will hold the buttons
+        navigationPanel = new JPanel(new GridLayout(0, 1, 5, 5));
+        navigationPanel.setBackground(UIUtils.UPM_BLUE);
         navigationPanel.setOpaque(true);
-        
+
         mainNavContainer.add(navigationPanel, BorderLayout.NORTH);
         add(mainNavContainer, BorderLayout.WEST);
-        
+
         // Add content panel to frame
         add(contentPanel, BorderLayout.CENTER);
-        
+
         // Set window properties
         setSize(1200, 800);
         setLocationRelativeTo(null);
         setMinimumSize(new Dimension(800, 600));
     }
-    
+
     private void setupNavigation() {
-    // Style the navigation panel
-    navigationPanel.setBorder(null);
-        
-    // Add main title (localized)
-    JLabel titleLabel = new JLabel(messages.getString("application.title"));
-    titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 20));
-    titleLabel.setForeground(UIUtils.GENERAL_BACKGROUND);
-    titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 10));
-    titleLabel.setHorizontalAlignment(SwingConstants.LEFT);
-    navigationPanel.add(titleLabel);
-        
-    // Reporting modules (use EnergyType ids for consistency)
-    addNavigationButton("module.electricity", EnergyType.ELECTRICITY.id());
-    addNavigationButton("module.gas", EnergyType.GAS.id());
-    addNavigationButton("module.fuel", EnergyType.FUEL.id());
-    addNavigationButton("module.refrigerants", EnergyType.REFRIGERANT.id());
-    addNavigationButton("module.general", "general");
-        
+        // Style the navigation panel
+        navigationPanel.setBorder(null);
+
+        // Add main title (localized)
+        JLabel titleLabel = new JLabel(messages.getString("application.title"));
+        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 20));
+        titleLabel.setForeground(UIUtils.GENERAL_BACKGROUND);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 10));
+        titleLabel.setHorizontalAlignment(SwingConstants.LEFT);
+        navigationPanel.add(titleLabel);
+
+        // Reporting modules (use EnergyType ids for consistency)
+        addNavigationButton("module.electricity", EnergyType.ELECTRICITY.id());
+        addNavigationButton("module.gas", EnergyType.GAS.id());
+        addNavigationButton("module.fuel", EnergyType.FUEL.id());
+        addNavigationButton("module.refrigerants", EnergyType.REFRIGERANT.id());
+        addNavigationButton("module.general", "general");
+
         // Add a separator
         navigationPanel.add(Box.createVerticalStrut(20));
-    JSeparator separator = new JSeparator();
-    separator.setForeground(UIUtils.UPM_LIGHT_BLUE); // Light blue separator
+        JSeparator separator = new JSeparator();
+        separator.setForeground(UIUtils.UPM_LIGHT_BLUE); // Light blue separator
         navigationPanel.add(separator);
         navigationPanel.add(Box.createVerticalStrut(20));
-        
+
         // Configuration modules
         addNavigationButton("module.cups", "cups");
         addNavigationButton("module.factors", "factors");
         addNavigationButton("button.options", "options");
     }
-    
+
     private void setupContent() {
         // Initialize all module panels
-    contentPanel.add(createElectricityPanel(), EnergyType.ELECTRICITY.id());
-    contentPanel.add(createGasPanel(), EnergyType.GAS.id());
+        contentPanel.add(createElectricityPanel(), EnergyType.ELECTRICITY.id());
+        contentPanel.add(createGasPanel(), EnergyType.GAS.id());
         // Add placeholder panels for unimplemented modules
-    contentPanel.add(createPlaceholderPanel("module.fuel"), EnergyType.FUEL.id());
-    contentPanel.add(createPlaceholderPanel("module.refrigerants"), EnergyType.REFRIGERANT.id());
-    contentPanel.add(createPlaceholderPanel("module.general"), "general");
+        contentPanel.add(createPlaceholderPanel("module.fuel"), EnergyType.FUEL.id());
+        contentPanel.add(createPlaceholderPanel("module.refrigerants"), EnergyType.REFRIGERANT.id());
+        contentPanel.add(createPlaceholderPanel("module.general"), "general");
         contentPanel.add(createCupsConfigPanel(), "cups");
         contentPanel.add(createEmissionFactorsPanel(), "factors");
         contentPanel.add(createOptionsPanel(), "options");
-        
-    // Show default panel
-    cardLayout.show(contentPanel, EnergyType.ELECTRICITY.id());
+
+        // Show default panel
+        cardLayout.show(contentPanel, EnergyType.ELECTRICITY.id());
     }
-    
+
     private JPanel createOptionsPanel() {
         OptionsController panelController = new OptionsController(messages);
         OptionsPanel panel = new OptionsPanel(panelController, messages);
@@ -133,68 +133,93 @@ public class MainWindow extends JFrame {
         SwingUtilities.invokeLater(() -> {
             try {
                 String lang = messages.getLocale().getLanguage();
-                if ("es".equals(lang)) panel.setSelectedLanguage(messages.getString("language.spanish"));
-                else panel.setSelectedLanguage(messages.getString("language.english"));
+                if ("es".equals(lang))
+                    panel.setSelectedLanguage(messages.getString("language.spanish"));
+                else
+                    panel.setSelectedLanguage(messages.getString("language.english"));
             } catch (Exception ignored) {
             }
         });
         return panel;
     }
-    
+
     private JPanel createPlaceholderPanel(String messageKey) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.add(new JLabel(messages.getString(messageKey) + " - Coming Soon", SwingConstants.CENTER));
         return panel;
     }
-    
+
     private JPanel createElectricityPanel() {
         ElectricityController panelController = new ElectricityController(messages);
         ElectricityPanel panel = new ElectricityPanel(panelController, messages);
         panelController.setView(panel);
         return panel;
     }
-    
+
     private JPanel createGasPanel() {
         GasController panelController = new GasController(messages);
         GasPanel panel = new GasPanel(panelController, messages);
         panelController.setView(panel);
         return panel;
     }
-    
+
     private JPanel createEmissionFactorsPanel() {
         // Create concrete implementations here and inject into the controller.
         com.carboncalc.service.EmissionFactorService efService = new com.carboncalc.service.EmissionFactorServiceCsv();
         com.carboncalc.service.ElectricityGeneralFactorService egfService = new com.carboncalc.service.ElectricityGeneralFactorServiceCsv();
 
-        EmissionFactorsController panelController = new EmissionFactorsController(messages, efService, egfService);
+        // Provide a factory lambda that creates subcontrollers lazily by type
+        java.util.function.Function<String, com.carboncalc.controller.factors.FactorSubController> factory = (type) -> {
+            if (type == null)
+                return null;
+            try {
+                if (type.equals(com.carboncalc.model.enums.EnergyType.ELECTRICITY.name())) {
+                    return new com.carboncalc.controller.factors.ElectricityFactorController(messages, efService,
+                            egfService);
+                } else if (type.equals(com.carboncalc.model.enums.EnergyType.GAS.name())) {
+                    return new com.carboncalc.controller.factors.GasFactorController(messages, efService);
+                } else if (type.equals(com.carboncalc.model.enums.EnergyType.FUEL.name())) {
+                    return new com.carboncalc.controller.factors.FuelFactorController(messages, efService);
+                } else if (type.equals(com.carboncalc.model.enums.EnergyType.REFRIGERANT.name())) {
+                    return new com.carboncalc.controller.factors.RefrigerantFactorController(messages, efService);
+                } else {
+                    return new com.carboncalc.controller.factors.GenericFactorController(messages, efService, type);
+                }
+            } catch (Exception e) {
+                return null;
+            }
+        };
+
+        EmissionFactorsController panelController = new EmissionFactorsController(messages, efService, egfService,
+                factory);
         EmissionFactorsPanel panel = new EmissionFactorsPanel(panelController, messages);
         panelController.setView(panel);
         return panel;
     }
-    
+
     private JPanel createCupsConfigPanel() {
         CupsConfigController panelController = new CupsConfigController(messages);
         CupsConfigPanel panel = new CupsConfigPanel(panelController, messages);
         panelController.setView(panel);
         return panel;
     }
-    
+
     private ButtonGroup navigationButtonGroup;
 
     private void addNavigationButton(String messageKey, String cardName) {
         JToggleButton button = new JToggleButton(messages.getString(messageKey));
-        
+
         // Initialize the button group if it doesn't exist
         if (navigationButtonGroup == null) {
             navigationButtonGroup = new ButtonGroup();
         }
         navigationButtonGroup.add(button);
-        
+
         // Select the first button (electricity) by default
         if (cardName.equals(EnergyType.ELECTRICITY.id())) {
             button.setSelected(true);
         }
-        
+
         // Use centralized color constants for navigation buttons
         styleNavigationButton(button);
         button.addActionListener(e -> {
@@ -202,7 +227,7 @@ public class MainWindow extends JFrame {
         });
         navigationPanel.add(button);
     }
-    
+
     private void styleNavigationButton(AbstractButton button) {
         // Basic appearance using UIUtils color constants
         button.setBackground(UIUtils.UPM_BLUE);

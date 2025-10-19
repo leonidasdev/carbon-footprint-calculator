@@ -1,34 +1,67 @@
 package com.carboncalc.controller.factors;
 
 import com.carboncalc.service.EmissionFactorService;
+import com.carboncalc.service.ElectricityGeneralFactorService;
 import com.carboncalc.view.EmissionFactorsPanel;
+import com.carboncalc.view.factors.ElectricityFactorPanel;
 import com.carboncalc.model.factors.ElectricityGeneralFactors;
 import com.carboncalc.util.ValidationUtils;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.JOptionPane;
 import java.io.IOException;
+import java.time.Year;
 import java.util.Locale;
+import java.util.List;
+import java.util.ResourceBundle;
 
 /**
  * Controller for electricity-specific factor UI and actions.
+ *
+ * Responsibilities:
+ * - Manage the electricity general factors subpanel (mix/GDOs and trading
+ *   companies) and persist them via {@link ElectricityGeneralFactorService}.
+ * - Provide a debounced autosave for inline edits (1s) and perform actual
+ *   I/O in a background thread to avoid blocking the EDT.
+ * - Populate the shared factors table with per-year emission factors via
+ *   {@link EmissionFactorService} when activated.
  */
 public class ElectricityFactorController implements FactorSubController {
-    private final java.util.ResourceBundle messages;
-    private final com.carboncalc.service.ElectricityGeneralFactorService electricityGeneralFactorService;
+    private final ResourceBundle messages;
+    private final ElectricityGeneralFactorService electricityGeneralFactorService;
     private final EmissionFactorService emissionFactorService;
     private EmissionFactorsPanel view;
+    private final ElectricityFactorPanel panel;
+    private volatile boolean dirty = false;
+    private Timer autosaveTimer;
+    private volatile int activeYear = Year.now().getValue();
 
-    public ElectricityFactorController(java.util.ResourceBundle messages,
+    public ElectricityFactorController(ResourceBundle messages,
                                        EmissionFactorService emissionFactorService,
-                                       com.carboncalc.service.ElectricityGeneralFactorService electricityGeneralFactorService) {
+                                       ElectricityGeneralFactorService electricityGeneralFactorService) {
         this.messages = messages;
         this.emissionFactorService = emissionFactorService;
         this.electricityGeneralFactorService = electricityGeneralFactorService;
+        // Create own panel instance so controller fully owns its view
+        this.panel = new ElectricityFactorPanel(messages);
+
+        // Setup autosave timer (debounced) - 1s after last change. The timer
+        // restarts on each edit; when it fires we stop it and perform an
+        // asynchronous save so the UI remains responsive.
+        this.autosaveTimer = new Timer(1000, e -> {
+            try {
+                autosaveTimer.stop();
+                saveAsync(activeYear);
+            } catch (Exception ignored) {}
+        });
+        this.autosaveTimer.setRepeats(false);
+
+        attachListeners();
     }
 
     @Override
     public void setView(EmissionFactorsPanel view) {
         this.view = view;
+        // nothing else needed; panel is owned by this controller
     }
 
     @Override
@@ -43,13 +76,18 @@ public class ElectricityFactorController implements FactorSubController {
                 messages.getString("error.title"),
                 JOptionPane.ERROR_MESSAGE);
         }
-
-        // Load per-year emission factors table
+        // Load per-year emission factors table (delegated to the generic
+        // emissionFactorService). Any failures loading the table are non-fatal
+        // for the general factors panel, so we ignore exceptions here.
         try {
-            java.util.List<? extends com.carboncalc.model.factors.EmissionFactor> factors =
+            List<? extends com.carboncalc.model.factors.EmissionFactor> factors =
                 emissionFactorService.loadEmissionFactors(com.carboncalc.model.enums.EnergyType.ELECTRICITY.name(), year);
             updateFactorsTable(factors);
         } catch (Exception ignored) {}
+
+        this.activeYear = year;
+        // reset dirty flag after loading
+        this.dirty = false;
     }
 
     @Override
@@ -66,8 +104,7 @@ public class ElectricityFactorController implements FactorSubController {
 
     @Override
     public boolean hasUnsavedChanges() {
-        // No tracking implemented yet; assume no unsaved changes
-        return false;
+        return dirty;
     }
 
     public void handleSaveElectricityGeneralFactors(int selectedYear) {
@@ -84,7 +121,7 @@ public class ElectricityFactorController implements FactorSubController {
 
     private void updateFactorsTable(java.util.List<? extends com.carboncalc.model.factors.EmissionFactor> factors) {
         if (view == null) return;
-        javax.swing.table.DefaultTableModel model = (DefaultTableModel) view.getFactorsTable().getModel();
+        DefaultTableModel model = (DefaultTableModel) view.getFactorsTable().getModel();
         model.setRowCount(0);
         for (com.carboncalc.model.factors.EmissionFactor factor : factors) {
             model.addRow(new Object[]{factor.getEntity(), factor.getYear(), factor.getBaseFactor(), factor.getUnit()});
@@ -103,7 +140,7 @@ public class ElectricityFactorController implements FactorSubController {
                 tmodel.setRowCount(0);
                 if (factors.getTradingCompanies() != null) {
                     for (ElectricityGeneralFactors.TradingCompany c : factors.getTradingCompanies()) {
-                        tmodel.addRow(new Object[]{c.getName(), String.format(java.util.Locale.ROOT, "%.4f", c.getEmissionFactor()), c.getGdoType()});
+                        tmodel.addRow(new Object[]{c.getName(), String.format(Locale.ROOT, "%.4f", c.getEmissionFactor()), c.getGdoType()});
                     }
                 }
             } catch (Exception ignored) {}
@@ -244,5 +281,74 @@ public class ElectricityFactorController implements FactorSubController {
         } catch (IOException ioe) {
             JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    @Override
+    public javax.swing.JComponent getPanel() {
+        return panel;
+    }
+
+    @Override
+    public boolean save(int year) throws java.io.IOException {
+        ElectricityGeneralFactors factors = buildElectricityGeneralFactorsFromView(year);
+        electricityGeneralFactorService.saveFactors(factors, year);
+        return true;
+    }
+
+    private void attachListeners() {
+        try {
+            javax.swing.JTextField mix = panel.getMixSinGdoField();
+            javax.swing.JTextField renov = panel.getGdoRenovableField();
+            javax.swing.JTextField cog = panel.getGdoCogeneracionField();
+            javax.swing.JTextField loc = panel.getLocationBasedField();
+            javax.swing.JTable trading = panel.getTradingCompaniesTable();
+
+            javax.swing.event.DocumentListener doc = new javax.swing.event.DocumentListener() {
+                private void mark() { dirty = true; autosaveTimer.restart(); }
+                @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { mark(); }
+                @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { mark(); }
+                @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { mark(); }
+            };
+
+            if (mix != null) mix.getDocument().addDocumentListener(doc);
+            if (renov != null) renov.getDocument().addDocumentListener(doc);
+            if (cog != null) cog.getDocument().addDocumentListener(doc);
+            if (loc != null) loc.getDocument().addDocumentListener(doc);
+
+            if (trading != null && trading.getModel() instanceof javax.swing.table.DefaultTableModel) {
+                javax.swing.table.DefaultTableModel tm = (javax.swing.table.DefaultTableModel) trading.getModel();
+                // Mark dirty on table modifications, but do not trigger autosave
+                // because add/delete company uses explicit save and has its own
+                // persistence behavior.
+                tm.addTableModelListener(e -> { dirty = true; /* no autosaveTimer.restart() */ });
+            }
+
+            // Save button triggers explicit save
+            javax.swing.JButton saveBtn = panel.getSaveGeneralFactorsButton();
+            if (saveBtn != null) saveBtn.addActionListener(a -> {
+                try {
+                    save(activeYear);
+                    dirty = false;
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(panel, messages.getString("error.save.general.factors") + "\n" + ex.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+        } catch (Exception ignored) {}
+    }
+
+    private void saveAsync(int year) {
+        // Run save in background to avoid blocking EDT
+        new Thread(() -> {
+            try {
+                save(year);
+                dirty = false;
+            } catch (Exception e) {
+                // Show error on EDT
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(panel, messages.getString("error.save.general.factors") + "\n" + e.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }, "electricity-autosave").start();
     }
 }

@@ -2,10 +2,22 @@ package com.carboncalc.util;
 
 import javax.swing.*;
 import javax.swing.border.Border;
-import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Cursor;
+import java.awt.Font;
+import java.awt.Rectangle;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
+/**
+ * Collection of small UI helper utilities used across the application.
+ *
+ * This class centralizes colors and simple styling helpers so the rest of the
+ * codebase can keep a consistent look and avoid duplicated styling logic.
+ */
 public class UIUtils {
     public static final Color UPM_BLUE = new Color(0x1B3D6D);
     public static final Color UPM_LIGHT_BLUE = new Color(0x4A90E2);
@@ -23,13 +35,13 @@ public class UIUtils {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setOpaque(true);
 
-        // Hover effect
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
+        // Hover effect: change background on mouse enter/exit for affordance
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent evt) {
                 button.setBackground(UPM_LIGHT_BLUE);
             }
 
-            public void mouseExited(java.awt.event.MouseEvent evt) {
+            public void mouseExited(MouseEvent evt) {
                 button.setBackground(UPM_BLUE);
             }
         });
@@ -44,15 +56,16 @@ public class UIUtils {
         button.setFont(button.getFont().deriveFont(Font.PLAIN));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Hover effect
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
+        // Hover effect for navigation buttons. Keep background only when
+        // the button is selected to indicate active section.
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent evt) {
                 if (!button.isSelected()) {
                     button.setBackground(HOVER_COLOR);
                 }
             }
 
-            public void mouseExited(java.awt.event.MouseEvent evt) {
+            public void mouseExited(MouseEvent evt) {
                 if (!button.isSelected()) {
                     button.setBackground(GENERAL_BACKGROUND);
                 }
@@ -61,6 +74,7 @@ public class UIUtils {
     }
 
     public static void stylePanel(JPanel panel) {
+        // Apply consistent panel background and internal padding
         panel.setBackground(CONTENT_BACKGROUND);
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
     }
@@ -112,13 +126,15 @@ public class UIUtils {
     }
 
     public static void setupPreviewTable(JTable table) {
-        if (table == null) return;
+        if (table == null)
+            return;
 
         // Find the enclosing JScrollPane robustly
-        java.awt.Component possible = javax.swing.SwingUtilities.getAncestorOfClass(JScrollPane.class, table);
+        Component possible = javax.swing.SwingUtilities.getAncestorOfClass(JScrollPane.class, table);
         if (possible == null) {
             possible = table.getParent();
-            if (possible != null) possible = possible.getParent();
+            if (possible != null)
+                possible = possible.getParent();
         }
         if (!(possible instanceof JScrollPane)) {
             // Can't find a scroll pane; nothing to setup
@@ -126,11 +142,14 @@ public class UIUtils {
         }
         final JScrollPane scrollPane = (JScrollPane) possible;
 
-        // We no longer show a dedicated row-header column for row numbers (it was visually noisy).
-        // Ensure any existing row header is removed so the table viewport uses the full width.
+        // We no longer show a dedicated row-header column for row numbers (it was
+        // visually noisy).
+        // Ensure any existing row header is removed so the table viewport uses the full
+        // width.
         try {
             scrollPane.setRowHeaderView(null);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // Set column headers to letters (A, B, C, etc.)
         for (int i = 0; i < table.getColumnCount(); i++) {
@@ -138,13 +157,15 @@ public class UIUtils {
             column.setHeaderValue(getExcelColumnName(i));
         }
 
-        // If there is a row header view (unlikely now), keep it synchronized; otherwise skip
+        // If there is a row header view (unlikely now), keep it synchronized; otherwise
+        // skip
         try {
             if (scrollPane.getRowHeader() != null) {
                 scrollPane.getRowHeader().addChangeListener(
                         e -> scrollPane.getVerticalScrollBar().setValue(scrollPane.getViewport().getViewPosition().y));
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // Ensure table viewport background matches table and layout is refreshed
         try {
@@ -152,22 +173,28 @@ public class UIUtils {
             scrollPane.revalidate();
             scrollPane.repaint();
             // also revalidate parent chain to avoid sibling overlay issues
-            java.awt.Component p = scrollPane.getParent();
-            if (p != null) { p.revalidate(); p.repaint(); }
-        } catch (Exception ignored) {}
+            Component p = scrollPane.getParent();
+            if (p != null) {
+                p.revalidate();
+                p.repaint();
+            }
+        } catch (Exception ignored) {
+        }
 
         // No debug prints here; keep UI adjustments silent in normal runs.
         try {
             // Keep the overlap mitigation logic but avoid verbose console output.
-            java.awt.Container parent = scrollPane.getParent();
+            Container parent = scrollPane.getParent();
             if (parent != null) {
-                java.awt.Component[] comps = parent.getComponents();
-                java.awt.Rectangle vp = scrollPane.getViewport().getBounds();
+                Component[] comps = parent.getComponents();
+                Rectangle vp = scrollPane.getViewport().getBounds();
                 boolean foundOverlap = false;
-                for (java.awt.Component c : comps) {
-                    if (c == scrollPane) continue;
-                    if (!c.isVisible()) continue;
-                    java.awt.Rectangle b = c.getBounds();
+                for (Component c : comps) {
+                    if (c == scrollPane)
+                        continue;
+                    if (!c.isVisible())
+                        continue;
+                    Rectangle b = c.getBounds();
                     if (b.intersects(vp) && c.isOpaque()) {
                         foundOverlap = true;
                         break;
@@ -175,7 +202,7 @@ public class UIUtils {
                 }
                 if (foundOverlap) {
                     try {
-                        java.awt.Container _parent = scrollPane.getParent();
+                        Container _parent = scrollPane.getParent();
                         if (_parent != null) {
                             scrollPane.setOpaque(true);
                             scrollPane.getViewport().setOpaque(true);
@@ -188,7 +215,8 @@ public class UIUtils {
                     }
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private static String getExcelColumnName(int columnNumber) {

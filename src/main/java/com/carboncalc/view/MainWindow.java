@@ -11,20 +11,23 @@ import com.carboncalc.util.UIUtils;
 import java.awt.*;
 import java.util.ResourceBundle;
 import com.carboncalc.model.enums.EnergyType;
+import com.carboncalc.service.EmissionFactorService;
+import com.carboncalc.service.EmissionFactorServiceCsv;
+import com.carboncalc.service.ElectricityGeneralFactorService;
+import com.carboncalc.service.ElectricityGeneralFactorServiceCsv;
+import com.carboncalc.controller.factors.FactorSubController;
+import com.carboncalc.controller.factors.ElectricityFactorController;
+import com.carboncalc.controller.factors.GasFactorController;
+import com.carboncalc.controller.factors.FuelFactorController;
+import com.carboncalc.controller.factors.RefrigerantFactorController;
+import com.carboncalc.controller.factors.GenericFactorController;
+import java.util.function.Function;
 
 /**
  * Main application window. Holds the navigation bar and a card-based
  * content area where each module panel (electricity, gas, cups, etc.) is shown.
  *
  * UI colors and minor behavioral styling are centralized in {@link UIUtils}.
- */
-/**
- * MainWindow
- *
- * Top-level application window. Holds navigation on the left and a card
- * layout content area on the right. This class focuses on wiring panels
- * together and styling; individual panels are responsible for their own
- * content and behavior.
  */
 public class MainWindow extends JFrame {
     private final ResourceBundle messages;
@@ -165,33 +168,30 @@ public class MainWindow extends JFrame {
 
     private JPanel createEmissionFactorsPanel() {
         // Create concrete implementations here and inject into the controller.
-        com.carboncalc.service.EmissionFactorService efService = new com.carboncalc.service.EmissionFactorServiceCsv();
-        com.carboncalc.service.ElectricityGeneralFactorService egfService = new com.carboncalc.service.ElectricityGeneralFactorServiceCsv();
+        EmissionFactorService efService = new EmissionFactorServiceCsv();
+        ElectricityGeneralFactorService egfService = new ElectricityGeneralFactorServiceCsv();
 
         // Provide a factory lambda that creates subcontrollers lazily by type
-        java.util.function.Function<String, com.carboncalc.controller.factors.FactorSubController> factory = (type) -> {
-            if (type == null)
-                return null;
+        Function<String, FactorSubController> factory = (type) -> {
+            if (type == null) return null;
             try {
-                if (type.equals(com.carboncalc.model.enums.EnergyType.ELECTRICITY.name())) {
-                    return new com.carboncalc.controller.factors.ElectricityFactorController(messages, efService,
-                            egfService);
-                } else if (type.equals(com.carboncalc.model.enums.EnergyType.GAS.name())) {
-                    return new com.carboncalc.controller.factors.GasFactorController(messages, efService);
-                } else if (type.equals(com.carboncalc.model.enums.EnergyType.FUEL.name())) {
-                    return new com.carboncalc.controller.factors.FuelFactorController(messages, efService);
-                } else if (type.equals(com.carboncalc.model.enums.EnergyType.REFRIGERANT.name())) {
-                    return new com.carboncalc.controller.factors.RefrigerantFactorController(messages, efService);
+                if (type.equals(EnergyType.ELECTRICITY.name())) {
+                    return new ElectricityFactorController(messages, efService, egfService);
+                } else if (type.equals(EnergyType.GAS.name())) {
+                    return new GasFactorController(messages, efService);
+                } else if (type.equals(EnergyType.FUEL.name())) {
+                    return new FuelFactorController(messages, efService);
+                } else if (type.equals(EnergyType.REFRIGERANT.name())) {
+                    return new RefrigerantFactorController(messages, efService);
                 } else {
-                    return new com.carboncalc.controller.factors.GenericFactorController(messages, efService, type);
+                    return new GenericFactorController(messages, efService, type);
                 }
             } catch (Exception e) {
                 return null;
             }
         };
 
-        EmissionFactorsController panelController = new EmissionFactorsController(messages, efService, egfService,
-                factory);
+        EmissionFactorsController panelController = new EmissionFactorsController(messages, efService, egfService, factory);
         EmissionFactorsPanel panel = new EmissionFactorsPanel(panelController, messages);
         panelController.setView(panel);
         return panel;

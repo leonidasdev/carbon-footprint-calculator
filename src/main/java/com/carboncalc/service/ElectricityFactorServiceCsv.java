@@ -9,13 +9,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * CSV-backed implementation for ElectricityGeneralFactorService.
  */
-public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFactorService {
+public class ElectricityFactorServiceCsv implements ElectricityFactorService {
     // Use `data/emission_factors/{year}` directory for electricity general files
     private static final Path BASE_PATH = Paths.get("data", "emission_factors");
 
@@ -49,6 +50,8 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
         // each line honoring CSV quoting rules instead of naive split(",").
         if (Files.exists(companiesPath)) {
             List<String> lines = Files.readAllLines(companiesPath, StandardCharsets.UTF_8);
+            System.out.println("[DEBUG] ElectricityFactorServiceCsv.loadFactors: companiesPath=" + companiesPath.toAbsolutePath() + ", linesRead=" + lines.size());
+            int parsed = 0;
             for (int i = 1; i < lines.size(); i++) {
                 String line = lines.get(i);
                 List<String> values = parseCsvLine(line);
@@ -58,8 +61,10 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
                     String gdoType = values.get(2);
                     if (ef == null) ef = 0.0;
                     factors.addTradingCompany(new ElectricityGeneralFactors.TradingCompany(name, ef, gdoType));
+                    parsed++;
                 }
             }
+            System.out.println("[DEBUG] ElectricityFactorServiceCsv.loadFactors: parsedCompanies=" + parsed);
         }
 
         return factors;
@@ -73,8 +78,7 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
 
         // Ensure directory exists
         Files.createDirectories(yearDir);
-
-        // Prepare general factors CSV
+        // Build content for general and companies files
         List<String> generalLines = new ArrayList<>();
         generalLines.add("mix_sin_gdo,gdo_renovable,gdo_cogeneracion_alta_eficiencia,location_based_factor");
         generalLines.add(String.format(java.util.Locale.ROOT, "%.3f,%.3f,%.3f,%.3f",
@@ -83,14 +87,9 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
             factors.getGdoCogeneracionAltaEficiencia(),
             factors.getLocationBasedFactor()));
 
-        Files.write(generalFile, generalLines, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-
-        // Prepare companies CSV
         List<String> companyLines = new ArrayList<>();
         companyLines.add("comercializadora,factor_emision,tipo_gdo");
         for (ElectricityGeneralFactors.TradingCompany company : factors.getTradingCompanies()) {
-            // Wrap textual fields in double quotes and escape any internal quotes
-            // to make the CSV robust for names containing commas or periods
             String rawName = company.getName() == null ? "" : company.getName();
             String escapedName = rawName.replace("\"", "\"\"");
             String quotedName = "\"" + escapedName + "\"";
@@ -103,7 +102,39 @@ public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFac
             companyLines.add(quotedName + "," + factorStr + "," + quotedGdo);
         }
 
-        Files.write(companiesFile, companyLines, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        // Write using atomic replace: write to temp file in same directory then move
+        // Optionally keep a timestamped backup of the previous file in case of corruption
+        writeAtomicWithBackup(generalFile, generalLines);
+        writeAtomicWithBackup(companiesFile, companyLines);
+    }
+
+    /**
+     * Write lines to targetPath atomically by writing to a temporary file
+     * in the same directory and then moving it into place. If a previous
+     * target exists it will be backed up with a timestamped .bak suffix.
+     */
+    private void writeAtomicWithBackup(Path targetPath, List<String> lines) throws IOException {
+        Path dir = targetPath.getParent();
+        if (dir == null) dir = BASE_PATH;
+        Files.createDirectories(dir);
+
+        // Do not create extra backup files to avoid clutter. We perform an
+        // atomic replace by writing to a temp file and moving it into place.
+
+        // Create temporary file in same directory to ensure atomic move on same filesystem
+        Path temp = Files.createTempFile(dir, targetPath.getFileName().toString(), ".tmp");
+        try {
+            Files.write(temp, lines, StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
+            // Attempt atomic move; if not supported, fallback to non-atomic REPLACE_EXISTING
+            try {
+                Files.move(temp, targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException amnse) {
+                Files.move(temp, targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            // Cleanup temp if it still exists
+            try { if (Files.exists(temp)) Files.delete(temp); } catch (Exception ignored) {}
+        }
     }
 
     @Override

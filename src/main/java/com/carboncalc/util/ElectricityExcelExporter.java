@@ -14,7 +14,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.Collections;
 
-import com.carboncalc.service.ElectricityGeneralFactorServiceCsv;
+import com.carboncalc.service.ElectricityFactorServiceCsv;
 import com.carboncalc.model.factors.ElectricityGeneralFactors;
 import com.carboncalc.service.CupsServiceCsv;
 import com.carboncalc.model.CupsCenterMapping;
@@ -61,7 +61,7 @@ public class ElectricityExcelExporter {
                             // Load per-year general factors to compute location-based emissions
                             double locationFactor = 0.0;
                             try {
-                                ElectricityGeneralFactorServiceCsv gfsvc = new ElectricityGeneralFactorServiceCsv();
+                                ElectricityFactorServiceCsv gfsvc = new ElectricityFactorServiceCsv();
                                 ElectricityGeneralFactors gf = gfsvc.loadFactors(year);
                                 if (gf != null)
                                     locationFactor = gf.getLocationBasedFactor();

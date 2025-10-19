@@ -309,6 +309,7 @@ public class ElectricityFactorPanel extends JPanel {
         UIUtils.styleTable(tradingCompaniesTable);
         JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
         scrollPane.setPreferredSize(new Dimension(0, 180));
+    try { scrollPane.revalidate(); scrollPane.repaint(); } catch (Exception ignored) {}
 
         JPanel tradingCompanyButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         tradingCompanyButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);

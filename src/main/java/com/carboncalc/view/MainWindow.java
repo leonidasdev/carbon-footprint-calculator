@@ -13,8 +13,8 @@ import java.util.ResourceBundle;
 import com.carboncalc.model.enums.EnergyType;
 import com.carboncalc.service.EmissionFactorService;
 import com.carboncalc.service.EmissionFactorServiceCsv;
-import com.carboncalc.service.ElectricityGeneralFactorService;
-import com.carboncalc.service.ElectricityGeneralFactorServiceCsv;
+import com.carboncalc.service.ElectricityFactorService;
+import com.carboncalc.service.ElectricityFactorServiceCsv;
 import com.carboncalc.controller.factors.FactorSubController;
 import com.carboncalc.controller.factors.ElectricityFactorController;
 import com.carboncalc.controller.factors.GasFactorController;
@@ -169,7 +169,7 @@ public class MainWindow extends JFrame {
     private JPanel createEmissionFactorsPanel() {
     // Create concrete implementations here and inject into the controller.
     EmissionFactorService efService = new EmissionFactorServiceCsv();
-    ElectricityGeneralFactorService egfService = new ElectricityGeneralFactorServiceCsv();
+    ElectricityFactorService egfService = new ElectricityFactorServiceCsv();
     com.carboncalc.service.GasFactorService gasFactorService = new com.carboncalc.service.GasFactorServiceCsv();
 
         // Provide a factory lambda that creates subcontrollers lazily by type

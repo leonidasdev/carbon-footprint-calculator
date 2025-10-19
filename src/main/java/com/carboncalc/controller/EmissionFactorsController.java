@@ -31,7 +31,7 @@ import java.time.Year;
 import com.carboncalc.model.enums.EnergyType;
 import com.carboncalc.controller.factors.FactorSubController;
 import com.carboncalc.controller.factors.ElectricityFactorController;
-import com.carboncalc.service.ElectricityGeneralFactorService;
+import com.carboncalc.service.ElectricityFactorService;
 import com.carboncalc.util.ValidationUtils;
 
 /**
@@ -59,7 +59,7 @@ public class EmissionFactorsController {
     private Workbook workbook;
     private File currentFile;
     private final EmissionFactorService emissionFactorService;
-    private final ElectricityGeneralFactorService electricityGeneralFactorService;
+    private final ElectricityFactorService electricityGeneralFactorService;
     private final Map<String, FactorSubController> subcontrollers = new HashMap<>();
     private final Function<String, FactorSubController> subcontrollerFactory;
     private String currentFactorType;
@@ -75,7 +75,7 @@ public class EmissionFactorsController {
      */
     public EmissionFactorsController(ResourceBundle messages,
             EmissionFactorService emissionFactorService,
-            ElectricityGeneralFactorService electricityGeneralFactorService,
+            ElectricityFactorService electricityGeneralFactorService,
             Function<String, FactorSubController> subcontrollerFactory) {
         this.messages = messages;
         this.emissionFactorService = emissionFactorService;
@@ -119,6 +119,7 @@ public class EmissionFactorsController {
         }
 
         this.currentFactorType = type;
+    System.out.println("[DEBUG] EmissionFactorsController.handleTypeSelection: selectedType=" + type + ", currentYear=" + this.currentYear);
 
         // Lazy create and register the subcontroller if not present
         FactorSubController sc = getOrCreateSubcontroller(type);
@@ -140,8 +141,33 @@ public class EmissionFactorsController {
                     } catch (Exception ignored) {
                     }
                 }
-                view.showCard(type);
-                sc.onActivate(this.currentYear);
+                // Run showCard and the shared table load on the EDT first so
+                // the card is actually visible/displayable when the
+                // subcontroller populates its own UI.
+                final FactorSubController finalSc = sc;
+                final int activateYear = this.currentYear;
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    try {
+                        view.showCard(type);
+                        try { view.getCardsPanel().revalidate(); view.getCardsPanel().repaint(); } catch (Exception ignored) {}
+
+                        // Populate the shared factors table for the selected type/year
+                        try { loadFactorsForType(); } catch (Exception ignored) {}
+
+                        // After the card has been shown and the shared table
+                        // is updated, schedule the subcontroller activation on
+                        // the next EDT tick to give layout a final chance.
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            try {
+                                finalSc.onActivate(activateYear);
+                                System.out.println("[DEBUG] EmissionFactorsController.handleTypeSelection: subcontroller.onActivate completed for type=" + type + ", year=" + activateYear);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                JOptionPane.showMessageDialog(view, messages.getString("error.load.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                            }
+                        });
+                    } catch (Exception ignored) {}
+                });
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view, messages.getString("error.load.general.factors"),
                         messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
@@ -225,10 +251,14 @@ public class EmissionFactorsController {
         }
 
         if (active != null && active.hasUnsavedChanges()) {
-            int resp = JOptionPane.showConfirmDialog(view, messages.getString("message.confirm.unsaved.changes.year"),
-                    messages.getString("dialog.confirm"), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (resp != JOptionPane.YES_OPTION) {
-                // Revert spinner to previous year
+            // Present Save / Discard / Cancel options
+            int resp = JOptionPane.showConfirmDialog(view,
+                    messages.getString("message.confirm.unsaved.changes.year"),
+                    messages.getString("dialog.confirm"),
+                    JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+
+            if (resp == JOptionPane.CANCEL_OPTION || resp == JOptionPane.CLOSED_OPTION) {
+                // Revert spinner to previous year and abort
                 try {
                     if (view != null && view.getYearSpinner() != null)
                         view.getYearSpinner().setValue(this.currentYear);
@@ -236,6 +266,24 @@ public class EmissionFactorsController {
                 }
                 return;
             }
+
+            if (resp == JOptionPane.YES_OPTION) {
+                // User chose to save changes before switching year
+                try {
+                    active.save(this.currentYear);
+                } catch (Exception ioe) {
+                    JOptionPane.showMessageDialog(view,
+                            messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(),
+                            messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                    // Abort switch on save failure
+                    try {
+                        if (view != null && view.getYearSpinner() != null)
+                            view.getYearSpinner().setValue(this.currentYear);
+                    } catch (Exception ignored) {}
+                    return;
+                }
+            }
+            // If resp == NO_OPTION, user chose to discard changes; continue without saving
         }
 
         // Year selection updated; prefer editor visible text when available.
@@ -245,14 +293,31 @@ public class EmissionFactorsController {
             persistCurrentYear(year);
         }
 
-        // Notify the current subcontroller so it can reload per-year data
+        // Show the current card so subpanels are visible before reloading
         try {
-            if (active != null)
-                active.onYearChanged(year);
-        } catch (Exception ignored) {
-        }
-        // Also update the shared factors table for the current type
+            if (view != null && currentFactorType != null) {
+                view.showCard(currentFactorType);
+                try { view.getCardsPanel().revalidate(); view.getCardsPanel().repaint(); } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+
+        // First update the shared factors table for the current type/year
         loadFactorsForType();
+
+        // Then ask the active subcontroller to reload its per-year data,
+        // but do this on the EDT in a fresh tick so its components are
+        // layout/displayable when it populates fields/tables.
+        try {
+            if (active != null) {
+                final FactorSubController finalActive = active;
+                final int notifyYear = year;
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    try {
+                        finalActive.onYearChanged(notifyYear);
+                    } catch (Exception ignored) {}
+                });
+            }
+        } catch (Exception ignored) {}
     }
 
     /** Safely commit spinner editor and return a valid year. Returns -1 if none. */
@@ -292,23 +357,21 @@ public class EmissionFactorsController {
     private void loadFactorsForType() {
         if (currentFactorType == null)
             return;
-        List<? extends EmissionFactor> factors = emissionFactorService.loadEmissionFactors(currentFactorType,
-                currentYear);
-        updateFactorsTable(factors);
-
-        // Activate the subcontroller for the current type (lazy create).
-        // Note: sc.onActivate(year) will typically update the subpanel fields
-        // (for example electricity general factors) and may also perform I/O.
-        try {
-            FactorSubController sc = getOrCreateSubcontroller(currentFactorType);
-            if (sc != null)
-                sc.onActivate(currentYear);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(view,
-                    messages.getString("error.load.general.factors"),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
+    System.out.println("[DEBUG] EmissionFactorsController.loadFactorsForType: loading factors for type=" + currentFactorType + ", year=" + currentYear);
+    List<? extends EmissionFactor> factors = emissionFactorService.loadEmissionFactors(currentFactorType,
+        currentYear);
+    System.out.println("[DEBUG] EmissionFactorsController.loadFactorsForType: loaded factors count=" + (factors == null ? 0 : factors.size()));
+        // If the current type is ELECTRICITY, the electricity subcontroller
+        // manages the trading companies table and will populate it itself.
+        // Avoid clearing/replacing its model here to prevent races.
+        if (!com.carboncalc.model.enums.EnergyType.ELECTRICITY.name().equals(currentFactorType)) {
+            updateFactorsTable(factors);
         }
+
+        // Subcontroller activation is handled by handleTypeSelection which
+        // ensures activation runs after the card is shown. Do not activate
+        // subcontrollers from here to avoid duplicate activations that can
+        // overwrite UI updates.
     }
 
     public void handleSaveElectricityGeneralFactors() {

@@ -1,5 +1,5 @@
 com\carboncalc\controller\EmissionFactorsController$2.class
-com\carboncalc\view\BaseModulePanel.class
-com\carboncalc\view\GasPanel.class
+com\carboncalc\controller\ElectricityController$2.class
+com\carboncalc\util\ElectricityExcelExporter$1.class
+com\carboncalc\util\GasExcelExporter$1.class
 com\carboncalc\controller\GasController$2.class
-com\carboncalc\model\CupsCenterMapping.class

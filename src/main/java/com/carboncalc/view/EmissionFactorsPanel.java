@@ -351,6 +351,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         try {
             cardsPanel.add(comp, name);
             cardComponents.put(name, comp);
+            try { cardsPanel.revalidate(); cardsPanel.repaint(); } catch (Exception ignored) {}
         } catch (Exception ignored) {
         }
     }

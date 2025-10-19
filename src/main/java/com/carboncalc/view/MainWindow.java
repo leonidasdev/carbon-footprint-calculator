@@ -167,18 +167,20 @@ public class MainWindow extends JFrame {
     }
 
     private JPanel createEmissionFactorsPanel() {
-        // Create concrete implementations here and inject into the controller.
-        EmissionFactorService efService = new EmissionFactorServiceCsv();
-        ElectricityGeneralFactorService egfService = new ElectricityGeneralFactorServiceCsv();
+    // Create concrete implementations here and inject into the controller.
+    EmissionFactorService efService = new EmissionFactorServiceCsv();
+    ElectricityGeneralFactorService egfService = new ElectricityGeneralFactorServiceCsv();
+    com.carboncalc.service.GasFactorService gasFactorService = new com.carboncalc.service.GasFactorServiceCsv();
 
         // Provide a factory lambda that creates subcontrollers lazily by type
         Function<String, FactorSubController> factory = (type) -> {
-            if (type == null) return null;
+            if (type == null)
+                return null;
             try {
                 if (type.equals(EnergyType.ELECTRICITY.name())) {
                     return new ElectricityFactorController(messages, efService, egfService);
                 } else if (type.equals(EnergyType.GAS.name())) {
-                    return new GasFactorController(messages, efService);
+                    return new com.carboncalc.controller.factors.GasFactorController(messages, efService, gasFactorService);
                 } else if (type.equals(EnergyType.FUEL.name())) {
                     return new FuelFactorController(messages, efService);
                 } else if (type.equals(EnergyType.REFRIGERANT.name())) {
@@ -191,7 +193,8 @@ public class MainWindow extends JFrame {
             }
         };
 
-        EmissionFactorsController panelController = new EmissionFactorsController(messages, efService, egfService, factory);
+        EmissionFactorsController panelController = new EmissionFactorsController(messages, efService, egfService,
+                factory);
         EmissionFactorsPanel panel = new EmissionFactorsPanel(panelController, messages);
         panelController.setView(panel);
         return panel;

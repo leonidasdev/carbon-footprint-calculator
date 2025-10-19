@@ -7,6 +7,11 @@ import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
 
 import java.awt.*;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.ResourceBundle;
 
@@ -457,8 +462,8 @@ public class GasPanel extends BaseModulePanel {
         JLabel yearLabel = new JLabel("Year:");
         yearLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(yearLabel);
-        // Initialize yearSpinner with value provided by controller (persisted there)
-        int initialYear = controller != null ? controller.getCurrentYear() : LocalDate.now().getYear();
+    // Initialize yearSpinner with value provided by controller (persisted there)
+    int initialYear = controller != null ? controller.getCurrentYear() : loadCurrentYearFromFile();
         yearSpinner = new JSpinner(new SpinnerNumberModel(initialYear, 1900, 2100, 1));
         JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "####");
         yearSpinner.setEditor(yearEditor);
@@ -648,16 +653,34 @@ public class GasPanel extends BaseModulePanel {
     private int getSelectedIndex(JComboBox<String> comboBox) {
         if (comboBox == null)
             return -1;
-        String selectedItem = (String) comboBox.getSelectedItem();
-        if (selectedItem == null || selectedItem.isEmpty()) {
-            return -1;
-        }
-        for (int i = 0; i < comboBox.getItemCount(); i++) {
-            if (selectedItem.equals(comboBox.getItemAt(i))) {
-                return i;
+        // The combo boxes are populated with an initial empty item followed by the
+        // sheet header names. Therefore the actual column index in the sheet equals
+        // the selectedIndex - 1.
+        int sel = comboBox.getSelectedIndex();
+        if (sel <= 0)
+            return -1; // 0 is the empty option or nothing selected
+        return sel - 1;
+    }
+
+    /**
+     * Load the year from data/year/current_year.txt. Return current year as
+     * fallback.
+     */
+    private int loadCurrentYearFromFile() {
+        try {
+            Path p = Paths.get("data", "year", "current_year.txt");
+            if (Files.exists(p)) {
+                String s = Files.readString(p, StandardCharsets.UTF_8).trim();
+                if (!s.isEmpty()) {
+                    try {
+                        return Integer.parseInt(s);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
             }
+        } catch (IOException ignored) {
         }
-        return -1;
+        return LocalDate.now().getYear();
     }
 
     // Keep provider/erp filename ellipsizing helpers (same behavior as

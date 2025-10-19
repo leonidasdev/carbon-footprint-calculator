@@ -270,6 +270,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private JTextField gdoCogeneracionField;
     private JButton saveGeneralFactorsButton;
     private com.carboncalc.view.factors.ElectricityFactorPanel electricityGeneralFactorsPanel;
+    private com.carboncalc.view.factors.GasFactorPanel gasGeneralFactorsPanel;
 
     private JTable tradingCompaniesTable;
     private JTextField companyNameField;
@@ -283,6 +284,8 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         // companies table. Otherwise return the local tradingCompaniesTable.
         if (electricityGeneralFactorsPanel != null)
             return electricityGeneralFactorsPanel.getTradingCompaniesTable();
+        if (gasGeneralFactorsPanel != null)
+            return gasGeneralFactorsPanel.getTradingCompaniesTable();
         return tradingCompaniesTable;
     }
 
@@ -355,6 +358,11 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     /** Register the electricity-specific panel so getters forward to its fields. */
     public void setElectricityGeneralFactorsPanel(com.carboncalc.view.factors.ElectricityFactorPanel panel) {
         this.electricityGeneralFactorsPanel = panel;
+    }
+
+    /** Register the gas-specific panel so getters forward to its fields. */
+    public void setGasGeneralFactorsPanel(com.carboncalc.view.factors.GasFactorPanel panel) {
+        this.gasGeneralFactorsPanel = panel;
     }
 
     /** Show card by name (if present). */

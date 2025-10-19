@@ -58,6 +58,18 @@ public class ElectricityFactorController implements FactorSubController {
         return true;
     }
 
+    @Override
+    public void onYearChanged(int newYear) {
+        // Reload per-year data for the new year
+        onActivate(newYear);
+    }
+
+    @Override
+    public boolean hasUnsavedChanges() {
+        // No tracking implemented yet; assume no unsaved changes
+        return false;
+    }
+
     public void handleSaveElectricityGeneralFactors(int selectedYear) {
         try {
             ElectricityGeneralFactors factorsFromView = buildElectricityGeneralFactorsFromView(selectedYear);

@@ -19,6 +19,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.util.Vector;
 
 import com.carboncalc.model.enums.EnergyType;
+import com.carboncalc.controller.factors.FactorSubController;
 
 public class EmissionFactorsController {
     private final ResourceBundle messages;
@@ -95,13 +96,33 @@ public class EmissionFactorsController {
             }
         } catch (Exception ignored) {}
 
+        // Ask the active subcontroller whether it's ok to change year
+        FactorSubController active = null;
+        try {
+            active = EnergyType.ELECTRICITY.name().equals(currentFactorType) ? electricityFactorController : genericControllers.get(currentFactorType);
+        } catch (Exception ignored) {}
+
+        if (active != null && active.hasUnsavedChanges()) {
+            int resp = JOptionPane.showConfirmDialog(view, messages.getString("message.confirm.unsaved.changes.year"), messages.getString("dialog.confirm"), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (resp != JOptionPane.YES_OPTION) {
+                // Revert spinner to previous year
+                try { if (view != null && view.getYearSpinner() != null) view.getYearSpinner().setValue(this.currentYear); } catch (Exception ignored) {}
+                return;
+            }
+        }
+
         // Year selection updated; prefer editor visible text when available.
-        // (Diagnostic logging removed in production.)
         this.currentYear = year;
         // persist the selected year (guard against programmatic initialization)
         if (!suppressSpinnerSideEffects) {
             persistCurrentYear(year);
         }
+
+        // Notify the current subcontroller so it can reload per-year data
+        try {
+            if (active != null) active.onYearChanged(year);
+        } catch (Exception ignored) {}
+        // Also update the shared factors table for the current type
         loadFactorsForType();
     }
 
@@ -278,6 +299,16 @@ public class EmissionFactorsController {
         for (com.carboncalc.controller.factors.GenericFactorController c : genericControllers.values()) {
             try { c.setView(view); } catch (Exception ignored) {}
         }
+            // Wire electricity panel buttons to controller handlers
+            try {
+                com.carboncalc.view.factors.ElectricityFactorPanel ep = (com.carboncalc.view.factors.ElectricityFactorPanel) view.getCardsPanel().getComponent(0);
+                if (ep != null) {
+                    if (ep.getSaveGeneralFactorsButton() != null) ep.getSaveGeneralFactorsButton().addActionListener(a -> handleSaveElectricityGeneralFactors());
+                    if (ep.getAddCompanyButton() != null) ep.getAddCompanyButton().addActionListener(a -> handleAddTradingCompany());
+                    if (ep.getTradingEditButton() != null) ep.getTradingEditButton().addActionListener(a -> handleEditTradingCompany());
+                    if (ep.getTradingDeleteButton() != null) ep.getTradingDeleteButton().addActionListener(a -> handleDeleteTradingCompany());
+                }
+            } catch (Exception ignored) {}
         // Schedule spinner initialization and data load on the EDT so that
         // the view's deferred initializeComponents() has completed and the
         // controls exist. Use suppressSpinnerSideEffects to avoid persisting

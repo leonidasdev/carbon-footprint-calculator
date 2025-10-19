@@ -81,24 +81,17 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         cardsPanel = new JPanel(cardLayout);
         cardsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
-        // For each EnergyType create a card. ELECTRICITY uses the dedicated
-        // general factors panel (which contains the year spinner). Other
-        // energy types reuse the generic file/data/preview composition but
-        // must be separate components (Swing components cannot have
-        // multiple parents), so we create one per-energy.
+        // For each EnergyType create a card using the dedicated factor panels
+        // New factor-specific panels live under view.factors package.
         if (electricityGeneralFactorsPanel == null) {
-            electricityGeneralFactorsPanel = createElectricityGeneralFactorsPanel();
+            electricityGeneralFactorsPanel = new com.carboncalc.view.factors.ElectricityFactorPanel(messages);
         }
         for (EnergyType et : EnergyType.values()) {
             if (et == EnergyType.ELECTRICITY) {
                 cardsPanel.add(electricityGeneralFactorsPanel, et.name());
             } else {
-                JPanel otherPanel = new JPanel(new BorderLayout());
-                otherPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-                otherPanel.add(createFileManagementPanel(), BorderLayout.NORTH);
-                otherPanel.add(createDataManagementPanel(), BorderLayout.CENTER);
-                otherPanel.add(createPreviewPanel(), BorderLayout.SOUTH);
-                cardsPanel.add(otherPanel, et.name());
+                com.carboncalc.view.factors.GenericFactorPanel g = new com.carboncalc.view.factors.GenericFactorPanel(messages);
+                cardsPanel.add(g, et.name());
             }
         }
 
@@ -334,7 +327,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private JTextField locationBasedField;
     private JTextField gdoCogeneracionField;
     private JButton saveGeneralFactorsButton;
-    private JPanel electricityGeneralFactorsPanel;
+    private com.carboncalc.view.factors.ElectricityFactorPanel electricityGeneralFactorsPanel;
 
     private JPanel createDataManagementPanel() {
         JPanel panel = new JPanel(new BorderLayout());
@@ -739,18 +732,22 @@ public class EmissionFactorsPanel extends BaseModulePanel {
 
     // Getters for electricity general factors
     public JTextField getMixSinGdoField() {
+        if (electricityGeneralFactorsPanel != null) return electricityGeneralFactorsPanel.getMixSinGdoField();
         return mixSinGdoField;
     }
 
     public JTextField getGdoRenovableField() {
+        if (electricityGeneralFactorsPanel != null) return electricityGeneralFactorsPanel.getGdoRenovableField();
         return gdoRenovableField;
     }
 
     public JTextField getLocationBasedField() {
+        if (electricityGeneralFactorsPanel != null) return electricityGeneralFactorsPanel.getLocationBasedField();
         return locationBasedField;
     }
 
     public JTextField getGdoCogeneracionField() {
+        if (electricityGeneralFactorsPanel != null) return electricityGeneralFactorsPanel.getGdoCogeneracionField();
         return gdoCogeneracionField;
     }
 
@@ -770,19 +767,28 @@ public class EmissionFactorsPanel extends BaseModulePanel {
 
     // Getters for trading companies
     public JTable getTradingCompaniesTable() {
+        if (electricityGeneralFactorsPanel != null) return electricityGeneralFactorsPanel.getTradingCompaniesTable();
         return tradingCompaniesTable;
     }
 
     public JTextField getCompanyNameField() {
+        if (electricityGeneralFactorsPanel != null) return electricityGeneralFactorsPanel.getCompanyNameField();
         return companyNameField;
     }
 
     public JTextField getEmissionFactorField() {
+        if (electricityGeneralFactorsPanel != null) return electricityGeneralFactorsPanel.getEmissionFactorField();
         return emissionFactorField;
     }
 
     public JComboBox<String> getGdoTypeComboBox() {
+        if (electricityGeneralFactorsPanel != null) return electricityGeneralFactorsPanel.getGdoTypeComboBox();
         return gdoTypeComboBox;
+    }
+
+    public JButton getSaveGeneralFactorsButton() {
+        if (electricityGeneralFactorsPanel != null) return electricityGeneralFactorsPanel.getSaveGeneralFactorsButton();
+        return saveGeneralFactorsButton;
     }
 
     // General factors are editable by default now; edit button removed.

@@ -43,4 +43,16 @@ public class GenericFactorController implements FactorSubController {
     public boolean onDeactivate() {
         return true;
     }
+
+    @Override
+    public void onYearChanged(int newYear) {
+        // Reload for the new year
+        onActivate(newYear);
+    }
+
+    @Override
+    public boolean hasUnsavedChanges() {
+        // Generic controller does not track unsaved edits yet
+        return false;
+    }
 }

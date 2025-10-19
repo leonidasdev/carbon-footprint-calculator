@@ -3,7 +3,6 @@ package com.carboncalc.controller;
 import com.carboncalc.model.factors.*;
 import com.carboncalc.service.EmissionFactorService;
 // Services are injected via constructor; concrete implementations are provided by the application startup.
-import java.io.IOException;
 import com.carboncalc.view.EmissionFactorsPanel;
 import com.carboncalc.util.UIUtils;
 import java.util.List;
@@ -18,7 +17,7 @@ import java.io.FileInputStream;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.util.Vector;
-import java.util.Locale;
+
 import com.carboncalc.model.enums.EnergyType;
 
 public class EmissionFactorsController {
@@ -28,6 +27,8 @@ public class EmissionFactorsController {
     private File currentFile;
     private final EmissionFactorService emissionFactorService;
     private final com.carboncalc.service.ElectricityGeneralFactorService electricityGeneralFactorService;
+    private final com.carboncalc.controller.factors.ElectricityFactorController electricityFactorController;
+    private final java.util.Map<String, com.carboncalc.controller.factors.GenericFactorController> genericControllers = new java.util.HashMap<>();
     private String currentFactorType;
     private int currentYear;
     private static final java.nio.file.Path CURRENT_YEAR_FILE = java.nio.file.Paths.get("data", "year", "current_year.txt");
@@ -44,6 +45,12 @@ public class EmissionFactorsController {
         this.messages = messages;
         this.emissionFactorService = emissionFactorService;
         this.electricityGeneralFactorService = electricityGeneralFactorService;
+        this.electricityFactorController = new com.carboncalc.controller.factors.ElectricityFactorController(messages, emissionFactorService, electricityGeneralFactorService);
+        // Create generic controllers for non-electricity energy types
+        for (com.carboncalc.model.enums.EnergyType et : com.carboncalc.model.enums.EnergyType.values()) {
+            if (et == com.carboncalc.model.enums.EnergyType.ELECTRICITY) continue;
+            genericControllers.put(et.name(), new com.carboncalc.controller.factors.GenericFactorController(messages, emissionFactorService, et.name()));
+        }
         // Attempt to load persisted year; fallback to current year
         int persisted = loadPersistedYear();
         this.currentYear = persisted > 0 ? persisted : java.time.Year.now().getValue();
@@ -125,54 +132,19 @@ public class EmissionFactorsController {
     
     private void loadFactorsForType() {
         if (currentFactorType == null) return;
-        
         List<? extends EmissionFactor> factors = emissionFactorService.loadEmissionFactors(currentFactorType, currentYear);
         updateFactorsTable(factors);
-        
-        // Load general electricity factors if type is ELECTRICITY
+
+        // Delegate electricity-specific general factor loading to the electricity subcontroller
         if (EnergyType.ELECTRICITY.name().equals(currentFactorType)) {
             try {
-                ElectricityGeneralFactors generalFactors = electricityGeneralFactorService.loadFactors(currentYear);
-                updateGeneralFactors(generalFactors);
-            } catch (IOException e) {
+                electricityFactorController.onActivate(currentYear);
+            } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
                     messages.getString("error.load.general.factors"),
                     messages.getString("error.title"),
                     JOptionPane.ERROR_MESSAGE);
             }
-        }
-    }
-    
-    private void updateGeneralFactors(ElectricityGeneralFactors factors) {
-        if (factors != null) {
-            view.getMixSinGdoField().setText(String.format("%.4f", factors.getMixSinGdo()));
-            view.getGdoRenovableField().setText(String.format("%.4f", factors.getGdoRenovable()));
-            view.getGdoCogeneracionField().setText(String.format("%.4f", factors.getGdoCogeneracionAltaEficiencia()));
-            try {
-                view.getLocationBasedField().setText(String.format("%.4f", factors.getLocationBasedFactor()));
-            } catch (Exception ignored) {}
-            // Populate trading companies table with loaded companies
-            try {
-                DefaultTableModel tmodel = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
-                tmodel.setRowCount(0);
-                if (factors.getTradingCompanies() != null) {
-                    for (ElectricityGeneralFactors.TradingCompany c : factors.getTradingCompanies()) {
-                        String name = c.getName();
-                        String factor = String.format(java.util.Locale.ROOT, "%.4f", c.getEmissionFactor());
-                        String gdo = c.getGdoType();
-                        tmodel.addRow(new Object[]{name, factor, gdo});
-                    }
-                }
-            } catch (Exception ignored) {}
-        } else {
-        view.getMixSinGdoField().setText("0.0000");
-        view.getGdoRenovableField().setText("0.0000");
-        view.getGdoCogeneracionField().setText("0.0000");
-        try { view.getLocationBasedField().setText("0.0000"); } catch (Exception ignored) {}
-            try {
-                DefaultTableModel tmodel = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
-                tmodel.setRowCount(0);
-            } catch (Exception ignored) {}
         }
     }
     
@@ -237,10 +209,9 @@ public class EmissionFactorsController {
 
             // Build and validate factors from the view; throws IllegalArgumentException
             // with a user-friendly message when validation fails.
-            ElectricityGeneralFactors factorsFromView = buildElectricityGeneralFactorsFromView(selectedYear);
 
-            // Persist using the dedicated service
-            electricityGeneralFactorService.saveFactors(factorsFromView, selectedYear);
+            // Delegate to electricity-specific controller which will build and save
+            electricityFactorController.handleSaveElectricityGeneralFactors(selectedYear);
 
             // Persist selected year so GUI/controller remain in sync across sessions
             persistCurrentYear(selectedYear);
@@ -270,11 +241,6 @@ public class EmissionFactorsController {
                 iae.getMessage(),
                 messages.getString("error.title"),
                 JOptionPane.ERROR_MESSAGE);
-        } catch (IOException ioe) {
-            JOptionPane.showMessageDialog(view,
-                messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(),
-                messages.getString("error.title"),
-                JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
             // Unexpected runtime error - show diagnostic information
             JOptionPane.showMessageDialog(view,
@@ -290,67 +256,6 @@ public class EmissionFactorsController {
      * and reason about. On validation failure an IllegalArgumentException
      * is thrown containing a user-facing message.
      */
-    private ElectricityGeneralFactors buildElectricityGeneralFactorsFromView(int selectedYear) {
-        ElectricityGeneralFactors factors = new ElectricityGeneralFactors();
-
-        // Parse numeric inputs (tolerant)
-        String mixText = view.getMixSinGdoField().getText();
-        String renovText = view.getGdoRenovableField().getText();
-    String cogText = view.getGdoCogeneracionField().getText();
-    String locText = "";
-    try { locText = view.getLocationBasedField().getText(); } catch (Exception ignored) {}
-
-        Double mixSinGdo = com.carboncalc.util.ValidationUtils.tryParseDouble(mixText);
-        Double gdoRenovable = com.carboncalc.util.ValidationUtils.tryParseDouble(renovText);
-        Double gdoCogeneracion = com.carboncalc.util.ValidationUtils.tryParseDouble(cogText);
-
-        // If parsing failed, try to resync the text fields and retry once
-        if (mixSinGdo == null || gdoRenovable == null || gdoCogeneracion == null) {
-            syncGeneralFactorTextFields();
-            mixSinGdo = com.carboncalc.util.ValidationUtils.tryParseDouble(view.getMixSinGdoField().getText());
-            gdoRenovable = com.carboncalc.util.ValidationUtils.tryParseDouble(view.getGdoRenovableField().getText());
-            gdoCogeneracion = com.carboncalc.util.ValidationUtils.tryParseDouble(view.getGdoCogeneracionField().getText());
-            if (locText != null && !locText.isEmpty()) {
-                // ensure location-based is refreshed too
-                try { view.getLocationBasedField().setText(locText); } catch (Exception ignored) {}
-            }
-        }
-
-        if (mixSinGdo == null || gdoRenovable == null || gdoCogeneracion == null) {
-            String detail = String.format("%s\nmix='%s', renov='%s', cog='%s', year=%d",
-                messages.getString("error.invalid.number"), safeString(mixText), safeString(renovText), safeString(cogText), selectedYear);
-            throw new IllegalArgumentException(detail);
-        }
-
-        if (!com.carboncalc.util.ValidationUtils.isValidNonNegativeFactor(mixSinGdo)
-            || !com.carboncalc.util.ValidationUtils.isValidNonNegativeFactor(gdoRenovable)
-            || !com.carboncalc.util.ValidationUtils.isValidNonNegativeFactor(gdoCogeneracion)) {
-            throw new IllegalArgumentException(messages.getString("error.invalid.number"));
-        }
-
-        factors.setMixSinGdo(mixSinGdo);
-        factors.setGdoRenovable(gdoRenovable);
-        factors.setGdoCogeneracionAltaEficiencia(gdoCogeneracion);
-    Double locVal = com.carboncalc.util.ValidationUtils.tryParseDouble(locText);
-    if (locVal == null) locVal = 0.0;
-    factors.setLocationBasedFactor(locVal);
-
-        // Parse trading companies from table (defensive parsing)
-        DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
-        for (int i = 0; i < model.getRowCount(); i++) {
-            String name = String.valueOf(model.getValueAt(i, 0));
-            String factorCell = String.valueOf(model.getValueAt(i, 1));
-            String gdoType = String.valueOf(model.getValueAt(i, 2));
-            Double companyFactor = com.carboncalc.util.ValidationUtils.tryParseDouble(factorCell);
-            if (companyFactor == null) {
-                throw new IllegalArgumentException(messages.getString("error.invalid.emission.factor") + " - " + name);
-            }
-            factors.addTradingCompany(new ElectricityGeneralFactors.TradingCompany(name, companyFactor, gdoType));
-        }
-
-        return factors;
-    }
-    
     private void updateFactorsTable(List<? extends EmissionFactor> factors) {
         DefaultTableModel model = (DefaultTableModel) view.getFactorsTable().getModel();
         model.setRowCount(0);
@@ -367,6 +272,12 @@ public class EmissionFactorsController {
     
     public void setView(EmissionFactorsPanel view) {
         this.view = view;
+        // Give subcontrollers access to the view so they can update UI elements
+        try { this.electricityFactorController.setView(view); } catch (Exception ignored) {}
+        // Wire generic controllers to the view
+        for (com.carboncalc.controller.factors.GenericFactorController c : genericControllers.values()) {
+            try { c.setView(view); } catch (Exception ignored) {}
+        }
         // Schedule spinner initialization and data load on the EDT so that
         // the view's deferred initializeComponents() has completed and the
         // controls exist. Use suppressSpinnerSideEffects to avoid persisting
@@ -401,23 +312,8 @@ public class EmissionFactorsController {
         return this.currentYear;
     }
 
-    /** If the view's general factor text fields appear to show text but parsing
-     * failed, re-assign the visible text to the field to force any pending
-     * editor state into the Document. This is a defensive workaround. */
-    private void syncGeneralFactorTextFields() {
-        try {
-            javax.swing.JTextField mix = view.getMixSinGdoField();
-            javax.swing.JTextField renov = view.getGdoRenovableField();
-            javax.swing.JTextField cog = view.getGdoCogeneracionField();
-            if (mix != null) mix.setText(mix.getText());
-            if (renov != null) renov.setText(renov.getText());
-            if (cog != null) cog.setText(cog.getText());
-        } catch (Exception ignored) {}
-    }
-
-    private String safeString(String s) {
-        return s == null ? "" : s;
-    }
+    
+    
 
     /** Read persisted year from data/year/current_year.txt. Returns -1 if not present/invalid. */
     private int loadPersistedYear() {
@@ -743,70 +639,9 @@ public class EmissionFactorsController {
     }
 
     public void handleAddTradingCompany() {
-        // Validate and add a trading company from manual input.
+        // Delegate to electricity subcontroller
         try {
-            String rawName = view.getCompanyNameField().getText();
-            String name = rawName == null ? "" : rawName.trim();
-            if (name.isEmpty()) {
-                JOptionPane.showMessageDialog(view,
-                    messages.getString("error.company.name.required"),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            // Normalize name to upper case (preserve accents using default locale)
-            String normalizedName = name.toUpperCase(Locale.getDefault());
-
-            // Parse emission factor using tolerant parser that accepts comma decimals
-            String factorText = view.getEmissionFactorField().getText();
-            Double parsedFactor = com.carboncalc.util.ValidationUtils.tryParseDouble(factorText);
-            if (parsedFactor == null || !com.carboncalc.util.ValidationUtils.isValidNonNegativeFactor(parsedFactor)) {
-                JOptionPane.showMessageDialog(view,
-                    messages.getString("error.invalid.emission.factor"),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            String gdoType = (String) view.getGdoTypeComboBox().getSelectedItem();
-
-            DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
-            model.addRow(new Object[]{normalizedName, String.format("%.4f", parsedFactor), gdoType});
-
-            // Clear input fields
-            view.getCompanyNameField().setText("");
-            view.getEmissionFactorField().setText("");
-            view.getGdoTypeComboBox().setSelectedIndex(0);
-
-            // Persist the current general factors and trading companies to CSV
-            try {
-                // Ensure the spinner/editor commits and controller currentYear is up-to-date
-                int yearToSave = commitAndGetSpinnerYear();
-                if (!com.carboncalc.util.ValidationUtils.isValidYear(yearToSave)) {
-                    yearToSave = this.currentYear;
-                }
-
-                ElectricityGeneralFactors factors = buildElectricityGeneralFactorsFromView(yearToSave);
-                // Add trading companies from the table (we just added the new one above)
-                // buildElectricityGeneralFactorsFromView already reads table contents, so reuse it
-                electricityGeneralFactorService.saveFactors(factors, yearToSave);
-
-                // Persist selected year as a convenience
-                persistCurrentYear(yearToSave);
-
-            } catch (IOException ioe) {
-                JOptionPane.showMessageDialog(view,
-                    messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
-            } catch (IllegalArgumentException iae) {
-                JOptionPane.showMessageDialog(view,
-                    iae.getMessage(),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
-            }
-
+            electricityFactorController.handleAddTradingCompany();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(view,
                 messages.getString("error.invalid.emission.factor"),
@@ -816,60 +651,12 @@ public class EmissionFactorsController {
     }
 
     public void handleEditTradingCompany() {
-        int selectedRow = view.getTradingCompaniesTable().getSelectedRow();
-        if (selectedRow == -1) return;
-
-        DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
-        String name = (String) model.getValueAt(selectedRow, 0);
-        double factor = Double.parseDouble(model.getValueAt(selectedRow, 1).toString());
-        String gdoType = (String) model.getValueAt(selectedRow, 2);
-
-        view.getCompanyNameField().setText(name);
-        view.getEmissionFactorField().setText(String.valueOf(factor));
-        view.getGdoTypeComboBox().setSelectedItem(gdoType);
-
-        // Remove the row as it will be re-added when saving
-        model.removeRow(selectedRow);
+        electricityFactorController.handleEditTradingCompany();
     }
 
     public void handleDeleteTradingCompany() {
-        int selectedRow = view.getTradingCompaniesTable().getSelectedRow();
-        if (selectedRow == -1) return;
-
-        int response = JOptionPane.showConfirmDialog(view,
-            messages.getString("message.confirm.delete.company"),
-            messages.getString("dialog.delete.title"),
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE);
-
-        if (response == JOptionPane.YES_OPTION) {
-            DefaultTableModel model = (DefaultTableModel) view.getTradingCompaniesTable().getModel();
-            model.removeRow(selectedRow);
-
-            // Persist the updated general factors (trading companies) to CSV
-            try {
-                // Ensure spinner/editor commits and controller currentYear is up-to-date
-                int yearToSave = commitAndGetSpinnerYear();
-                if (!com.carboncalc.util.ValidationUtils.isValidYear(yearToSave)) {
-                    yearToSave = this.currentYear;
-                }
-
-                ElectricityGeneralFactors factors = buildElectricityGeneralFactorsFromView(yearToSave);
-                electricityGeneralFactorService.saveFactors(factors, yearToSave);
-
-                // Persist selected year as a convenience
-                persistCurrentYear(yearToSave);
-            } catch (IOException ioe) {
-                JOptionPane.showMessageDialog(view,
-                    messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
-            } catch (IllegalArgumentException iae) {
-                JOptionPane.showMessageDialog(view,
-                    iae.getMessage(),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
-            }
-        }
+        electricityFactorController.handleDeleteTradingCompany();
     }
+
+    
 }

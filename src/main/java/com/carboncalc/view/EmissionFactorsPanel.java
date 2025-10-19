@@ -214,9 +214,115 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         UIUtils.styleComboBox(typeComboBox);
         contentPanel.add(typePanel);
 
-        // Note: year selector moved into the General Factors area so it is
-        // visually associated with the editable controls. This keeps the
-        // top type selector compact.
+        // Year selector at the top so it's always visible regardless of
+        // selected energy type. Behavior (commit-on-focus-lost and editor
+        // parsing) mirrors previous implementation inside the electricity panel.
+        JPanel yearPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        yearPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+        yearPanel.add(new JLabel(messages.getString("label.year.select")));
+
+        int currentYear = controller.getCurrentYear();
+        SpinnerNumberModel yearModel = new SpinnerNumberModel(currentYear, 1900, 2100, 1);
+        yearSpinner = new JSpinner(yearModel);
+        yearSpinner.setPreferredSize(new Dimension(80, 25));
+        JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "#");
+        yearSpinner.setEditor(yearEditor);
+        try {
+            javax.swing.JFormattedTextField tf = yearEditor.getTextField();
+            tf.setFocusLostBehavior(javax.swing.JFormattedTextField.COMMIT);
+
+            java.util.function.Consumer<Void> notifyFromEditor = (v) -> {
+                try {
+                    String txt = tf.getText();
+                    if (txt != null) {
+                        txt = txt.trim();
+                        if (!txt.isEmpty()) {
+                            try {
+                                int parsed = Integer.parseInt(txt);
+                                controller.handleYearSelection(parsed);
+                                return;
+                            } catch (NumberFormatException nfe) {
+                                // fall through to try spinner model
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+                try {
+                    Object val = yearSpinner.getValue();
+                    if (val instanceof Number) {
+                        controller.handleYearSelection(((Number) val).intValue());
+                    }
+                } catch (Exception ignored) {
+                }
+            };
+
+            tf.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+                private void safeCommit() {
+                    try {
+                        yearSpinner.commitEdit();
+                    } catch (Exception ignored) {
+                        // ignore parse errors while typing
+                    }
+                }
+
+                @Override
+                public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                    safeCommit();
+                    notifyFromEditor.accept(null);
+                }
+
+                @Override
+                public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                    safeCommit();
+                    notifyFromEditor.accept(null);
+                }
+
+                @Override
+                public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                    safeCommit();
+                    notifyFromEditor.accept(null);
+                }
+            });
+
+            tf.addActionListener(ae -> {
+                try { yearSpinner.commitEdit(); } catch (Exception ignored) {}
+                notifyFromEditor.accept(null);
+            });
+
+            tf.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusLost(java.awt.event.FocusEvent e) {
+                    try { yearSpinner.commitEdit(); } catch (Exception ignored) {}
+                    notifyFromEditor.accept(null);
+                }
+            });
+        } catch (Exception ignored) {
+        }
+
+        yearSpinner.addChangeListener(e -> {
+            try {
+                if (yearSpinner.getEditor() instanceof JSpinner.NumberEditor) {
+                    javax.swing.JFormattedTextField tf = ((JSpinner.NumberEditor) yearSpinner.getEditor()).getTextField();
+                    String txt = tf.getText();
+                    if (txt != null && !txt.trim().isEmpty()) {
+                        try {
+                            int parsed = Integer.parseInt(txt.trim());
+                            controller.handleYearSelection(parsed);
+                            return;
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+
+                Object val = yearSpinner.getValue();
+                if (val instanceof Number) {
+                    controller.handleYearSelection(((Number) val).intValue());
+                }
+            } catch (Exception ignored) {}
+        });
+
+        yearPanel.add(yearSpinner);
+        contentPanel.add(yearPanel);
 
         panel.add(contentPanel, BorderLayout.CENTER);
         return panel;
@@ -330,134 +436,11 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         fgbc.fill = GridBagConstraints.HORIZONTAL;
 
         // Mix sin GdO (label, input, unit)
-        // Year selector row inside the general factors box
+        // Year selector moved to top-level so first row now starts with mix label
         fgbc.gridx = 0;
         fgbc.gridy = 0;
         fgbc.weightx = 0.0;
         fgbc.anchor = GridBagConstraints.WEST;
-        JLabel yearLabel = new JLabel(messages.getString("label.year.select"));
-        factorsPanel.add(yearLabel, fgbc);
-
-        fgbc.gridx = 1;
-        fgbc.weightx = 0.6;
-        int currentYear = controller.getCurrentYear();
-        SpinnerNumberModel yearModel = new SpinnerNumberModel(currentYear, 1900, 2100, 1);
-        yearSpinner = new JSpinner(yearModel);
-        yearSpinner.setPreferredSize(new Dimension(80, 25));
-        JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "#");
-        yearSpinner.setEditor(yearEditor);
-        // Ensure the spinner's text field commits its value on focus lost so
-        // typed values are parsed into the model before listeners read them.
-        try {
-            javax.swing.JFormattedTextField tf = yearEditor.getTextField();
-            tf.setFocusLostBehavior(javax.swing.JFormattedTextField.COMMIT);
-
-            // Helper to parse the visible editor text and notify the controller
-            java.util.function.Consumer<Void> notifyFromEditor = (v) -> {
-                try {
-                    String txt = tf.getText();
-                    if (txt != null) {
-                        txt = txt.trim();
-                        if (!txt.isEmpty()) {
-                            try {
-                                int parsed = Integer.parseInt(txt);
-                                controller.handleYearSelection(parsed);
-                                return;
-                            } catch (NumberFormatException nfe) {
-                                // fall through to try spinner model
-                            }
-                        }
-                    }
-                } catch (Exception ignored) {
-                }
-                // Fallback: use spinner model value
-                try {
-                    Object val = yearSpinner.getValue();
-                    if (val instanceof Number) {
-                        controller.handleYearSelection(((Number) val).intValue());
-                    }
-                } catch (Exception ignored) {
-                }
-            };
-
-            // Commit on document changes and notify controller using the editor text
-            tf.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-                private void safeCommit() {
-                    try {
-                        yearSpinner.commitEdit();
-                    } catch (Exception ignored) {
-                        // ignore parse errors while typing
-                    }
-                }
-
-                @Override
-                public void insertUpdate(javax.swing.event.DocumentEvent e) {
-                    safeCommit();
-                    notifyFromEditor.accept(null);
-                }
-
-                @Override
-                public void removeUpdate(javax.swing.event.DocumentEvent e) {
-                    safeCommit();
-                    notifyFromEditor.accept(null);
-                }
-
-                @Override
-                public void changedUpdate(javax.swing.event.DocumentEvent e) {
-                    safeCommit();
-                    notifyFromEditor.accept(null);
-                }
-            });
-
-            // Commit and notify on Enter (action) so users who press Enter also propagate
-            tf.addActionListener(ae -> {
-                try {
-                    yearSpinner.commitEdit();
-                } catch (Exception ignored) {
-                }
-                notifyFromEditor.accept(null);
-            });
-
-            // Ensure focus lost also commits and notifies the controller
-            tf.addFocusListener(new java.awt.event.FocusAdapter() {
-                @Override
-                public void focusLost(java.awt.event.FocusEvent e) {
-                    try {
-                        yearSpinner.commitEdit();
-                    } catch (Exception ignored) {
-                    }
-                    notifyFromEditor.accept(null);
-                }
-            });
-        } catch (Exception ignored) {
-        }
-
-        // Also listen to model changes as a fallback (keeps previous behavior)
-        yearSpinner.addChangeListener(e -> {
-            try {
-                // Prefer editor text (what the user sees) — reuse the editor parsing logic
-                if (yearSpinner.getEditor() instanceof JSpinner.NumberEditor) {
-                    javax.swing.JFormattedTextField tf = ((JSpinner.NumberEditor) yearSpinner.getEditor())
-                            .getTextField();
-                    String txt = tf.getText();
-                    if (txt != null && !txt.trim().isEmpty()) {
-                        try {
-                            int parsed = Integer.parseInt(txt.trim());
-                            controller.handleYearSelection(parsed);
-                            return;
-                        } catch (NumberFormatException ignored) {
-                        }
-                    }
-                }
-
-                Object val = yearSpinner.getValue();
-                if (val instanceof Number) {
-                    controller.handleYearSelection(((Number) val).intValue());
-                }
-            } catch (Exception ignored) {
-            }
-        });
-        factorsPanel.add(yearSpinner, fgbc);
 
         // Mix sin GdO (label, input, unit) - move to next row
         fgbc.gridx = 0;
@@ -555,17 +538,13 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         cogUnit.setForeground(Color.GRAY);
         factorsPanel.add(cogUnit, fgbc);
 
-    // Add Edit/Save buttons inside the general factors box on the next row
-    // Move the button up slightly by reducing the top inset by ~5px
-    Insets previousInsets = fgbc.insets;
-    // Request a larger upward nudge; inset is clamped to >=0 so top may become 0
-    fgbc.insets = new Insets(Math.max(0, previousInsets.top - 10), previousInsets.left, previousInsets.bottom, previousInsets.right);
-    fgbc.gridx = 0;
-    fgbc.gridy = 5;
-    fgbc.gridwidth = 3;
-    fgbc.weightx = 1.0;
-    fgbc.anchor = GridBagConstraints.EAST;
-    fgbc.fill = GridBagConstraints.NONE;
+        // Add Edit/Save buttons inside the general factors box on the next row
+        fgbc.gridx = 0;
+        fgbc.gridy = 5;
+        fgbc.gridwidth = 3;
+        fgbc.weightx = 1.0;
+        fgbc.anchor = GridBagConstraints.EAST;
+        fgbc.fill = GridBagConstraints.NONE;
         JPanel localFactorsButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         localFactorsButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
@@ -575,9 +554,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         UIUtils.styleButton(saveGeneralFactorsButton);
         localFactorsButtonPanel.add(saveGeneralFactorsButton);
 
-    factorsPanel.add(localFactorsButtonPanel, fgbc);
-    // restore original insets for subsequent components
-    fgbc.insets = previousInsets;
+        factorsPanel.add(localFactorsButtonPanel, fgbc);
 
         // Create a wrapper panel which will hold a top two-column area and
         // the trading companies panel below (spanning full width)
@@ -589,26 +566,23 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         inputPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         inputPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-    // Company name field (reduced size)
-    inputPanel.add(new JLabel(messages.getString("label.company.name") + ":"));
-    companyNameField = new JTextField(10);
-    companyNameField.setMargin(new Insets(3, 3, 3, 3));
-    companyNameField.setPreferredSize(new Dimension(140, 24));
-    inputPanel.add(companyNameField);
+        // Company name field
+        inputPanel.add(new JLabel(messages.getString("label.company.name") + ":"));
+        companyNameField = new JTextField(20);
+        companyNameField.setMargin(new Insets(5, 5, 5, 5));
+        inputPanel.add(companyNameField);
 
-    // Emission factor field (reduced size)
-    inputPanel.add(new JLabel(messages.getString("label.emission.factor") + ":"));
-    emissionFactorField = new JTextField(10);
-    emissionFactorField.setMargin(new Insets(3, 3, 3, 3));
-    emissionFactorField.setPreferredSize(new Dimension(100, 24));
-    inputPanel.add(emissionFactorField);
+        // Emission factor field
+        inputPanel.add(new JLabel(messages.getString("label.emission.factor") + ":"));
+        emissionFactorField = new JTextField(20);
+        emissionFactorField.setMargin(new Insets(5, 5, 5, 5));
+        inputPanel.add(emissionFactorField);
 
-    // GdO type combo box (reduced width)
-    inputPanel.add(new JLabel(messages.getString("label.gdo.type") + ":"));
-    gdoTypeComboBox = new JComboBox<>(GDO_TYPES);
-    gdoTypeComboBox.setPreferredSize(new Dimension(140, 24));
-    UIUtils.styleComboBox(gdoTypeComboBox);
-    inputPanel.add(gdoTypeComboBox);
+        // GdO type combo box
+        inputPanel.add(new JLabel(messages.getString("label.gdo.type") + ":"));
+        gdoTypeComboBox = new JComboBox<>(GDO_TYPES);
+        UIUtils.styleComboBox(gdoTypeComboBox);
+        inputPanel.add(gdoTypeComboBox);
 
         // Add button panel for manual input
         JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -631,8 +605,8 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         manualInputBox.add(inputWrapperPanel, BorderLayout.CENTER);
     // Make the manual input box taller so form fields and the Add button
     // have more vertical room and won't collide with adjacent controls.
-    manualInputBox.setPreferredSize(new Dimension(380, 200));
-    manualInputBox.setMinimumSize(new Dimension(300, 160));
+    manualInputBox.setPreferredSize(new Dimension(380, 240));
+    manualInputBox.setMinimumSize(new Dimension(300, 200));
 
         // Create table for trading companies (preview)
         String[] columnNames = {

@@ -33,6 +33,18 @@ import java.nio.file.Paths;
 
 public class ElectricityExcelExporter {
 
+    /**
+     * Electricity Excel exporter.
+     *
+     * Responsibilities are intentionally small and delegated to helper methods:
+     * - reading provider data
+     * - loading supporting lookups (CUPS -> centers, CUPS -> marketer, marketer -> factor)
+     * - creating cell styles
+     * - writing sheets (detailed, per-center, total)
+     *
+     * This keeps the class modular and easier to test/extend.
+     */
+
     public static void exportElectricityData(String filePath) throws IOException {
         // Backward-compatible call: no data provided -> create empty template
         exportElectricityData(filePath, null, null, null, null, new ElectricityMapping(), LocalDate.now().getYear(),
@@ -132,6 +144,90 @@ public class ElectricityExcelExporter {
         return sb.reverse().toString();
     }
 
+    // ---------------- Helper loaders and styles ----------------
+
+    /**
+     * Load map CUPS -> number of centers that reference each CUPS.
+     * Returns an empty map on any error.
+     */
+    private static Map<String, Integer> loadCentersPerCups() {
+        Map<String, Integer> centersPerCups = new HashMap<>();
+        try {
+            CupsServiceCsv cupsSvc = new CupsServiceCsv();
+            List<CupsCenterMapping> all = cupsSvc.loadCupsData();
+            for (CupsCenterMapping m : all) {
+                String key = m.getCups() != null ? m.getCups().trim() : "";
+                if (key.isEmpty())
+                    continue;
+                centersPerCups.put(key, centersPerCups.getOrDefault(key, 0) + 1);
+            }
+        } catch (Exception ex) {
+            // ignore and return empty map
+        }
+        return centersPerCups;
+    }
+
+    /**
+     * Load map CUPS -> marketer (if present). Returns empty map on error.
+     */
+    private static Map<String, String> loadCupsToMarketer() {
+        Map<String, String> cupsToMarketer = new HashMap<>();
+        try {
+            CupsServiceCsv cupsSvc = new CupsServiceCsv();
+            List<CupsCenterMapping> all = cupsSvc.loadCupsData();
+            for (CupsCenterMapping m : all) {
+                String key = m.getCups() != null ? m.getCups().trim() : "";
+                String marketer = m.getMarketer() != null ? m.getMarketer().trim() : "";
+                if (!key.isEmpty() && !marketer.isEmpty())
+                    cupsToMarketer.put(key, marketer);
+            }
+        } catch (Exception ex) {
+            // ignore
+        }
+        return cupsToMarketer;
+    }
+
+    /**
+     * Load marketer -> base factor for electricity for a specific year.
+     * Returns empty map on error to keep exporter resilient.
+     */
+    private static Map<String, Double> loadMarketerToFactor(int year) {
+        Map<String, Double> marketerToFactor = new HashMap<>();
+        try {
+            EmissionFactorServiceCsv efsvc = new EmissionFactorServiceCsv();
+            List<? extends EmissionFactor> efs = efsvc.loadEmissionFactors("electricity", year);
+            for (EmissionFactor ef : efs) {
+                String entity = ef.getEntity() == null ? "" : ef.getEntity();
+                double base = ef.getBaseFactor();
+                marketerToFactor.put(normalizeKey(entity), base);
+            }
+        } catch (Exception ex) {
+            // ignore
+        }
+        return marketerToFactor;
+    }
+
+    private static CellStyle createDateStyle(Workbook wb) {
+        CellStyle dateStyle = wb.createCellStyle();
+        short dateFmt = wb.createDataFormat().getFormat("dd/MM/yyyy");
+        dateStyle.setDataFormat(dateFmt);
+        return dateStyle;
+    }
+
+    private static CellStyle createPercentStyle(Workbook wb) {
+        CellStyle percentStyle = wb.createCellStyle();
+        short percentFmt = wb.createDataFormat().getFormat("0.00");
+        percentStyle.setDataFormat(percentFmt);
+        return percentStyle;
+    }
+
+    private static CellStyle createEmissionsStyle(Workbook wb) {
+        CellStyle emissionsStyle = wb.createCellStyle();
+        short emissionsFmt = wb.createDataFormat().getFormat("0.000000");
+        emissionsStyle.setDataFormat(emissionsFmt);
+        return emissionsStyle;
+    }
+
     private static Map<String, double[]> writeExtendedRows(Sheet target, Sheet source, ElectricityMapping mapping,
             int year, Set<String> validInvoices, double locationFactorKgPerKwh) {
         DataFormatter df = new DataFormatter();
@@ -165,62 +261,19 @@ public class ElectricityExcelExporter {
         int idCounter = 1;
         // Build a map CUPS -> count of centers that reference it (from
         // data/cups_center/cups.csv)
-        Map<String, Integer> centersPerCups = new HashMap<>();
-        try {
-            CupsServiceCsv cupsSvc = new CupsServiceCsv();
-            List<CupsCenterMapping> all = cupsSvc.loadCupsData();
-            for (CupsCenterMapping m : all) {
-                String key = m.getCups() != null ? m.getCups().trim() : "";
-                if (key.isEmpty())
-                    continue;
-                centersPerCups.put(key, centersPerCups.getOrDefault(key, 0) + 1);
-            }
-        } catch (Exception ex) {
-            // ignore and assume 1 per cups
-        }
+        Map<String, Integer> centersPerCups = loadCentersPerCups();
 
         // Build a CUPS -> marketer map to resolve marketer from cups (if present)
-        Map<String, String> cupsToMarketer = new HashMap<>();
-        try {
-            CupsServiceCsv cupsSvc2 = new CupsServiceCsv();
-            List<CupsCenterMapping> all2 = cupsSvc2.loadCupsData();
-            for (CupsCenterMapping m : all2) {
-                String key = m.getCups() != null ? m.getCups().trim() : "";
-                String marketer = m.getMarketer() != null ? m.getMarketer().trim() : "";
-                if (!key.isEmpty() && !marketer.isEmpty())
-                    cupsToMarketer.put(key, marketer);
-            }
-        } catch (Exception ex) {
-            // ignore
-        }
+        Map<String, String> cupsToMarketer = loadCupsToMarketer();
 
         // Load per-year emission factors for electricity into a marketer->factor map
-        Map<String, Double> marketerToFactor = new HashMap<>();
-        try {
-            EmissionFactorServiceCsv efsvc = new EmissionFactorServiceCsv();
-            List<? extends EmissionFactor> efs = efsvc.loadEmissionFactors("electricity", year);
-            for (EmissionFactor ef : efs) {
-                String entity = ef.getEntity() == null ? "" : ef.getEntity();
-                double base = ef.getBaseFactor();
-                marketerToFactor.put(normalizeKey(entity), base);
-            }
-        } catch (Exception ex) {
-            // ignore
-        }
+        Map<String, Double> marketerToFactor = loadMarketerToFactor(year);
 
-        // Prepare some cell styles (date, percentage, emissions number formats)
-        Workbook wb = target.getWorkbook();
-        CellStyle dateStyle = wb.createCellStyle();
-        short dateFmt = wb.createDataFormat().getFormat("dd/MM/yyyy");
-        dateStyle.setDataFormat(dateFmt);
-
-        CellStyle percentStyle = wb.createCellStyle();
-        short percentFmt = wb.createDataFormat().getFormat("0.00");
-        percentStyle.setDataFormat(percentFmt);
-
-        CellStyle emissionsStyle = wb.createCellStyle();
-        short emissionsFmt = wb.createDataFormat().getFormat("0.000000");
-        emissionsStyle.setDataFormat(emissionsFmt);
+    // Prepare some cell styles (date, percentage, emissions number formats)
+    Workbook wb = target.getWorkbook();
+    CellStyle dateStyle = createDateStyle(wb);
+    CellStyle percentStyle = createPercentStyle(wb);
+    CellStyle emissionsStyle = createEmissionsStyle(wb);
 
         // Determine the reporting year: prefer the 'year' parameter passed by caller
         // (UI selection),
@@ -285,13 +338,13 @@ public class ElectricityExcelExporter {
         if (marketerToUse != null && !marketerToUse.isEmpty() && factorEmision == 0.0 && !marketerToFactor.containsKey(normalizeKey(marketerToUse))) {
         diagnostics.add(String.format("Row %d: marketer '%s' not found for year %d; using factor=0.0", i, marketerToUse, reportingYear));
         }
-            // Emissions (market-based): expressed here as consumoPorCentro * factor (same
-            // unit as the factor - kgCO2e/kWh). Excel formula will mirror this (L*O).
-            double emisionesMarketT = (consumoPorCentro * factorEmision);
+                // Emissions (market-based): compute tCO2 = consumoPorCentro * factor(kgCO2e/kWh) / 1000
+                // Excel formula will mirror this and produce tCO2 values.
+                double emisionesMarketT = (consumoPorCentro * factorEmision) / 1000.0;
 
             // Location-based emissions: use consumoPorCentro (kWh applicable per year
             // assigned to this center)
-            double emisionesLocationT = (consumoPorCentro * locationFactorKgPerKwh);
+            double emisionesLocationT = (consumoPorCentro * locationFactorKgPerKwh) / 1000.0;
 
             // Filter by validInvoices if provided
             if (validInvoices != null && !validInvoices.isEmpty()) {
@@ -380,11 +433,12 @@ public class ElectricityExcelExporter {
             String factorLocationRef = colIndexToName(15) + excelRow; // P
 
             Cell marketCell = out.createCell(col++);
-            marketCell.setCellFormula(consumoPorCentroRef + "*" + factorMarketRef);
+            // Formula in Excel: (consumoPorCentro * factor) / 1000 to produce tCO2
+            marketCell.setCellFormula("(" + consumoPorCentroRef + "*" + factorMarketRef + ")/1000");
             marketCell.setCellStyle(emissionsStyle);
 
             Cell locationCell = out.createCell(col++);
-            locationCell.setCellFormula(consumoPorCentroRef + "*" + factorLocationRef);
+            locationCell.setCellFormula("(" + consumoPorCentroRef + "*" + factorLocationRef + ")/1000");
             locationCell.setCellStyle(emissionsStyle);
 
             // Finally append the numeric factor cells (market then location) so formulas can reference them
@@ -412,8 +466,8 @@ public class ElectricityExcelExporter {
         Row header = sheet.createRow(0);
         header.createCell(0).setCellValue("Centro");
         header.createCell(1).setCellValue("Consumo kWh");
-        header.createCell(2).setCellValue("Emisiones tCO2 market based");
-        header.createCell(3).setCellValue("Emisiones tCO2 location based");
+    header.createCell(2).setCellValue("Emisiones tCO2 market based");
+    header.createCell(3).setCellValue("Emisiones tCO2 location based");
         if (headerStyle != null) {
             for (int i = 0; i < 4; i++)
                 header.getCell(i).setCellStyle(headerStyle);
@@ -438,8 +492,8 @@ public class ElectricityExcelExporter {
         // Header
         Row header = sheet.createRow(0);
         header.createCell(0).setCellValue("Total Consumo kWh");
-        header.createCell(1).setCellValue("Total Emisiones tCO2 Market Based");
-        header.createCell(2).setCellValue("Total Emisiones tCO2 Location Based");
+    header.createCell(1).setCellValue("Total Emisiones tCO2 Market Based");
+    header.createCell(2).setCellValue("Total Emisiones tCO2 Location Based");
         if (headerStyle != null) {
             for (int i = 0; i < 3; i++)
                 header.getCell(i).setCellStyle(headerStyle);

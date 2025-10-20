@@ -678,9 +678,14 @@ public class GasExcelExporter {
 
     // (previous helper removed as it was unused)
 
-    /** Build a multiply formula A1-style between two referenced cells. */
+    /**
+     * Build a multiply formula A1-style between two referenced cells and convert
+     * the result from kgCO2e to tCO2 by dividing by 1000. Example: "(A2*B2)/1000".
+     */
     private static String buildMultiplyFormula(int leftColIndex, int rightColIndex, int excelRow) {
-        return colIndexToName(leftColIndex) + excelRow + "*" + colIndexToName(rightColIndex) + excelRow;
+        String left = colIndexToName(leftColIndex) + excelRow;
+        String right = colIndexToName(rightColIndex) + excelRow;
+        return "(" + left + "*" + right + ")/1000";
     }
 
 }

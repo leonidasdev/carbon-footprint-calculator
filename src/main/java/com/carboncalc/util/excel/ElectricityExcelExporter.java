@@ -107,14 +107,38 @@ public class ElectricityExcelExporter {
             cell.setCellStyle(headerStyle);
             sheet.autoSizeColumn(i);
         }
+        // Append factor columns at the right-most side for market/location factors
+        int next = values.length;
+        Cell fm = headerRow.createCell(next++);
+        fm.setCellValue("Factor de emision market based (kgCO2e/kWh)");
+        fm.setCellStyle(headerStyle);
+        sheet.autoSizeColumn(next - 1);
+
+        Cell fl = headerRow.createCell(next++);
+        fl.setCellValue("Factor de emision location based (kgCO2e/kWh)");
+        fl.setCellStyle(headerStyle);
+        sheet.autoSizeColumn(next - 1);
+    }
+
+    // Convert zero-based column index to Excel column name, e.g. 0 -> A, 25 -> Z, 26 -> AA
+    private static String colIndexToName(int colIndex) {
+        StringBuilder sb = new StringBuilder();
+        int col = colIndex;
+        while (col >= 0) {
+            int rem = col % 26;
+            sb.append((char) ('A' + rem));
+            col = (col / 26) - 1;
+        }
+        return sb.reverse().toString();
     }
 
     private static Map<String, double[]> writeExtendedRows(Sheet target, Sheet source, ElectricityMapping mapping,
             int year, Set<String> validInvoices, double locationFactorKgPerKwh) {
         DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = source.getWorkbook().getCreationHelper().createFormulaEvaluator();
-        Map<String, double[]> perCenterAgg = new HashMap<>();
-        int headerRowIndex = -1;
+    Map<String, double[]> perCenterAgg = new HashMap<>();
+    java.util.List<String> diagnostics = new java.util.ArrayList<>();
+    int headerRowIndex = -1;
         for (int i = source.getFirstRowNum(); i <= source.getLastRowNum(); i++) {
             Row r = source.getRow(i);
             if (r == null)
@@ -131,8 +155,11 @@ public class ElectricityExcelExporter {
                 break;
             }
         }
-        if (headerRowIndex == -1)
+        if (headerRowIndex == -1) {
+            diagnostics.add("No header row found in provider sheet; no rows will be processed.");
+            writeDiagnosticsSheet(target.getWorkbook(), diagnostics);
             return perCenterAgg;
+        }
 
         int outRow = target.getLastRowNum() + 1;
         int idCounter = 1;
@@ -228,11 +255,10 @@ public class ElectricityExcelExporter {
             }
 
             // Compute consumoAplicable: if both dates present use prorating, otherwise
-            // conservatively use the whole consumption
+            // conservatively use the whole consumption. We'll still write an Excel
+            // formula for the cell (H*(I/100)) so the sheet shows the computation.
             double consumoAplicable;
             if (parsedStart == null || parsedEnd == null) {
-                // Only one date present and it's in the reporting year (we already checked).
-                // Use total consumo as conservative allocation.
                 consumoAplicable = consumo;
             } else {
                 consumoAplicable = computeApplicableKwh(fechaInicio, fechaFin, consumo, reportingYear);
@@ -253,20 +279,25 @@ public class ElectricityExcelExporter {
             String marketerFromCups = cups != null ? cupsToMarketer.getOrDefault(cups.trim(), "") : "";
             String marketerToUse = (marketerFromCups != null && !marketerFromCups.isEmpty()) ? marketerFromCups
                     : getCellStringByIndex(srcRow, mapping.getEmissionEntityIndex(), df, eval);
-            double factorEmision = marketerToUse != null
-                    ? marketerToFactor.getOrDefault(normalizeKey(marketerToUse), 0.0)
-                    : 0.0;
-            double emisionesMarketT = (consumoPorCentro * factorEmision) / 1000.0;
+        double factorEmision = marketerToUse != null
+            ? marketerToFactor.getOrDefault(normalizeKey(marketerToUse), 0.0)
+            : 0.0;
+        if (marketerToUse != null && !marketerToUse.isEmpty() && factorEmision == 0.0 && !marketerToFactor.containsKey(normalizeKey(marketerToUse))) {
+        diagnostics.add(String.format("Row %d: marketer '%s' not found for year %d; using factor=0.0", i, marketerToUse, reportingYear));
+        }
+            // Emissions (market-based): expressed here as consumoPorCentro * factor (same
+            // unit as the factor - kgCO2e/kWh). Excel formula will mirror this (L*O).
+            double emisionesMarketT = (consumoPorCentro * factorEmision);
 
             // Location-based emissions: use consumoPorCentro (kWh applicable per year
             // assigned to this center)
-            double emisionesLocationT = (consumoPorCentro * locationFactorKgPerKwh) / 1000.0;
+            double emisionesLocationT = (consumoPorCentro * locationFactorKgPerKwh);
 
             // Filter by validInvoices if provided
             if (validInvoices != null && !validInvoices.isEmpty()) {
                 String invoiceKey = factura != null ? factura.trim() : "";
                 if (invoiceKey.isEmpty() || !validInvoices.contains(invoiceKey)) {
-                    // skipped: filtered by ERP validInvoices
+                    diagnostics.add(String.format("Row %d skipped: invoice '%s' is not in valid invoices set", i, invoiceKey));
                     continue;
                 }
             }
@@ -326,21 +357,50 @@ public class ElectricityExcelExporter {
             pctYearCell.setCellValue(porcentajeAplicableAno);
             pctYearCell.setCellStyle(percentStyle);
 
-            out.createCell(col++).setCellValue(consumoAplicable);
+            // Write consumo aplicable as a formula: =Hrow*(Irow/100)
+            int excelRow = out.getRowNum() + 1;
+            String consumoRef = colIndexToName(7) + excelRow; // H
+            String pctYearRef = colIndexToName(8) + excelRow; // I
+            Cell consumoAplicCell = out.createCell(col++);
+            consumoAplicCell.setCellFormula(consumoRef + "*(" + pctYearRef + "/100)");
 
             Cell pctCell = out.createCell(col++);
             pctCell.setCellValue(porcentajePorCentro);
             pctCell.setCellStyle(percentStyle);
 
-            out.createCell(col++).setCellValue(consumoPorCentro);
+            // consumo por centro as formula: =Jrow*(Krow/100) where J is consumo aplicable and K is pct centro
+            String consumoAplicRef = colIndexToName(9) + excelRow; // J
+            String pctCentroRef = colIndexToName(10) + excelRow; // K
+            Cell consumoPorCentroCell = out.createCell(col++);
+            consumoPorCentroCell.setCellFormula(consumoAplicRef + "*(" + pctCentroRef + "/100)");
+
+            // Emissions written as formulas referencing consumo por centro (L) and factor columns O/P
+            String consumoPorCentroRef = colIndexToName(11) + excelRow; // L
+            String factorMarketRef = colIndexToName(14) + excelRow; // O
+            String factorLocationRef = colIndexToName(15) + excelRow; // P
 
             Cell marketCell = out.createCell(col++);
-            marketCell.setCellValue(emisionesMarketT);
+            marketCell.setCellFormula(consumoPorCentroRef + "*" + factorMarketRef);
             marketCell.setCellStyle(emissionsStyle);
 
             Cell locationCell = out.createCell(col++);
-            locationCell.setCellValue(emisionesLocationT);
+            locationCell.setCellFormula(consumoPorCentroRef + "*" + factorLocationRef);
             locationCell.setCellStyle(emissionsStyle);
+
+            // Finally append the numeric factor cells (market then location) so formulas can reference them
+            Cell factorMarketCell = out.createCell(col++);
+            factorMarketCell.setCellValue(factorEmision);
+
+            Cell factorLocationCell = out.createCell(col++);
+            factorLocationCell.setCellValue(locationFactorKgPerKwh);
+        }
+        // summary diagnostics
+        diagnostics.add(String.format("Processed %d centers in aggregates", perCenterAgg.size()));
+        // write diagnostics sheet
+        try {
+            writeDiagnosticsSheet(target.getWorkbook(), diagnostics);
+        } catch (Exception e) {
+            // ignore diagnostics write errors
         }
         // Return per-center aggregates: map centro -> [consumo, emisionesMarket,
         // emisionesLocation]
@@ -607,5 +667,19 @@ public class ElectricityExcelExporter {
         font.setBold(true);
         style.setFont(font);
         return style;
+    }
+
+    /** Write diagnostics messages into a Diagnostics sheet. Safe no-op on error. */
+    private static void writeDiagnosticsSheet(Workbook wb, java.util.List<String> diagnostics) {
+        try {
+            Sheet diag = wb.createSheet("Diagnostics");
+            int rr = 0;
+            for (String msg : diagnostics) {
+                Row r = diag.createRow(rr++);
+                r.createCell(0).setCellValue(msg);
+            }
+            diag.autoSizeColumn(0);
+        } catch (Exception ignored) {
+        }
     }
 }

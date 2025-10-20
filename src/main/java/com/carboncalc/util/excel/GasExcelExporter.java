@@ -28,6 +28,17 @@ import java.time.temporal.ChronoUnit;
  * gas mappings.
  */
 public class GasExcelExporter {
+    /**
+     * Utility exporter for Gas-related Excel reports.
+     *
+     * Responsibilities:
+     * - Produce the detailed, per-center and total sheets for gas consumption
+     * - Lookup per-year market/location emission factors
+     * - Emit Excel formulas for key computed columns so results are inspectable
+     *
+     * The implementation favors small helper methods to keep each step testable
+     * and easy to maintain.
+     */
     // Build detailed headers by taking the electricity detailed headers and inserting
     // a GAS_TYPE column after FACTURA. We reuse the enum labels for consistency.
     private static final String[] DETAILED_HEADERS;
@@ -74,17 +85,7 @@ public class GasExcelExporter {
                         Sheet sheet = src.getSheet(providerSheet);
                         if (sheet != null) {
                             // Load per-year gas-type emission factors (map gasType -> GasFactorEntry)
-                            Map<String, GasFactorEntry> gasTypeToFactor = new HashMap<>();
-                            try {
-                                GasFactorServiceCsv gfsvc = new GasFactorServiceCsv();
-                                List<GasFactorEntry> gfs = gfsvc.loadGasFactors(year);
-                                for (GasFactorEntry gfe : gfs) {
-                                    String gt = gfe.getGasType() == null ? "" : gfe.getGasType().trim().toUpperCase(java.util.Locale.ROOT);
-                                    if (!gt.isEmpty()) gasTypeToFactor.put(gt, gfe);
-                                }
-                            } catch (Exception ex) {
-                                // ignore and leave empty map
-                            }
+                            Map<String, GasFactorEntry> gasTypeToFactor = loadGasFactorsForYear(year);
 
                 Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
                     validInvoices, gasTypeToFactor);
@@ -148,18 +149,7 @@ public class GasExcelExporter {
         }
         if (headerRowIndex == -1) {
             diagnostics.add("No header row found in provider sheet; no rows will be processed.");
-            // write diagnostics sheet and return
-            try {
-                Sheet diag = target.getWorkbook().createSheet("Diagnostics");
-                int rr = 0;
-                for (String msg : diagnostics) {
-                    Row r = diag.createRow(rr++);
-                    r.createCell(0).setCellValue(msg);
-                }
-                diag.autoSizeColumn(0);
-            } catch (Exception e) {
-                // ignore diagnostics write errors
-            }
+            writeDiagnosticsSheet(target.getWorkbook(), diagnostics);
             return perCenterAgg;
         }
 
@@ -365,28 +355,26 @@ public class GasExcelExporter {
             int locationFactorColIndex = col + 4; // location factor will be 4 cells ahead
 
             Cell marketCell = out.createCell(col++);
-            try {
-                int excelRow = out.getRowNum() + 1;
-                // Formula: =ConsumoPorCentro * MarketFactorCell
-                String marketFormula = colIndexToName(consumoAplicCentroColIndex) + excelRow + "*" + colIndexToName(marketFactorColIndex) + excelRow;
-                marketCell.setCellFormula(marketFormula);
-                marketCell.setCellStyle(emissionsStyle);
-            } catch (Exception e) {
-                marketCell.setCellValue(emisionesMarketT);
-                marketCell.setCellStyle(emissionsStyle);
-            }
+                try {
+                    int excelRow = out.getRowNum() + 1;
+                    String marketFormula = buildMultiplyFormula(consumoAplicCentroColIndex, marketFactorColIndex, excelRow);
+                    marketCell.setCellFormula(marketFormula);
+                    marketCell.setCellStyle(emissionsStyle);
+                } catch (Exception e) {
+                    marketCell.setCellValue(emisionesMarketT);
+                    marketCell.setCellStyle(emissionsStyle);
+                }
 
             Cell locationCell = out.createCell(col++);
-            try {
-                int excelRow = out.getRowNum() + 1;
-                // Formula: =ConsumoPorCentro * LocationFactorCell
-                String locationFormula = colIndexToName(consumoAplicCentroColIndex) + excelRow + "*" + colIndexToName(locationFactorColIndex) + excelRow;
-                locationCell.setCellFormula(locationFormula);
-                locationCell.setCellStyle(emissionsStyle);
-            } catch (Exception e) {
-                locationCell.setCellValue(emisionesLocationT);
-                locationCell.setCellStyle(emissionsStyle);
-            }
+                try {
+                    int excelRow = out.getRowNum() + 1;
+                    String locationFormula = buildMultiplyFormula(consumoAplicCentroColIndex, locationFactorColIndex, excelRow);
+                    locationCell.setCellFormula(locationFormula);
+                    locationCell.setCellStyle(emissionsStyle);
+                } catch (Exception e) {
+                    locationCell.setCellValue(emisionesLocationT);
+                    locationCell.setCellStyle(emissionsStyle);
+                }
 
             // Finally, append the normalized gas type (uppercased) and the two emission factor columns used (market, location)
             out.createCell(col++).setCellValue(gasTypeNormalized == null ? "" : gasTypeNormalized);
@@ -652,4 +640,47 @@ public class GasExcelExporter {
         }
         return sb.reverse().toString();
     }
+
+    // --------------------- Helper methods (modularity) ---------------------
+
+    /**
+     * Load gas factors for a given year into a normalized map (uppercased gasType -> entry).
+     * Returns an empty map on any error to keep exporter resilient.
+     */
+    private static Map<String, GasFactorEntry> loadGasFactorsForYear(int year) {
+        Map<String, GasFactorEntry> out = new HashMap<>();
+        try {
+            GasFactorServiceCsv svc = new GasFactorServiceCsv();
+            List<GasFactorEntry> entries = svc.loadGasFactors(year);
+            for (GasFactorEntry e : entries) {
+                if (e == null) continue;
+                String gt = e.getGasType() == null ? "" : e.getGasType().trim().toUpperCase(java.util.Locale.ROOT);
+                if (!gt.isEmpty()) out.put(gt, e);
+            }
+        } catch (Exception ex) {
+            // return empty map on failure
+        }
+        return out;
+    }
+
+    /** Write diagnostics messages into a Diagnostics sheet. Safe no-op on error. */
+    private static void writeDiagnosticsSheet(Workbook wb, java.util.List<String> diagnostics) {
+        try {
+            Sheet diag = wb.createSheet("Diagnostics");
+            int rr = 0;
+            for (String msg : diagnostics) {
+                Row r = diag.createRow(rr++);
+                r.createCell(0).setCellValue(msg);
+            }
+            diag.autoSizeColumn(0);
+        } catch (Exception ignored) {}
+    }
+
+    // (previous helper removed as it was unused)
+
+    /** Build a multiply formula A1-style between two referenced cells. */
+    private static String buildMultiplyFormula(int leftColIndex, int rightColIndex, int excelRow) {
+        return colIndexToName(leftColIndex) + excelRow + "*" + colIndexToName(rightColIndex) + excelRow;
+    }
+
 }

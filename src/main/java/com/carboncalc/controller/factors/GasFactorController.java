@@ -45,7 +45,8 @@ public class GasFactorController extends GenericFactorController {
 
                 // Add button: validate inputs and append a row to the table model
                 panel.getAddCompanyButton().addActionListener(ev -> {
-                    String gasType = panel.getGasTypeField().getText().trim();
+                    Object sel = panel.getGasTypeSelector().getEditor().getItem();
+                    String gasType = sel == null ? "" : sel.toString().trim();
                     String factorText = panel.getEmissionFactorField().getText().trim();
                     if (gasType.isEmpty()) {
                         JOptionPane.showMessageDialog(panel, "Please enter a gas type.", messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
@@ -75,7 +76,17 @@ public class GasFactorController extends GenericFactorController {
                     try { gasService.saveGasFactor(entry); } catch (Exception ex) { ex.printStackTrace(); }
 
                     // clear inputs after add
-                    panel.getGasTypeField().setText("");
+                    try {
+                        String key = gasType.trim().toUpperCase(java.util.Locale.ROOT);
+                        JComboBox<String> combo = panel.getGasTypeSelector();
+                        boolean found = false;
+                        for (int i = 0; i < combo.getItemCount(); i++) {
+                            Object it = combo.getItemAt(i);
+                            if (it != null && key.equals(it.toString().trim().toUpperCase(java.util.Locale.ROOT))) { found = true; break; }
+                        }
+                        if (!found) combo.addItem(key);
+                        combo.setSelectedItem(key);
+                    } catch (Exception ignored) {}
                     panel.getEmissionFactorField().setText("");
                 });
 
@@ -118,7 +129,20 @@ public class GasFactorController extends GenericFactorController {
 
                         // Use the gas type as the persisted entity
                         GasFactorEntry entry = new GasFactorEntry(gasField.getText().trim(), gasField.getText().trim(), saveYear, factor, "kgCO2e/kWh");
-                        try { gasService.saveGasFactor(entry); } catch (Exception ex) { ex.printStackTrace(); JOptionPane.showMessageDialog(panel, messages.getString("error.save.failed"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE); }
+                        try { gasService.saveGasFactor(entry);
+                            // sync combo
+                            try {
+                                String key = gasField.getText().trim().toUpperCase(java.util.Locale.ROOT);
+                                JComboBox<String> combo = panel.getGasTypeSelector();
+                                boolean found = false;
+                                for (int i = 0; i < combo.getItemCount(); i++) {
+                                    Object it = combo.getItemAt(i);
+                                    if (it != null && key.equals(it.toString().trim().toUpperCase(java.util.Locale.ROOT))) { found = true; break; }
+                                }
+                                if (!found) combo.addItem(key);
+                                combo.setSelectedItem(key);
+                            } catch (Exception ignored) {}
+                        } catch (Exception ex) { ex.printStackTrace(); JOptionPane.showMessageDialog(panel, messages.getString("error.save.failed"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE); }
                     }
                 });
 
@@ -173,9 +197,22 @@ public class GasFactorController extends GenericFactorController {
             try {
                 List<GasFactorEntry> entries = gasService.loadGasFactors(year);
                 System.out.println("[DEBUG] GasFactorController.onActivate: loaded gas entries=" + (entries == null ? 0 : entries.size()));
+                java.util.Set<String> types = new java.util.LinkedHashSet<>();
                 for (GasFactorEntry e : entries) {
-                    model.addRow(new Object[]{ e.getEntity(), e.getGasType(), String.valueOf(e.getEmissionFactor()) });
+                    // table columns: gasType, emissionFactor
+                    String gtype = e.getGasType() == null ? e.getEntity() : e.getGasType();
+                    if (gtype == null) gtype = "";
+                    types.add(gtype.trim().toUpperCase(java.util.Locale.ROOT));
+                    model.addRow(new Object[]{ gtype, String.valueOf(e.getEmissionFactor()) });
                 }
+
+                // Populate the gasType selector combo with the available types for this year
+                try {
+                    JComboBox<String> combo = panel.getGasTypeSelector();
+                    combo.removeAllItems();
+                    combo.addItem("");
+                    for (String t : types) combo.addItem(t);
+                } catch (Exception ignored) {}
             } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(panel, messages.getString("error.load.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);

@@ -41,6 +41,7 @@ public class GasPanel extends BaseModulePanel {
     private JPanel providerMappingPanel;
     private JPanel erpMappingPanel;
     private JComboBox<String> cupsSelector;
+    private JTextField gasTypeField;
     private JComboBox<String> invoiceNumberSelector;
     // issueDate removed per UX decision
     private JComboBox<String> startDateSelector;
@@ -279,6 +280,15 @@ public class GasPanel extends BaseModulePanel {
         // Consumption
         addColumnMapping(panel, gbc, "label.column.consumption", consumptionSelector = new JComboBox<>());
 
+        // Gas Type (static string input)
+    panel.add(new JLabel(messages.getString("label.column.gas.type")), gbc);
+    gbc.gridx = 1;
+    gasTypeField = new JTextField();
+    gasTypeField.setPreferredSize(new Dimension(180, 25));
+    panel.add(gasTypeField, gbc);
+    gbc.gridx = 0;
+    gbc.gridy++;
+
         // Center
         addColumnMapping(panel, gbc, "label.column.center", centerSelector = new JComboBox<>());
 
@@ -314,6 +324,10 @@ public class GasPanel extends BaseModulePanel {
                     return lbl;
                 }
             });
+        }
+        // Style gas type field
+        if (gasTypeField != null) {
+            gasTypeField.setMaximumSize(new Dimension(180, 25));
         }
     }
 
@@ -576,6 +590,21 @@ public class GasPanel extends BaseModulePanel {
         return consumptionSelector;
     }
 
+    public JComboBox<String> getGasTypeSelector() {
+        // Deprecated: mapping now uses a text field; keep API name for callers
+        // but return null. Prefer getGasTypeField()/getSelectedGasType().
+        return null;
+    }
+
+    public JTextField getGasTypeField() {
+        return gasTypeField;
+    }
+
+    public String getSelectedGasType() {
+        if (gasTypeField == null) return "";
+        return gasTypeField.getText() != null ? gasTypeField.getText() : "";
+    }
+
     public JComboBox<String> getCenterSelector() {
         return centerSelector;
     }
@@ -645,9 +674,10 @@ public class GasPanel extends BaseModulePanel {
         int consumptionIndex = getSelectedIndex(consumptionSelector);
         int centerIndex = getSelectedIndex(centerSelector);
         int emissionEntityIndex = getSelectedIndex(emissionEntitySelector);
+    String gasType = getSelectedGasType();
 
-        return new GasMapping(cupsIndex, invoiceIndex, startDateIndex,
-                endDateIndex, consumptionIndex, centerIndex, emissionEntityIndex);
+    return new GasMapping(cupsIndex, invoiceIndex, startDateIndex,
+        endDateIndex, consumptionIndex, centerIndex, emissionEntityIndex, gasType);
     }
 
     private int getSelectedIndex(JComboBox<String> comboBox) {

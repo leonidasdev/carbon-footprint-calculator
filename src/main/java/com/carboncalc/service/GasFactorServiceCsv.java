@@ -27,25 +27,29 @@ public class GasFactorServiceCsv implements GasFactorService {
             List<String> lines = new ArrayList<>();
             if (Files.exists(filePath)) lines = Files.readAllLines(filePath);
 
-            Map<String, String> byEntity = new LinkedHashMap<>();
+            // Map existing rows by gasType (normalized) to allow upsert
+            Map<String, String> byGasType = new LinkedHashMap<>();
             if (!lines.isEmpty()) {
                 for (int i = 1; i < lines.size(); i++) {
                     String ln = lines.get(i);
                     if (ln == null || ln.isBlank()) continue;
                     List<String> parts = parseCsvLine(ln);
-                    if (!parts.isEmpty()) byEntity.put(parts.get(0), ln);
+                    if (parts.size() >= 1) {
+                        String gt = parts.get(0) == null ? "" : parts.get(0).trim().toUpperCase(java.util.Locale.ROOT);
+                        byGasType.put(gt, ln);
+                    }
                 }
             }
 
-            String ent = entry.getEntity() == null ? "" : entry.getEntity();
-            String gas = entry.getGasType() == null ? "" : entry.getGasType();
-            String unit = entry.getUnit() == null ? "" : entry.getUnit();
-            String row = String.join(",", quoteCsv(ent), quoteCsv(gas), String.valueOf(year), String.format(Locale.ROOT, "%.6f", entry.getEmissionFactor()), quoteCsv(unit));
-            byEntity.put(ent, row);
+            String gasRaw = entry.getGasType() == null ? "" : entry.getGasType();
+            // Validation: store gas type in UPPERCASE for normalization
+            String gas = gasRaw == null ? "" : gasRaw.trim().toUpperCase(java.util.Locale.ROOT);
+            String row = String.join(",", quoteCsv(gas), String.format(Locale.ROOT, "%.6f", entry.getEmissionFactor()));
+            byGasType.put(gas, row);
 
             List<String> out = new ArrayList<>();
-            out.add("entity,gasType,year,emissionFactor,unit");
-            out.addAll(byEntity.values());
+            out.add("gasType,emissionFactor");
+            out.addAll(byGasType.values());
             Files.createDirectories(filePath.getParent());
             Files.write(filePath, out);
         } catch (IOException e) {
@@ -65,15 +69,13 @@ public class GasFactorServiceCsv implements GasFactorService {
                 String ln = lines.get(i);
                 if (ln == null || ln.isBlank()) continue;
                 List<String> parts = parseCsvLine(ln);
-                if (parts.size() >= 5) {
-                    String entity = parts.get(0);
-                    String gasType = parts.get(1);
-                    int y = 0;
+                // expected: gasType,emissionFactor
+                if (parts.size() >= 2) {
+                    String gasType = parts.get(0);
                     double ef = 0.0;
-                    try { y = Integer.parseInt(parts.get(2)); } catch (Exception ignored) {}
-                    try { ef = Double.parseDouble(parts.get(3)); } catch (Exception ignored) {}
-                    String unit = parts.get(4);
-                    out.add(new GasFactorEntry(entity, gasType, y, ef, unit));
+                    try { ef = Double.parseDouble(parts.get(1)); } catch (Exception ignored) {}
+                    // create GasFactorEntry: set entity equal to gasType for compatibility
+                    out.add(new GasFactorEntry(gasType, gasType, year, ef, ""));
                 }
             }
         } catch (IOException e) {
@@ -89,13 +91,14 @@ public class GasFactorServiceCsv implements GasFactorService {
         try {
             List<String> lines = Files.readAllLines(p);
             List<String> out = new ArrayList<>();
-            out.add("entity,gasType,year,emissionFactor,unit");
+            out.add("gasType,emissionFactor");
+            String target = entity == null ? "" : entity.trim().toUpperCase(java.util.Locale.ROOT);
             for (int i = 1; i < lines.size(); i++) {
                 String ln = lines.get(i);
                 if (ln == null || ln.isBlank()) continue;
                 List<String> parts = parseCsvLine(ln);
-                String ent = parts.size() > 0 ? parts.get(0) : "";
-                if (!ent.equals(entity)) out.add(ln);
+                String gt = parts.size() > 0 ? (parts.get(0) == null ? "" : parts.get(0).trim().toUpperCase(java.util.Locale.ROOT)) : "";
+                if (!gt.equals(target)) out.add(ln);
             }
             Files.write(p, out);
         } catch (IOException e) { e.printStackTrace(); }

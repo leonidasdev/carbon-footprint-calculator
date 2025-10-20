@@ -12,6 +12,7 @@ public class GasMapping {
     private int consumptionIndex;
     private int centerIndex;
     private int emissionEntityIndex;
+    private String gasType;
 
     public GasMapping() {
         // Initialize with default values
@@ -23,6 +24,7 @@ public class GasMapping {
         this.consumptionIndex = -1;
         this.centerIndex = -1;
         this.emissionEntityIndex = -1;
+        this.gasType = "";
     }
     
     public GasMapping(
@@ -33,6 +35,7 @@ public class GasMapping {
         int consumptionIndex,
         int centerIndex,
         int emissionEntityIndex
+        , String gasType
     ) {
         this.cupsIndex = cupsIndex;
         this.invoiceNumberIndex = invoiceNumberIndex;
@@ -41,6 +44,7 @@ public class GasMapping {
         this.consumptionIndex = consumptionIndex;
         this.centerIndex = centerIndex;
         this.emissionEntityIndex = emissionEntityIndex;
+        this.gasType = gasType == null ? "" : gasType;
     }
     
     public int getCupsIndex() { return cupsIndex; }
@@ -51,6 +55,7 @@ public class GasMapping {
     public int getConsumptionIndex() { return consumptionIndex; }
     public int getCenterIndex() { return centerIndex; }
     public int getEmissionEntityIndex() { return emissionEntityIndex; }
+    public String getGasType() { return gasType; }
 
     public boolean isComplete() {
      return cupsIndex != -1 && 
@@ -59,6 +64,7 @@ public class GasMapping {
          endDateIndex != -1 && 
          consumptionIndex != -1 &&
          centerIndex != -1 &&
-         emissionEntityIndex != -1;
+         emissionEntityIndex != -1 &&
+         gasType != null && !gasType.trim().isEmpty();
     }
 }

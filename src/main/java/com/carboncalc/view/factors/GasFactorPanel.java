@@ -17,7 +17,7 @@ public class GasFactorPanel extends JPanel {
     // Removed electricity-style general factors fields; gas uses per-entry manual
     // inputs
     private JTable tradingCompaniesTable;
-    private JTextField gasTypeField;
+    private JComboBox<String> gasTypeSelector;
     private JTextField emissionFactorField;
     private JButton addCompanyButton;
     private JButton tradingEditButton;
@@ -49,9 +49,11 @@ public class GasFactorPanel extends JPanel {
         JPanel middleFields = new JPanel();
         middleFields.setLayout(new BoxLayout(middleFields, BoxLayout.Y_AXIS));
         middleFields.setBackground(UIUtils.CONTENT_BACKGROUND);
-        gasTypeField = new JTextField(25);
-        gasTypeField.setMaximumSize(new Dimension(Integer.MAX_VALUE, gasTypeField.getPreferredSize().height));
-        middleFields.add(gasTypeField);
+    gasTypeSelector = new JComboBox<>();
+    gasTypeSelector.setEditable(true); // allow typing new gas types
+    gasTypeSelector.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+    UIUtils.styleComboBox(gasTypeSelector);
+    middleFields.add(gasTypeSelector);
         middleFields.add(Box.createVerticalStrut(8));
         emissionFactorField = new JTextField(25);
         emissionFactorField
@@ -98,7 +100,7 @@ public class GasFactorPanel extends JPanel {
         ig.gridx = 1;
         ig.gridy = 0;
         ig.weightx = 1.0;
-        inputGrid.add(gasTypeField, ig);
+    inputGrid.add(gasTypeSelector, ig);
         ig.gridx = 2;
         ig.gridy = 0;
         ig.weightx = 0;
@@ -190,8 +192,8 @@ public class GasFactorPanel extends JPanel {
         return tradingCompaniesTable;
     }
 
-    public JTextField getGasTypeField() {
-        return gasTypeField;
+    public JComboBox<String> getGasTypeSelector() {
+        return gasTypeSelector;
     }
 
     public JTextField getEmissionFactorField() {

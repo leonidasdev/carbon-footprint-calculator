@@ -75,7 +75,8 @@ public class GasController {
                 FileInputStream fis = new FileInputStream(providerFile);
                 providerWorkbook = new XSSFWorkbook(fis);
                 updateProviderSheetList();
-                view.getProviderFileLabel().setText(providerFile.getName());
+                // Use view helper to set ellipsized display and tooltip
+                view.setProviderFileName(providerFile.getName());
                 fis.close();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
@@ -145,7 +146,8 @@ public class GasController {
                 FileInputStream fis = new FileInputStream(erpFile);
                 erpWorkbook = new XSSFWorkbook(fis);
                 updateErpSheetList();
-                view.getErpFileLabel().setText(erpFile.getName());
+                // Use view helper to set ellipsized display and tooltip
+                view.setErpFileName(erpFile.getName());
                 fis.close();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
@@ -408,7 +410,8 @@ public class GasController {
         // For Excel export, we need the essential columns
         if (columns.getStartDateIndex() == -1 ||
             columns.getEndDateIndex() == -1 ||
-            columns.getConsumptionIndex() == -1) {
+            columns.getConsumptionIndex() == -1 ||
+            columns.getGasType() == null || columns.getGasType().trim().isEmpty()) {
             JOptionPane.showMessageDialog(view,
                 messages.getString("error.missing.columns"),
                 messages.getString("error.title"),
@@ -458,8 +461,8 @@ public class GasController {
                     org.apache.poi.ss.usermodel.Workbook erpWb = erpPath.toLowerCase().endsWith(".xlsx") ? new XSSFWorkbook(fis) : new org.apache.poi.hssf.usermodel.HSSFWorkbook(fis);
                     Sheet sheet = erpWb.getSheet(erpSheet);
                     if (sheet != null) {
-                        DataFormatter df = new DataFormatter();
-                        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
+                        // DataFormatter and FormulaEvaluator are not required here since
+                        // getCellValueAsString handles cell formatting. Keep parsing simple.
                         int headerRowIndex = -1;
                         for (int r = sheet.getFirstRowNum(); r <= sheet.getLastRowNum(); r++) {
                             Row row = sheet.getRow(r);

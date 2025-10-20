@@ -14,30 +14,36 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.Collections;
 
-import com.carboncalc.service.EmissionFactorServiceCsv;
-import com.carboncalc.model.factors.EmissionFactor;
+import com.carboncalc.util.enums.DetailedHeader;
+import com.carboncalc.service.GasFactorServiceCsv;
+import com.carboncalc.service.CupsServiceCsv;
+import com.carboncalc.model.CupsCenterMapping;
+import com.carboncalc.model.factors.GasFactorEntry;
 import com.carboncalc.model.GasMapping;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.text.Normalizer;
 
 /**
  * Gas exporter that mirrors the Electricity exporter behaviour but adapted for
  * gas mappings.
  */
 public class GasExcelExporter {
-    private static final String[] DETAILED_HEADERS = {
-            "Id",
-            "Centro",
-            "Factura",
-            "Fecha inicio suministro",
-            "Fecha fin suministro",
-            "Consumo kWh",
-            "Consumo kWh aplicable por año",
-            "Emisiones tCO2 market based",
-            "Emisiones tCO2 location based"
-    };
+    // Build detailed headers by taking the electricity detailed headers and inserting
+    // a GAS_TYPE column after FACTURA. We reuse the enum labels for consistency.
+    private static final String[] DETAILED_HEADERS;
+    static {
+        DetailedHeader[] dh = DetailedHeader.values();
+        // Create a new array with two extra slots: GAS_TYPE and EMISSION_FACTOR appended at the end
+        DETAILED_HEADERS = new String[dh.length + 2];
+        int idx = 0;
+        for (DetailedHeader h : dh) {
+            DETAILED_HEADERS[idx++] = h.label();
+        }
+        // append Gas Type and Emission Factor as the right-most columns
+        DETAILED_HEADERS[idx++] = "Gas Type";
+        DETAILED_HEADERS[idx] = "Emission Factor (kgCO2e/kWh)";
+    }
 
     private static final String[] TOTAL_HEADERS = {
             "Total Consumo kWh",
@@ -67,22 +73,22 @@ public class GasExcelExporter {
                                 : new HSSFWorkbook(fis);
                         Sheet sheet = src.getSheet(providerSheet);
                         if (sheet != null) {
-                            // Load per-year emission factors for gas (if present)
-                            Map<String, Double> entityToFactor = new HashMap<>();
+                            // Load per-year gas-type emission factors (map gasType -> kgCO2e/kWh)
+                            Map<String, Double> gasTypeToFactor = new HashMap<>();
                             try {
-                                EmissionFactorServiceCsv efsvc = new EmissionFactorServiceCsv();
-                                List<? extends EmissionFactor> efs = efsvc.loadEmissionFactors("gas", year);
-                                for (EmissionFactor ef : efs) {
-                                    String entity = ef.getEntity() == null ? "" : ef.getEntity();
-                                    double base = ef.getBaseFactor();
-                                    entityToFactor.put(normalizeKey(entity), base);
+                                GasFactorServiceCsv gfsvc = new GasFactorServiceCsv();
+                                List<GasFactorEntry> gfs = gfsvc.loadGasFactors(year);
+                                for (GasFactorEntry gfe : gfs) {
+                                    String gt = gfe.getGasType() == null ? "" : gfe.getGasType().trim().toUpperCase(java.util.Locale.ROOT);
+                                    double base = gfe.getEmissionFactor();
+                                    if (!gt.isEmpty()) gasTypeToFactor.put(gt, base);
                                 }
                             } catch (Exception ex) {
                                 // ignore and leave empty map
                             }
 
                             Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
-                                    validInvoices, entityToFactor);
+                                    validInvoices, gasTypeToFactor);
                             Sheet perCenter = workbook.createSheet("Por centro");
                             createPerCenterSheet(perCenter, headerStyle, aggregates);
                             Sheet total = workbook.createSheet("Total");
@@ -119,8 +125,8 @@ public class GasExcelExporter {
     }
 
     private static Map<String, double[]> writeExtendedRows(Sheet target, Sheet source, GasMapping mapping, int year,
-            Set<String> validInvoices, Map<String, Double> entityToFactor) {
-        DataFormatter df = new DataFormatter();
+        Set<String> validInvoices, Map<String, Double> gasTypeToFactor) {
+    DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = source.getWorkbook().getCreationHelper().createFormulaEvaluator();
         Map<String, double[]> perCenterAgg = new HashMap<>();
         int headerRowIndex = -1;
@@ -145,7 +151,20 @@ public class GasExcelExporter {
 
         int outRow = target.getLastRowNum() + 1;
         int idCounter = 1;
-        for (int i = headerRowIndex + 1; i <= source.getLastRowNum(); i++) {
+        // Build centersPerCups map to split consumption among centers sharing the same CUPS
+        Map<String, Integer> centersPerCups = new HashMap<>();
+        try {
+            CupsServiceCsv cupsSvc = new CupsServiceCsv();
+            List<CupsCenterMapping> all = cupsSvc.loadCupsData();
+            for (CupsCenterMapping m : all) {
+                String key = m.getCups() != null ? m.getCups().trim() : "";
+                if (key.isEmpty()) continue;
+                centersPerCups.put(key, centersPerCups.getOrDefault(key, 0) + 1);
+            }
+        } catch (Exception ex) {
+            // ignore and assume 1 per cups
+        }
+            for (int i = headerRowIndex + 1; i <= source.getLastRowNum(); i++) {
             Row srcRow = source.getRow(i);
             if (srcRow == null)
                 continue;
@@ -153,6 +172,12 @@ public class GasExcelExporter {
             String fechaInicio = getCellStringByIndex(srcRow, mapping.getStartDateIndex(), df, eval);
             String fechaFin = getCellStringByIndex(srcRow, mapping.getEndDateIndex(), df, eval);
             String consumoStr = getCellStringByIndex(srcRow, mapping.getConsumptionIndex(), df, eval);
+            String cups = getCellStringByIndex(srcRow, mapping.getCupsIndex(), df, eval);
+            // Mapping now supplies a fixed gas type string (not a column index)
+            String gasTypeRaw = mapping.getGasType();
+            // Normalize once per row for lookup and for writing to sheet
+            String gasType = gasTypeRaw == null ? "" : gasTypeRaw.trim();
+            String gasTypeNormalized = gasType.isEmpty() ? "" : gasType.toUpperCase(java.util.Locale.ROOT);
             double consumo = parseDoubleSafe(consumoStr);
             double consumoAplicable = computeApplicableKwh(fechaInicio, fechaFin, consumo, year);
 
@@ -164,26 +189,35 @@ public class GasExcelExporter {
 
             String centerName = getCellStringByIndex(srcRow, mapping.getCenterIndex(), df, eval);
             if (centerName == null || centerName.trim().isEmpty()) {
-                centerName = (factura != null ? factura : "SIN_CENTRO");
+                centerName = (cups != null && !cups.trim().isEmpty()) ? cups.trim() : (factura != null ? factura : "SIN_CENTRO");
             }
 
             // emissions computation: market-based uses entityToFactor map by emission
             // entity field
-            String entityFromRow = getCellStringByIndex(srcRow, mapping.getEmissionEntityIndex(), df, eval);
+            // emission entity not used for gas-type based calculation
+            // Lookup factor using the normalized gas type; default to 0.0 when not found
             double factor = 0.0;
-            if (entityFromRow != null)
-                factor = entityToFactor.getOrDefault(normalizeKey(entityFromRow), 0.0);
-            double emisionesMarketT = (consumoAplicable * factor) / 1000.0;
-            // location-based: currently not provided for gas; leave zero (could be extended
-            // later)
-            double emisionesLocationT = 0.0;
+            if (!gasTypeNormalized.isEmpty()) {
+                factor = gasTypeToFactor.getOrDefault(gasTypeNormalized, 0.0);
+            }
+            // Split consumption among centers sharing the same CUPS (if applicable)
+            int centersCount = 1;
+            if (cups != null && !cups.trim().isEmpty())
+                centersCount = centersPerCups.getOrDefault(cups.trim(), 1);
+            double consumoPorCentro = centersCount > 0 ? consumoAplicable / (double) centersCount : consumoAplicable;
+            double porcentajePorCentro = centersCount > 0 ? (100.0 / (double) centersCount) : 100.0;
+            double porcentajeAplicableAno = consumo > 0 ? ((consumoAplicable / consumo) * 100.0) : 0.0;
+
+            // Compute emissions per center (market and location) using consumoPorCentro
+            double emisionesMarketT = (consumoPorCentro * factor) / 1000.0;
+            double emisionesLocationT = (consumoPorCentro * factor) / 1000.0;
 
             double[] agg = perCenterAgg.get(centerName);
             if (agg == null) {
                 agg = new double[3];
                 perCenterAgg.put(centerName, agg);
             }
-            agg[0] += consumoAplicable;
+            agg[0] += consumoPorCentro;
             agg[1] += emisionesMarketT;
             agg[2] += emisionesLocationT;
 
@@ -191,13 +225,44 @@ public class GasExcelExporter {
             int col = 0;
             out.createCell(col++).setCellValue(idCounter++);
             out.createCell(col++).setCellValue(centerName);
+            // sociedad emisora: use emission entity column (no marketer resolution for gas)
+            String sociedadEmisora = getCellStringByIndex(srcRow, mapping.getEmissionEntityIndex(), df, eval);
+            out.createCell(col++).setCellValue(sociedadEmisora);
+            out.createCell(col++).setCellValue(cups);
             out.createCell(col++).setCellValue(factura);
-            out.createCell(col++).setCellValue(fechaInicio);
-            out.createCell(col++).setCellValue(fechaFin);
+
+            // Fecha inicio (as date cell)
+            Cell startCell = out.createCell(col++);
+            try {
+                startCell.setCellValue(java.sql.Date.valueOf(parseDateLenient(fechaInicio)));
+                startCell.setCellStyle(createHeaderStyle(target.getWorkbook()));
+            } catch (Exception ex) {
+                startCell.setCellValue(fechaInicio != null ? fechaInicio : "");
+            }
+
+            // Fecha fin (as date cell)
+            Cell endCell = out.createCell(col++);
+            try {
+                endCell.setCellValue(java.sql.Date.valueOf(parseDateLenient(fechaFin)));
+                endCell.setCellStyle(createHeaderStyle(target.getWorkbook()));
+            } catch (Exception ex) {
+                endCell.setCellValue(fechaFin != null ? fechaFin : "");
+            }
+
+            // Numeric values: consumo, pct aplicable ano, consumo aplicable, pct por centro, consumo por centro
             out.createCell(col++).setCellValue(consumo);
+            out.createCell(col++).setCellValue(porcentajeAplicableAno);
             out.createCell(col++).setCellValue(consumoAplicable);
-            out.createCell(col++).setCellValue(String.format(Locale.ROOT, "%.6f", emisionesMarketT));
-            out.createCell(col++).setCellValue(String.format(Locale.ROOT, "%.6f", emisionesLocationT));
+            out.createCell(col++).setCellValue(porcentajePorCentro);
+            out.createCell(col++).setCellValue(consumoPorCentro);
+
+            // emissions (market, location)
+            out.createCell(col++).setCellValue(emisionesMarketT);
+            out.createCell(col++).setCellValue(emisionesLocationT);
+
+            // Finally, append the normalized gas type (uppercased) and the emission factor used
+            out.createCell(col++).setCellValue(gasTypeNormalized == null ? "" : gasTypeNormalized);
+            out.createCell(col++).setCellValue(factor);
         }
         return perCenterAgg;
     }
@@ -364,16 +429,7 @@ public class GasExcelExporter {
         return null;
     }
 
-    private static String normalizeKey(String s) {
-        if (s == null)
-            return "";
-        String cleaned = s.replace('\u00A0', ' ').trim();
-        try {
-            cleaned = Normalizer.normalize(cleaned, Normalizer.Form.NFKC);
-        } catch (Exception ignored) {
-        }
-        return cleaned.toLowerCase(Locale.ROOT);
-    }
+    // normalizeKey removed - not needed for gas-type based calculations
 
     private static CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();

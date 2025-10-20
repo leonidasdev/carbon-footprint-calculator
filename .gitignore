@@ -30,7 +30,7 @@ __pycache__/
 
 # Project-specific
 # Ignore all data files
-data/
+data/*
 
 # Keep gitignore
 !.gitignore

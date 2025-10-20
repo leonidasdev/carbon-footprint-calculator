@@ -5,7 +5,17 @@ import com.carboncalc.util.UIUtils;
 import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import com.carboncalc.view.factors.ElectricityFactorPanel;
+import com.carboncalc.view.factors.GasFactorPanel;
 
 /**
  * Panel to manage emission factors. Contains controls to import Excel files,
@@ -19,7 +29,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private final EmissionFactorsController controller;
     private JPanel cardsPanel;
     private CardLayout cardLayout;
-    private final java.util.Map<String, javax.swing.JComponent> cardComponents = new java.util.HashMap<>();
+    private final Map<String, JComponent> cardComponents = new HashMap<>();
 
     // File Management Components
     private JComboBox<String> sheetSelector;
@@ -36,7 +46,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private JSpinner yearSpinner;
     // Build factor type names directly from the domain enum so the UI
     // stays in sync with any changes to supported energy types.
-    private static final String[] FACTOR_TYPES = java.util.Arrays.stream(EnergyType.values()).map(Enum::name)
+    private static final String[] FACTOR_TYPES = Arrays.stream(EnergyType.values()).map(Enum::name)
             .toArray(String[]::new);
 
     // Preview Components
@@ -154,10 +164,10 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "#");
         yearSpinner.setEditor(yearEditor);
         try {
-            javax.swing.JFormattedTextField tf = yearEditor.getTextField();
-            tf.setFocusLostBehavior(javax.swing.JFormattedTextField.COMMIT);
+            JFormattedTextField tf = yearEditor.getTextField();
+            tf.setFocusLostBehavior(JFormattedTextField.COMMIT);
 
-            java.util.function.Consumer<Void> notifyFromEditor = (v) -> {
+            Consumer<Void> notifyFromEditor = (v) -> {
                 try {
                     String txt = tf.getText();
                     if (txt != null) {
@@ -183,7 +193,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
                 }
             };
 
-            tf.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            tf.getDocument().addDocumentListener(new DocumentListener() {
                 private void safeCommit() {
                     try {
                         yearSpinner.commitEdit();
@@ -193,19 +203,19 @@ public class EmissionFactorsPanel extends BaseModulePanel {
                 }
 
                 @Override
-                public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                public void insertUpdate(DocumentEvent e) {
                     safeCommit();
                     notifyFromEditor.accept(null);
                 }
 
                 @Override
-                public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                public void removeUpdate(DocumentEvent e) {
                     safeCommit();
                     notifyFromEditor.accept(null);
                 }
 
                 @Override
-                public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                public void changedUpdate(DocumentEvent e) {
                     safeCommit();
                     notifyFromEditor.accept(null);
                 }
@@ -219,9 +229,9 @@ public class EmissionFactorsPanel extends BaseModulePanel {
                 notifyFromEditor.accept(null);
             });
 
-            tf.addFocusListener(new java.awt.event.FocusAdapter() {
+            tf.addFocusListener(new FocusAdapter() {
                 @Override
-                public void focusLost(java.awt.event.FocusEvent e) {
+                public void focusLost(FocusEvent e) {
                     try {
                         yearSpinner.commitEdit();
                     } catch (Exception ignored) {
@@ -235,8 +245,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         yearSpinner.addChangeListener(e -> {
             try {
                 if (yearSpinner.getEditor() instanceof JSpinner.NumberEditor) {
-                    javax.swing.JFormattedTextField tf = ((JSpinner.NumberEditor) yearSpinner.getEditor())
-                            .getTextField();
+                    JFormattedTextField tf = ((JSpinner.NumberEditor) yearSpinner.getEditor()).getTextField();
                     String txt = tf.getText();
                     if (txt != null && !txt.trim().isEmpty()) {
                         try {
@@ -269,8 +278,8 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private JTextField locationBasedField;
     private JTextField gdoCogeneracionField;
     private JButton saveGeneralFactorsButton;
-    private com.carboncalc.view.factors.ElectricityFactorPanel electricityGeneralFactorsPanel;
-    private com.carboncalc.view.factors.GasFactorPanel gasGeneralFactorsPanel;
+    private ElectricityFactorPanel electricityGeneralFactorsPanel;
+    private GasFactorPanel gasGeneralFactorsPanel;
 
     private JTable tradingCompaniesTable;
     private JTextField companyNameField;
@@ -345,24 +354,28 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     }
 
     /** Add a card component into the cards area under the given name. */
-    public void addCard(String name, javax.swing.JComponent comp) {
+    public void addCard(String name, JComponent comp) {
         if (name == null || comp == null)
             return;
         try {
             cardsPanel.add(comp, name);
             cardComponents.put(name, comp);
-            try { cardsPanel.revalidate(); cardsPanel.repaint(); } catch (Exception ignored) {}
+            try {
+                cardsPanel.revalidate();
+                cardsPanel.repaint();
+            } catch (Exception ignored) {
+            }
         } catch (Exception ignored) {
         }
     }
 
     /** Register the electricity-specific panel so getters forward to its fields. */
-    public void setElectricityGeneralFactorsPanel(com.carboncalc.view.factors.ElectricityFactorPanel panel) {
+    public void setElectricityGeneralFactorsPanel(ElectricityFactorPanel panel) {
         this.electricityGeneralFactorsPanel = panel;
     }
 
     /** Register the gas-specific panel so getters forward to its fields. */
-    public void setGasGeneralFactorsPanel(com.carboncalc.view.factors.GasFactorPanel panel) {
+    public void setGasGeneralFactorsPanel(GasFactorPanel panel) {
         this.gasGeneralFactorsPanel = panel;
     }
 

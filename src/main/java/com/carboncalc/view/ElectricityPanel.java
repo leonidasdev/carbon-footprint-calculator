@@ -16,6 +16,9 @@ import java.time.LocalDate;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.util.ResourceBundle;
+import java.util.List;
+import java.util.Arrays;
+import java.text.DecimalFormat;
 
 /**
  * ElectricityPanel
@@ -325,7 +328,7 @@ public class ElectricityPanel extends BaseModulePanel {
         UIUtils.styleComboBox(emissionEntitySelector);
 
         // Apply fixed size and width-aware truncating renderer to prevent layout shifts
-        java.util.List<JComboBox<String>> mappingCombos = java.util.Arrays.asList(
+        List<JComboBox<String>> mappingCombos = Arrays.asList(
                 cupsSelector, invoiceNumberSelector, startDateSelector,
                 endDateSelector, consumptionSelector, centerSelector, emissionEntitySelector);
         for (JComboBox<String> cb : mappingCombos) {
@@ -362,7 +365,7 @@ public class ElectricityPanel extends BaseModulePanel {
         // Style ERP mapping combo boxes and keep fixed size to avoid layout shifts
         UIUtils.styleComboBox(erpInvoiceNumberSelector);
         UIUtils.styleComboBox(conformityDateSelector);
-        java.util.List<JComboBox<String>> erpCombos = java.util.Arrays.asList(erpInvoiceNumberSelector,
+        List<JComboBox<String>> erpCombos = Arrays.asList(erpInvoiceNumberSelector,
                 conformityDateSelector);
         for (JComboBox<String> cb : erpCombos) {
             cb.setPreferredSize(new Dimension(180, 25));
@@ -499,7 +502,7 @@ public class ElectricityPanel extends BaseModulePanel {
         // "2,025")
         JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "####");
         yearSpinner.setEditor(yearEditor);
-        ((java.text.DecimalFormat) yearEditor.getFormat()).setGroupingUsed(false);
+        ((DecimalFormat) yearEditor.getFormat()).setGroupingUsed(false);
         yearSpinner.setPreferredSize(new Dimension(65, 24));
         // Delegate persistence to controller when year changes
         yearSpinner.addChangeListener(new ChangeListener() {

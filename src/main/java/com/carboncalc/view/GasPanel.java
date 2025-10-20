@@ -11,6 +11,11 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 
 import java.awt.*;
+import java.util.List;
+import java.util.Arrays;
+import java.util.Locale;
+import java.text.DecimalFormat;
+import javax.swing.event.ChangeListener;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -285,42 +290,46 @@ public class GasPanel extends BaseModulePanel {
         addColumnMapping(panel, gbc, "label.column.consumption", consumptionSelector = new JComboBox<>());
 
         // Gas Type (dropdown populated from gas_factors.csv per-year)
-    panel.add(new JLabel(messages.getString("label.column.gas.type")), gbc);
-    gbc.gridx = 1;
-    gasTypeSelector = new JComboBox<>();
-    gasTypeSelector.setEditable(true); // allow typing new gas types
-    gasTypeSelector.setPreferredSize(new Dimension(180, 25));
-    UIUtils.styleComboBox(gasTypeSelector);
-    // Ensure typed input is uppercased on commit by listeners (controller may normalize)
-    panel.add(gasTypeSelector, gbc);
-    gbc.gridx = 0;
-    gbc.gridy++;
+        panel.add(new JLabel(messages.getString("label.column.gas.type")), gbc);
+        gbc.gridx = 1;
+        gasTypeSelector = new JComboBox<>();
+        gasTypeSelector.setEditable(true); // allow typing new gas types
+        gasTypeSelector.setPreferredSize(new Dimension(180, 25));
+        UIUtils.styleComboBox(gasTypeSelector);
+        // Ensure typed input is uppercased on commit by listeners (controller may
+        // normalize)
+        panel.add(gasTypeSelector, gbc);
+        gbc.gridx = 0;
+        gbc.gridy++;
 
-    // Make the editable combo's editor uppercase input as the user types
-    try {
-        Component ed = gasTypeSelector.getEditor().getEditorComponent();
-        if (ed instanceof JTextField) {
-            JTextField tf = (JTextField) ed;
-            if (tf.getDocument() instanceof AbstractDocument) {
-                AbstractDocument ad = (AbstractDocument) tf.getDocument();
-                ad.setDocumentFilter(new DocumentFilter() {
-                    @Override
-                    public void insertString(FilterBypass fb, int offset, String text, AttributeSet attr)
-                            throws BadLocationException {
-                        if (text != null) text = text.toUpperCase(java.util.Locale.ROOT);
-                        super.insertString(fb, offset, text, attr);
-                    }
+        // Make the editable combo's editor uppercase input as the user types
+        try {
+            Component ed = gasTypeSelector.getEditor().getEditorComponent();
+            if (ed instanceof JTextField) {
+                JTextField tf = (JTextField) ed;
+                if (tf.getDocument() instanceof AbstractDocument) {
+                    AbstractDocument ad = (AbstractDocument) tf.getDocument();
+                    ad.setDocumentFilter(new DocumentFilter() {
+                        @Override
+                        public void insertString(FilterBypass fb, int offset, String text, AttributeSet attr)
+                                throws BadLocationException {
+                            if (text != null)
+                                text = text.toUpperCase(Locale.ROOT);
+                            super.insertString(fb, offset, text, attr);
+                        }
 
-                    @Override
-                    public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
-                            throws BadLocationException {
-                        if (text != null) text = text.toUpperCase(java.util.Locale.ROOT);
-                        super.replace(fb, offset, length, text, attrs);
-                    }
-                });
+                        @Override
+                        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
+                                throws BadLocationException {
+                            if (text != null)
+                                text = text.toUpperCase(Locale.ROOT);
+                            super.replace(fb, offset, length, text, attrs);
+                        }
+                    });
+                }
             }
+        } catch (Exception ignored) {
         }
-    } catch (Exception ignored) {}
 
         // Center
         addColumnMapping(panel, gbc, "label.column.center", centerSelector = new JComboBox<>());
@@ -339,9 +348,9 @@ public class GasPanel extends BaseModulePanel {
         UIUtils.styleComboBox(emissionEntitySelector);
 
         // Apply fixed size and width-aware truncating renderer to prevent layout shifts
-    java.util.List<JComboBox<String>> mappingCombos = java.util.Arrays.asList(
-        cupsSelector, invoiceNumberSelector, startDateSelector,
-        endDateSelector, consumptionSelector, gasTypeSelector, centerSelector, emissionEntitySelector);
+        List<JComboBox<String>> mappingCombos = Arrays.asList(
+                cupsSelector, invoiceNumberSelector, startDateSelector,
+                endDateSelector, consumptionSelector, gasTypeSelector, centerSelector, emissionEntitySelector);
         for (JComboBox<String> cb : mappingCombos) {
             cb.setPreferredSize(new Dimension(180, 25));
             cb.setMaximumSize(new Dimension(180, 25));
@@ -380,7 +389,7 @@ public class GasPanel extends BaseModulePanel {
         // Style ERP mapping combo boxes and keep fixed size to avoid layout shifts
         UIUtils.styleComboBox(erpInvoiceNumberSelector);
         UIUtils.styleComboBox(conformityDateSelector);
-        java.util.List<JComboBox<String>> erpCombos = java.util.Arrays.asList(erpInvoiceNumberSelector,
+        List<JComboBox<String>> erpCombos = Arrays.asList(erpInvoiceNumberSelector,
                 conformityDateSelector);
         for (JComboBox<String> cb : erpCombos) {
             cb.setPreferredSize(new Dimension(180, 25));
@@ -509,14 +518,14 @@ public class GasPanel extends BaseModulePanel {
         JLabel yearLabel = new JLabel("Year:");
         yearLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(yearLabel);
-    // Initialize yearSpinner with value provided by controller (persisted there)
-    int initialYear = controller != null ? controller.getCurrentYear() : loadCurrentYearFromFile();
+        // Initialize yearSpinner with value provided by controller (persisted there)
+        int initialYear = controller != null ? controller.getCurrentYear() : loadCurrentYearFromFile();
         yearSpinner = new JSpinner(new SpinnerNumberModel(initialYear, 1900, 2100, 1));
         JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "####");
         yearSpinner.setEditor(yearEditor);
-        ((java.text.DecimalFormat) yearEditor.getFormat()).setGroupingUsed(false);
+        ((DecimalFormat) yearEditor.getFormat()).setGroupingUsed(false);
         yearSpinner.setPreferredSize(new Dimension(65, 24));
-        yearSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+        yearSpinner.addChangeListener(new ChangeListener() {
             private boolean init = true;
 
             @Override
@@ -646,7 +655,8 @@ public class GasPanel extends BaseModulePanel {
     }
 
     public String getSelectedGasType() {
-        if (gasTypeSelector == null) return "";
+        if (gasTypeSelector == null)
+            return "";
         Object sel = gasTypeSelector.getEditor().getItem();
         return sel != null ? sel.toString() : "";
     }
@@ -720,10 +730,10 @@ public class GasPanel extends BaseModulePanel {
         int consumptionIndex = getSelectedIndex(consumptionSelector);
         int centerIndex = getSelectedIndex(centerSelector);
         int emissionEntityIndex = getSelectedIndex(emissionEntitySelector);
-    String gasType = getSelectedGasType();
+        String gasType = getSelectedGasType();
 
-    return new GasMapping(cupsIndex, invoiceIndex, startDateIndex,
-        endDateIndex, consumptionIndex, centerIndex, emissionEntityIndex, gasType);
+        return new GasMapping(cupsIndex, invoiceIndex, startDateIndex,
+                endDateIndex, consumptionIndex, centerIndex, emissionEntityIndex, gasType);
     }
 
     private int getSelectedIndex(JComboBox<String> comboBox) {

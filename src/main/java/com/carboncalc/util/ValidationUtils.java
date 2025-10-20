@@ -7,12 +7,15 @@ import java.util.Locale;
 /**
  * Small collection of input validation helpers used by UI controllers.
  *
- * <p>Utilities are intentionally conservative: parsing is forgiving (accepts
+ * <p>
+ * Utilities are intentionally conservative: parsing is forgiving (accepts
  * both comma and dot as decimal separators) but validation ranges are strict
- * to avoid saving obviously incorrect data.</p>
+ * to avoid saving obviously incorrect data.
+ * </p>
  */
 public final class ValidationUtils {
-    private ValidationUtils() {}
+    private ValidationUtils() {
+    }
 
     /**
      * Validate a year value. Accept reasonable range only (1900-2100).
@@ -28,7 +31,8 @@ public final class ValidationUtils {
      * Convenience variant that throws IllegalArgumentException when invalid.
      */
     public static void requireValidYear(int year) {
-        if (!isValidYear(year)) throw new IllegalArgumentException("Invalid year: " + year);
+        if (!isValidYear(year))
+            throw new IllegalArgumentException("Invalid year: " + year);
     }
 
     /**
@@ -37,9 +41,11 @@ public final class ValidationUtils {
      * Returns {@code null} when parsing fails.
      */
     public static Double tryParseDouble(String text) {
-        if (text == null) return null;
+        if (text == null)
+            return null;
         String t = text.trim();
-        if (t.isEmpty()) return null;
+        if (t.isEmpty())
+            return null;
         // Try standard parse
         try {
             return Double.parseDouble(t);
@@ -72,11 +78,13 @@ public final class ValidationUtils {
      * and uppercase using the default locale.
      */
     public static String normalizeCups(String cups) {
-        if (cups == null) return null;
+        if (cups == null)
+            return null;
         String s = cups.trim().replace('\u00A0', ' ');
         try {
             s = Normalizer.normalize(s, Normalizer.Form.NFKC);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return s.toUpperCase(Locale.getDefault());
     }
 
@@ -85,9 +93,11 @@ public final class ValidationUtils {
      * normalization. Returns true when valid.
      */
     public static boolean isValidCups(String cups) {
-        if (cups == null) return false;
+        if (cups == null)
+            return false;
         String s = cups.trim();
-        if (s.isEmpty()) return false;
+        if (s.isEmpty())
+            return false;
         // Accept length between 20 and 22 characters
         int len = s.length();
         return len >= 20 && len <= 22;

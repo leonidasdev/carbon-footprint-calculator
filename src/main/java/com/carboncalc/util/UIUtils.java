@@ -130,7 +130,7 @@ public class UIUtils {
             return;
 
         // Find the enclosing JScrollPane robustly
-        Component possible = javax.swing.SwingUtilities.getAncestorOfClass(JScrollPane.class, table);
+        Component possible = SwingUtilities.getAncestorOfClass(JScrollPane.class, table);
         if (possible == null) {
             possible = table.getParent();
             if (possible != null)

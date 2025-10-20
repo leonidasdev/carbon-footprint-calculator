@@ -2,6 +2,7 @@ package com.carboncalc.view.factors;
 
 import com.carboncalc.util.UIUtils;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ResourceBundle;
@@ -141,7 +142,7 @@ public class ElectricityFactorPanel extends JPanel {
         JPanel leftLabels = new JPanel();
         leftLabels.setLayout(new BoxLayout(leftLabels, BoxLayout.Y_AXIS));
         leftLabels.setBackground(UIUtils.CONTENT_BACKGROUND);
-        leftLabels.setBorder(new javax.swing.border.EmptyBorder(0, 12, 0, 12));
+        leftLabels.setBorder(new EmptyBorder(0, 12, 0, 12));
         leftLabels.add(new JLabel(messages.getString("label.company.name") + ":"));
         leftLabels.add(Box.createVerticalStrut(8));
         leftLabels.add(new JLabel(messages.getString("label.emission.factor") + ":"));
@@ -178,7 +179,7 @@ public class ElectricityFactorPanel extends JPanel {
         rightColumn.setBackground(UIUtils.CONTENT_BACKGROUND);
         JPanel rightTop = new JPanel(new GridLayout(3, 1, 0, 8));
         rightTop.setBackground(UIUtils.CONTENT_BACKGROUND);
-        rightTop.setBorder(new javax.swing.border.EmptyBorder(0, 0, 0, 8));
+        rightTop.setBorder(new EmptyBorder(0, 0, 0, 8));
         // spacer for company name row
         rightTop.add(new JLabel(""));
         // spacer reserved for unit (unit label is added precisely in the GridBag row)
@@ -309,7 +310,11 @@ public class ElectricityFactorPanel extends JPanel {
         UIUtils.styleTable(tradingCompaniesTable);
         JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
         scrollPane.setPreferredSize(new Dimension(0, 180));
-    try { scrollPane.revalidate(); scrollPane.repaint(); } catch (Exception ignored) {}
+        try {
+            scrollPane.revalidate();
+            scrollPane.repaint();
+        } catch (Exception ignored) {
+        }
 
         JPanel tradingCompanyButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         tradingCompanyButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);

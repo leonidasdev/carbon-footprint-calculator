@@ -3,6 +3,7 @@ package com.carboncalc.util;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Year;
 
 /**
  * DataInitializer
@@ -35,7 +36,7 @@ public final class DataInitializer {
         // If there is no persisted current year file, create one with the system year
         Path currentYearFile = year.resolve("current_year.txt");
         if (!Files.exists(currentYearFile)) {
-            String yearStr = String.valueOf(java.time.Year.now().getValue());
+            String yearStr = String.valueOf(Year.now().getValue());
             Files.writeString(currentYearFile, yearStr);
         }
     }

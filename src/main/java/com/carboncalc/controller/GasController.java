@@ -42,6 +42,8 @@ public class GasController {
     public void setView(GasPanel view) {
         this.view = view;
         loadStoredCups();
+        // populate gas types for the current year into the panel's selector
+        try { populateGasTypesForYear(this.currentYear); } catch (Exception ignored) {}
     }
     
     /**
@@ -57,6 +59,8 @@ public class GasController {
         } catch (IOException e) {
             UIUtils.showErrorDialog(view, messages.getString("error.loading.cups"), e.getMessage());
         }
+        // Also populate gas type selector with available gas types for the current year
+        try { populateGasTypesForYear(this.currentYear); } catch (Exception ignored) {}
     }
     
     public void handleProviderFileSelection() {
@@ -94,6 +98,8 @@ public class GasController {
     public void handleYearSelection(int year) {
         this.currentYear = year;
         persistCurrentYear(year);
+        // Reload gas types for the newly selected year
+        try { populateGasTypesForYear(year); } catch (Exception ignored) {}
     }
 
     private int loadPersistedYear() {
@@ -117,6 +123,23 @@ public class GasController {
             java.nio.file.Files.writeString(CURRENT_YEAR_FILE, String.valueOf(year));
         } catch (Exception e) {
             System.err.println("Failed to persist current year: " + e.getMessage());
+        }
+    }
+
+    public void populateGasTypesForYear(int year) {
+        try {
+            com.carboncalc.service.GasFactorServiceCsv svc = new com.carboncalc.service.GasFactorServiceCsv();
+            java.util.List<com.carboncalc.model.factors.GasFactorEntry> entries = svc.loadGasFactors(year);
+            JComboBox<String> combo = view.getGasTypeSelector();
+            if (combo == null) return;
+            combo.removeAllItems();
+            combo.addItem("");
+            for (com.carboncalc.model.factors.GasFactorEntry e : entries) {
+                String gt = e.getGasType() == null ? "" : e.getGasType().trim();
+                if (!gt.isEmpty()) combo.addItem(gt);
+            }
+        } catch (Exception ex) {
+            // ignore
         }
     }
 
@@ -522,7 +545,7 @@ public class GasController {
             }
 
             // Generate the Excel report with mapping, year context and invoice filter
-            com.carboncalc.util.GasExcelExporter.exportGasData(
+            com.carboncalc.util.excel.GasExcelExporter.exportGasData(
                 outputFile.getAbsolutePath(), providerPath, providerSheet, erpPath, erpSheet, mapping, selectedYear, sheetMode, validInvoices
             );
             

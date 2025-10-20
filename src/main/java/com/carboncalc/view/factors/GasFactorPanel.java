@@ -51,7 +51,19 @@ public class GasFactorPanel extends JPanel {
         middleFields.setBackground(UIUtils.CONTENT_BACKGROUND);
     gasTypeSelector = new JComboBox<>();
     gasTypeSelector.setEditable(true); // allow typing new gas types
-    gasTypeSelector.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+    gasTypeSelector.setPreferredSize(new Dimension(180, 25));
+    gasTypeSelector.setMaximumSize(new Dimension(180, 25));
+    gasTypeSelector.setRenderer(new DefaultListCellRenderer() {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                boolean cellHasFocus) {
+            String s = value == null ? "" : value.toString();
+            String display = s.length() > 8 ? s.substring(0, 8) + "..." : s;
+            JLabel lbl = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
+            lbl.setToolTipText(s.length() > 8 ? s : null);
+            return lbl;
+        }
+    });
     UIUtils.styleComboBox(gasTypeSelector);
     middleFields.add(gasTypeSelector);
         middleFields.add(Box.createVerticalStrut(8));

@@ -1,4 +1,4 @@
-package com.carboncalc.util;
+package com.carboncalc.util.excel;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.Collections;
 
@@ -40,9 +39,9 @@ public class GasExcelExporter {
         for (DetailedHeader h : dh) {
             DETAILED_HEADERS[idx++] = h.label();
         }
-        // append Gas Type and Emission Factor as the right-most columns
-        DETAILED_HEADERS[idx++] = "Gas Type";
-        DETAILED_HEADERS[idx] = "Emission Factor (kgCO2e/kWh)";
+        // append Gas Type and Emission Factor as the right-most columns (Spanish)
+        DETAILED_HEADERS[idx++] = "Tipo de gas";
+        DETAILED_HEADERS[idx] = "Factor de emision (kgCO2e/kWh)";
     }
 
     private static final String[] TOTAL_HEADERS = {
@@ -323,8 +322,19 @@ public class GasExcelExporter {
             pctYearCell.setCellStyle(percentStyle);
 
             // Consumo kWh aplicable por año
+            int consumoKwhColIndex = 7; // CONSUMO_KWH
+            int pctAnoColIndex = 8; // PCT_CONSUMO_APLICABLE_ANO
+            int consumoAplicColIndex = 9; // CONSUMO_APLICABLE_ANO
             Cell consumoAplicCell = out.createCell(col++);
-            consumoAplicCell.setCellValue(consumoAplicable);
+            // Formula: =ConsumoKwh * (PctAplicableAno / 100)
+            try {
+                int excelRow = out.getRowNum() + 1;
+                String formula = colIndexToName(consumoKwhColIndex) + excelRow + "*(" + colIndexToName(pctAnoColIndex) + excelRow + "/100)";
+                consumoAplicCell.setCellFormula(formula);
+            } catch (Exception e) {
+                // fallback to numeric value
+                consumoAplicCell.setCellValue(consumoAplicable);
+            }
 
             // Porcentaje consumo aplicable al centro
             Cell pctCentroCell = out.createCell(col++);
@@ -332,17 +342,43 @@ public class GasExcelExporter {
             pctCentroCell.setCellStyle(percentStyle);
 
             // Consumo kWh aplicable por año al centro
+            int consumoAplicCentroColIndex = 11; // CONSUMO_APLICABLE_CENTRO
             Cell consumoPorCentroCell = out.createCell(col++);
-            consumoPorCentroCell.setCellValue(consumoPorCentro);
+            try {
+                int excelRow = out.getRowNum() + 1;
+                // Formula: =ConsumoAplicableAno / centersCount
+                String formulaCentro = colIndexToName(consumoAplicColIndex) + excelRow + "/" + centersCount;
+                consumoPorCentroCell.setCellFormula(formulaCentro);
+            } catch (Exception e) {
+                consumoPorCentroCell.setCellValue(consumoPorCentro);
+            }
 
             // emissions (market, location) with formatting
+            int marketColIndex = 12; // EMISIONES_MARKET
+            int locationColIndex = 13; // EMISIONES_LOCATION
+            int factorColIndex = 15; // Factor de emision
             Cell marketCell = out.createCell(col++);
-            marketCell.setCellValue(emisionesMarketT);
-            marketCell.setCellStyle(emissionsStyle);
+            try {
+                int excelRow = out.getRowNum() + 1;
+                // Formula: =ConsumoPorCentro * Factor / 1000
+                String marketFormula = colIndexToName(consumoAplicCentroColIndex) + excelRow + "*" + colIndexToName(factorColIndex) + excelRow + "/1000";
+                marketCell.setCellFormula(marketFormula);
+                marketCell.setCellStyle(emissionsStyle);
+            } catch (Exception e) {
+                marketCell.setCellValue(emisionesMarketT);
+                marketCell.setCellStyle(emissionsStyle);
+            }
 
             Cell locationCell = out.createCell(col++);
-            locationCell.setCellValue(emisionesLocationT);
-            locationCell.setCellStyle(emissionsStyle);
+            try {
+                int excelRow = out.getRowNum() + 1;
+                String locationFormula = colIndexToName(consumoAplicCentroColIndex) + excelRow + "*" + colIndexToName(factorColIndex) + excelRow + "/1000";
+                locationCell.setCellFormula(locationFormula);
+                locationCell.setCellStyle(emissionsStyle);
+            } catch (Exception e) {
+                locationCell.setCellValue(emisionesLocationT);
+                locationCell.setCellStyle(emissionsStyle);
+            }
 
             // Finally, append the normalized gas type (uppercased) and the emission factor used
             out.createCell(col++).setCellValue(gasTypeNormalized == null ? "" : gasTypeNormalized);
@@ -587,5 +623,17 @@ public class GasExcelExporter {
         font.setBold(true);
         style.setFont(font);
         return style;
+    }
+
+    // Convert zero-based column index to Excel column name, e.g. 0 -> A, 25 -> Z, 26 -> AA
+    private static String colIndexToName(int colIndex) {
+        StringBuilder sb = new StringBuilder();
+        int col = colIndex;
+        while (col >= 0) {
+            int rem = col % 26;
+            sb.append((char) ('A' + rem));
+            col = (col / 26) - 1;
+        }
+        return sb.reverse().toString();
     }
 }

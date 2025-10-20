@@ -5,7 +5,6 @@ import com.carboncalc.model.GasMapping;
 import com.carboncalc.util.UIUtils;
 import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
-import javax.swing.text.DocumentFilter;
 
 import java.awt.*;
 import java.io.IOException;
@@ -42,7 +41,7 @@ public class GasPanel extends BaseModulePanel {
     private JPanel providerMappingPanel;
     private JPanel erpMappingPanel;
     private JComboBox<String> cupsSelector;
-    private JTextField gasTypeField;
+    private JComboBox<String> gasTypeSelector;
     private JComboBox<String> invoiceNumberSelector;
     // issueDate removed per UX decision
     private JComboBox<String> startDateSelector;
@@ -281,34 +280,15 @@ public class GasPanel extends BaseModulePanel {
         // Consumption
         addColumnMapping(panel, gbc, "label.column.consumption", consumptionSelector = new JComboBox<>());
 
-        // Gas Type (static string input)
+        // Gas Type (dropdown populated from gas_factors.csv per-year)
     panel.add(new JLabel(messages.getString("label.column.gas.type")), gbc);
     gbc.gridx = 1;
-    gasTypeField = new JTextField();
-    gasTypeField.setPreferredSize(new Dimension(180, 25));
-    // Make user input uppercase as they type to avoid mismatches with factor keys
-        try {
-            javax.swing.text.AbstractDocument doc = (javax.swing.text.AbstractDocument) gasTypeField.getDocument();
-            doc.setDocumentFilter(new DocumentFilter() {
-                @Override
-                public void insertString(DocumentFilter.FilterBypass fb, int offset, String string,
-                        javax.swing.text.AttributeSet attr) throws javax.swing.text.BadLocationException {
-                    if (string != null)
-                        string = string.toUpperCase(java.util.Locale.ROOT);
-                    super.insertString(fb, offset, string, attr);
-                }
-
-                @Override
-                public void replace(DocumentFilter.FilterBypass fb, int offset, int length, String text,
-                        javax.swing.text.AttributeSet attrs) throws javax.swing.text.BadLocationException {
-                    if (text != null)
-                        text = text.toUpperCase(java.util.Locale.ROOT);
-                    super.replace(fb, offset, length, text, attrs);
-                }
-            });
-    } catch (Exception ignored) {
-    }
-    panel.add(gasTypeField, gbc);
+    gasTypeSelector = new JComboBox<>();
+    gasTypeSelector.setEditable(true); // allow typing new gas types
+    gasTypeSelector.setPreferredSize(new Dimension(180, 25));
+    UIUtils.styleComboBox(gasTypeSelector);
+    // Ensure typed input is uppercased on commit by listeners (controller may normalize)
+    panel.add(gasTypeSelector, gbc);
     gbc.gridx = 0;
     gbc.gridy++;
 
@@ -329,9 +309,9 @@ public class GasPanel extends BaseModulePanel {
         UIUtils.styleComboBox(emissionEntitySelector);
 
         // Apply fixed size and width-aware truncating renderer to prevent layout shifts
-        java.util.List<JComboBox<String>> mappingCombos = java.util.Arrays.asList(
-                cupsSelector, invoiceNumberSelector, startDateSelector,
-                endDateSelector, consumptionSelector, centerSelector, emissionEntitySelector);
+    java.util.List<JComboBox<String>> mappingCombos = java.util.Arrays.asList(
+        cupsSelector, invoiceNumberSelector, startDateSelector,
+        endDateSelector, consumptionSelector, gasTypeSelector, centerSelector, emissionEntitySelector);
         for (JComboBox<String> cb : mappingCombos) {
             cb.setPreferredSize(new Dimension(180, 25));
             cb.setMaximumSize(new Dimension(180, 25));
@@ -348,9 +328,9 @@ public class GasPanel extends BaseModulePanel {
                 }
             });
         }
-        // Style gas type field
-        if (gasTypeField != null) {
-            gasTypeField.setMaximumSize(new Dimension(180, 25));
+        // Style gas type selector
+        if (gasTypeSelector != null) {
+            gasTypeSelector.setMaximumSize(new Dimension(180, 25));
         }
     }
 
@@ -534,6 +514,19 @@ public class GasPanel extends BaseModulePanel {
         resultSheetSelector.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(resultSheetSelector);
 
+        // Populate gas types for the initially selected year so the gas type
+        // dropdown is ready as soon as the panel is opened.
+        int yearToPopulate = initialYear;
+        if (controller != null) {
+            try {
+                controller.populateGasTypesForYear(yearToPopulate);
+            } catch (Exception ignored) {
+                // Defensive: if controller doesn't implement the method or an error
+                // occurs, don't break UI initialization. Controller will populate on
+                // year change or other interactions.
+            }
+        }
+
         // Add Apply & Save button below the result preview
         JPanel resultButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         resultButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -614,18 +607,18 @@ public class GasPanel extends BaseModulePanel {
     }
 
     public JComboBox<String> getGasTypeSelector() {
-        // Deprecated: mapping now uses a text field; keep API name for callers
-        // but return null. Prefer getGasTypeField()/getSelectedGasType().
-        return null;
+        return gasTypeSelector;
     }
 
-    public JTextField getGasTypeField() {
-        return gasTypeField;
+    public JComboBox<String> getGasTypeField() {
+        // Keep API compatibility name but return the selector (editable combo)
+        return gasTypeSelector;
     }
 
     public String getSelectedGasType() {
-        if (gasTypeField == null) return "";
-        return gasTypeField.getText() != null ? gasTypeField.getText() : "";
+        if (gasTypeSelector == null) return "";
+        Object sel = gasTypeSelector.getEditor().getItem();
+        return sel != null ? sel.toString() : "";
     }
 
     public JComboBox<String> getCenterSelector() {

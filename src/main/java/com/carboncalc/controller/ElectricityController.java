@@ -7,7 +7,8 @@ import com.carboncalc.model.enums.EnergyType;
 import com.carboncalc.service.CupsService;
 import com.carboncalc.service.CupsServiceCsv;
 import com.carboncalc.util.UIUtils;
-import com.carboncalc.util.ElectricityExcelExporter;
+import com.carboncalc.util.excel.ElectricityExcelExporter;
+
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;

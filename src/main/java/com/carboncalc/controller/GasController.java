@@ -362,9 +362,28 @@ public class GasController {
                 return String.valueOf(cell.getBooleanCellValue());
             case FORMULA:
                 try {
-                    return String.valueOf(cell.getNumericCellValue());
-                } catch (IllegalStateException e) {
-                    return cell.getStringCellValue();
+                    FormulaEvaluator evaluator = cell.getSheet().getWorkbook().getCreationHelper().createFormulaEvaluator();
+                    CellValue cv = evaluator.evaluate(cell);
+                    if (cv == null) return "";
+                    switch (cv.getCellType()) {
+                        case STRING:
+                            return cv.getStringValue();
+                        case NUMERIC:
+                            // If original cell is date-formatted, try to return date string
+                            try {
+                                if (DateUtil.isCellDateFormatted(cell)) {
+                                    return cell.getLocalDateTimeCellValue().toString();
+                                }
+                            } catch (Exception ignored) {}
+                            return String.valueOf(cv.getNumberValue());
+                        case BOOLEAN:
+                            return String.valueOf(cv.getBooleanValue());
+                        case ERROR:
+                        default:
+                            return "";
+                    }
+                } catch (Exception e) {
+                    return "";
                 }
             default:
                 return "";

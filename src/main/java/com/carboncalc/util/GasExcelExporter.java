@@ -129,6 +129,7 @@ public class GasExcelExporter {
     DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = source.getWorkbook().getCreationHelper().createFormulaEvaluator();
         Map<String, double[]> perCenterAgg = new HashMap<>();
+        java.util.List<String> diagnostics = new java.util.ArrayList<>();
         int headerRowIndex = -1;
         for (int i = source.getFirstRowNum(); i <= source.getLastRowNum(); i++) {
             Row r = source.getRow(i);
@@ -146,10 +147,24 @@ public class GasExcelExporter {
                 break;
             }
         }
-        if (headerRowIndex == -1)
+        if (headerRowIndex == -1) {
+            diagnostics.add("No header row found in provider sheet; no rows will be processed.");
+            // write diagnostics sheet and return
+            try {
+                Sheet diag = target.getWorkbook().createSheet("Diagnostics");
+                int rr = 0;
+                for (String msg : diagnostics) {
+                    Row r = diag.createRow(rr++);
+                    r.createCell(0).setCellValue(msg);
+                }
+                diag.autoSizeColumn(0);
+            } catch (Exception e) {
+                // ignore diagnostics write errors
+            }
             return perCenterAgg;
+        }
 
-        int outRow = target.getLastRowNum() + 1;
+    int outRow = target.getLastRowNum() + 1;
         int idCounter = 1;
         // Build centersPerCups map to split consumption among centers sharing the same CUPS
         Map<String, Integer> centersPerCups = new HashMap<>();
@@ -179,12 +194,32 @@ public class GasExcelExporter {
             String gasType = gasTypeRaw == null ? "" : gasTypeRaw.trim();
             String gasTypeNormalized = gasType.isEmpty() ? "" : gasType.toUpperCase(java.util.Locale.ROOT);
             double consumo = parseDoubleSafe(consumoStr);
-            double consumoAplicable = computeApplicableKwh(fechaInicio, fechaFin, consumo, year);
+            // Parse start and end dates
+            LocalDate parsedStart = parseDateLenient(fechaInicio);
+            LocalDate parsedEnd = parseDateLenient(fechaFin);
+            // Determine reporting year (prefer parameter 'year' > 0, otherwise read file)
+            int reportingYear = (year > 0) ? year : readCurrentYearFromFile();
+            boolean startInYear = parsedStart != null && parsedStart.getYear() == reportingYear;
+            boolean endInYear = parsedEnd != null && parsedEnd.getYear() == reportingYear;
+            // Skip rows whose dates do not touch the reporting year
+            if (!startInYear && !endInYear) {
+                diagnostics.add(String.format("Row %d skipped: dates do not overlap reporting year %d (start='%s', end='%s', factura='%s')", i, reportingYear, fechaInicio, fechaFin, factura));
+                continue;
+            }
+            // Compute consumoAplicable: conservative if one date missing
+            double consumoAplicable;
+            if (parsedStart == null || parsedEnd == null) {
+                consumoAplicable = consumo;
+            } else {
+                consumoAplicable = computeApplicableKwh(fechaInicio, fechaFin, consumo, reportingYear);
+            }
 
             if (validInvoices != null && !validInvoices.isEmpty()) {
                 String invoiceKey = factura != null ? factura.trim() : "";
-                if (invoiceKey.isEmpty() || !validInvoices.contains(invoiceKey))
+                if (invoiceKey.isEmpty() || !validInvoices.contains(invoiceKey)) {
+                    diagnostics.add(String.format("Row %d skipped: invoice '%s' is not in valid invoices set", i, invoiceKey));
                     continue;
+                }
             }
 
             String centerName = getCellStringByIndex(srcRow, mapping.getCenterIndex(), df, eval);
@@ -198,7 +233,12 @@ public class GasExcelExporter {
             // Lookup factor using the normalized gas type; default to 0.0 when not found
             double factor = 0.0;
             if (!gasTypeNormalized.isEmpty()) {
-                factor = gasTypeToFactor.getOrDefault(gasTypeNormalized, 0.0);
+                if (gasTypeToFactor.containsKey(gasTypeNormalized)) {
+                    factor = gasTypeToFactor.get(gasTypeNormalized);
+                } else {
+                    diagnostics.add(String.format("Row %d: gas type '%s' not found for year %d; using factor=0.0", i, gasTypeNormalized, reportingYear));
+                    factor = 0.0;
+                }
             }
             // Split consumption among centers sharing the same CUPS (if applicable)
             int centersCount = 1;
@@ -221,6 +261,20 @@ public class GasExcelExporter {
             agg[1] += emisionesMarketT;
             agg[2] += emisionesLocationT;
 
+            // Prepare some cell styles (date, percentage, emissions number formats)
+            Workbook wb = target.getWorkbook();
+            CellStyle dateStyle = wb.createCellStyle();
+            short dateFmt = wb.createDataFormat().getFormat("dd/MM/yyyy");
+            dateStyle.setDataFormat(dateFmt);
+
+            CellStyle percentStyle = wb.createCellStyle();
+            short percentFmt = wb.createDataFormat().getFormat("0.00");
+            percentStyle.setDataFormat(percentFmt);
+
+            CellStyle emissionsStyle = wb.createCellStyle();
+            short emissionsFmt = wb.createDataFormat().getFormat("0.000000");
+            emissionsStyle.setDataFormat(emissionsFmt);
+
             Row out = target.createRow(outRow++);
             int col = 0;
             out.createCell(col++).setCellValue(idCounter++);
@@ -234,8 +288,12 @@ public class GasExcelExporter {
             // Fecha inicio (as date cell)
             Cell startCell = out.createCell(col++);
             try {
-                startCell.setCellValue(java.sql.Date.valueOf(parseDateLenient(fechaInicio)));
-                startCell.setCellStyle(createHeaderStyle(target.getWorkbook()));
+                if (parsedStart != null) {
+                    startCell.setCellValue(java.sql.Date.valueOf(parsedStart));
+                    startCell.setCellStyle(dateStyle);
+                } else {
+                    startCell.setCellValue(fechaInicio != null ? fechaInicio : "");
+                }
             } catch (Exception ex) {
                 startCell.setCellValue(fechaInicio != null ? fechaInicio : "");
             }
@@ -243,26 +301,66 @@ public class GasExcelExporter {
             // Fecha fin (as date cell)
             Cell endCell = out.createCell(col++);
             try {
-                endCell.setCellValue(java.sql.Date.valueOf(parseDateLenient(fechaFin)));
-                endCell.setCellStyle(createHeaderStyle(target.getWorkbook()));
+                if (parsedEnd != null) {
+                    endCell.setCellValue(java.sql.Date.valueOf(parsedEnd));
+                    endCell.setCellStyle(dateStyle);
+                } else {
+                    endCell.setCellValue(fechaFin != null ? fechaFin : "");
+                }
             } catch (Exception ex) {
                 endCell.setCellValue(fechaFin != null ? fechaFin : "");
             }
 
             // Numeric values: consumo, pct aplicable ano, consumo aplicable, pct por centro, consumo por centro
-            out.createCell(col++).setCellValue(consumo);
-            out.createCell(col++).setCellValue(porcentajeAplicableAno);
-            out.createCell(col++).setCellValue(consumoAplicable);
-            out.createCell(col++).setCellValue(porcentajePorCentro);
-            out.createCell(col++).setCellValue(consumoPorCentro);
 
-            // emissions (market, location)
-            out.createCell(col++).setCellValue(emisionesMarketT);
-            out.createCell(col++).setCellValue(emisionesLocationT);
+            // Numeric values: consumo
+            Cell consumoCell = out.createCell(col++);
+            consumoCell.setCellValue(consumo);
+
+            // Porcentaje consumo aplicable al año (formatted)
+            Cell pctYearCell = out.createCell(col++);
+            pctYearCell.setCellValue(porcentajeAplicableAno);
+            pctYearCell.setCellStyle(percentStyle);
+
+            // Consumo kWh aplicable por año
+            Cell consumoAplicCell = out.createCell(col++);
+            consumoAplicCell.setCellValue(consumoAplicable);
+
+            // Porcentaje consumo aplicable al centro
+            Cell pctCentroCell = out.createCell(col++);
+            pctCentroCell.setCellValue(porcentajePorCentro);
+            pctCentroCell.setCellStyle(percentStyle);
+
+            // Consumo kWh aplicable por año al centro
+            Cell consumoPorCentroCell = out.createCell(col++);
+            consumoPorCentroCell.setCellValue(consumoPorCentro);
+
+            // emissions (market, location) with formatting
+            Cell marketCell = out.createCell(col++);
+            marketCell.setCellValue(emisionesMarketT);
+            marketCell.setCellStyle(emissionsStyle);
+
+            Cell locationCell = out.createCell(col++);
+            locationCell.setCellValue(emisionesLocationT);
+            locationCell.setCellStyle(emissionsStyle);
 
             // Finally, append the normalized gas type (uppercased) and the emission factor used
             out.createCell(col++).setCellValue(gasTypeNormalized == null ? "" : gasTypeNormalized);
             out.createCell(col++).setCellValue(factor);
+        }
+        // summary
+        diagnostics.add(String.format("Processed %d centers in aggregates", perCenterAgg.size()));
+        // write diagnostics sheet
+        try {
+            Sheet diag = target.getWorkbook().createSheet("Diagnostics");
+            int rr = 0;
+            for (String msg : diagnostics) {
+                Row r = diag.createRow(rr++);
+                r.createCell(0).setCellValue(msg);
+            }
+            diag.autoSizeColumn(0);
+        } catch (Exception e) {
+            // ignore diagnostics write errors
         }
         return perCenterAgg;
     }
@@ -421,12 +519,58 @@ public class GasExcelExporter {
             } catch (Exception ignored) {
             }
         }
+        // Try ISO compact yyyyMMdd
         try {
-            if (s.length() == 8)
+            if (s.length() == 8 && s.chars().allMatch(Character::isDigit))
                 return LocalDate.parse(s, DateTimeFormatter.ofPattern("yyyyMMdd"));
         } catch (Exception ignored) {
         }
+
+        // Accept US-style dates like M/D/YY or M/D/YYYY and also allow dashes: M-D-YY
+        // We'll parse manually to control two-digit-year -> 2000+ mapping.
+        try {
+            String sep = null;
+            if (s.contains("/")) sep = "/";
+            else if (s.contains("-")) sep = "-";
+            if (sep != null) {
+                String[] parts = s.split(java.util.regex.Pattern.quote(sep));
+                if (parts.length == 3) {
+                    String p0 = parts[0].trim();
+                    String p1 = parts[1].trim();
+                    String p2 = parts[2].trim();
+                    int month = Integer.parseInt(p0);
+                    int day = Integer.parseInt(p1);
+                    int year = Integer.parseInt(p2);
+                    if (p2.length() <= 2) {
+                        // two-digit year -> map to 2000+
+                        year += 2000;
+                    }
+                    return LocalDate.of(year, month, day);
+                }
+            }
+        } catch (Exception ignored) {
+        }
         return null;
+    }
+
+    private static int readCurrentYearFromFile() {
+        try {
+            java.nio.file.Path p = java.nio.file.Paths.get("data/year/current_year.txt");
+            if (java.nio.file.Files.exists(p)) {
+                List<String> lines = java.nio.file.Files.readAllLines(p);
+                if (lines != null && !lines.isEmpty()) {
+                    String s = lines.get(0).trim();
+                    if (!s.isEmpty()) {
+                        try {
+                            return Integer.parseInt(s);
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return LocalDate.now().getYear();
     }
 
     // normalizeKey removed - not needed for gas-type based calculations

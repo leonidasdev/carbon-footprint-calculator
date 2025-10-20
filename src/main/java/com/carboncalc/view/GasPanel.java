@@ -5,6 +5,7 @@ import com.carboncalc.model.GasMapping;
 import com.carboncalc.util.UIUtils;
 import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
+import javax.swing.text.DocumentFilter;
 
 import java.awt.*;
 import java.io.IOException;
@@ -285,6 +286,28 @@ public class GasPanel extends BaseModulePanel {
     gbc.gridx = 1;
     gasTypeField = new JTextField();
     gasTypeField.setPreferredSize(new Dimension(180, 25));
+    // Make user input uppercase as they type to avoid mismatches with factor keys
+        try {
+            javax.swing.text.AbstractDocument doc = (javax.swing.text.AbstractDocument) gasTypeField.getDocument();
+            doc.setDocumentFilter(new DocumentFilter() {
+                @Override
+                public void insertString(DocumentFilter.FilterBypass fb, int offset, String string,
+                        javax.swing.text.AttributeSet attr) throws javax.swing.text.BadLocationException {
+                    if (string != null)
+                        string = string.toUpperCase(java.util.Locale.ROOT);
+                    super.insertString(fb, offset, string, attr);
+                }
+
+                @Override
+                public void replace(DocumentFilter.FilterBypass fb, int offset, int length, String text,
+                        javax.swing.text.AttributeSet attrs) throws javax.swing.text.BadLocationException {
+                    if (text != null)
+                        text = text.toUpperCase(java.util.Locale.ROOT);
+                    super.replace(fb, offset, length, text, attrs);
+                }
+            });
+    } catch (Exception ignored) {
+    }
     panel.add(gasTypeField, gbc);
     gbc.gridx = 0;
     gbc.gridy++;

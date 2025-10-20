@@ -44,11 +44,16 @@ public class GasFactorServiceCsv implements GasFactorService {
             String gasRaw = entry.getGasType() == null ? "" : entry.getGasType();
             // Validation: store gas type in UPPERCASE for normalization
             String gas = gasRaw == null ? "" : gasRaw.trim().toUpperCase(java.util.Locale.ROOT);
-            String row = String.join(",", quoteCsv(gas), String.format(Locale.ROOT, "%.6f", entry.getEmissionFactor()));
+            // write as 3-column CSV: gasType,marketFactor,locationFactor
+            String row = String.join(",",
+                quoteCsv(gas),
+                String.format(Locale.ROOT, "%.6f", entry.getMarketFactor()),
+                String.format(Locale.ROOT, "%.6f", entry.getLocationFactor())
+            );
             byGasType.put(gas, row);
 
             List<String> out = new ArrayList<>();
-            out.add("gasType,emissionFactor");
+            out.add("gasType,marketFactor,locationFactor");
             out.addAll(byGasType.values());
             Files.createDirectories(filePath.getParent());
             Files.write(filePath, out);
@@ -69,14 +74,22 @@ public class GasFactorServiceCsv implements GasFactorService {
                 String ln = lines.get(i);
                 if (ln == null || ln.isBlank()) continue;
                 List<String> parts = parseCsvLine(ln);
-                // expected: gasType,emissionFactor
-                if (parts.size() >= 2) {
-                    String gasType = parts.get(0);
-                    double ef = 0.0;
-                    try { ef = Double.parseDouble(parts.get(1)); } catch (Exception ignored) {}
-                    // create GasFactorEntry: set entity equal to gasType for compatibility
-                    out.add(new GasFactorEntry(gasType, gasType, year, ef, ""));
-                }
+                    // Handle legacy 2-column (gasType,emissionFactor) or new 3-column
+                    // (gasType,marketFactor,locationFactor)
+                    if (parts.size() >= 2) {
+                        String gasType = parts.get(0);
+                        double market = 0.0;
+                        double location = 0.0;
+                        try { market = Double.parseDouble(parts.get(1)); } catch (Exception ignored) {}
+                        if (parts.size() >= 3) {
+                            try { location = Double.parseDouble(parts.get(2)); } catch (Exception ignored) { location = market; }
+                        } else {
+                            // legacy: use same factor for location
+                            location = market;
+                        }
+                        // create GasFactorEntry: set entity equal to gasType for compatibility
+                        out.add(new GasFactorEntry(gasType, gasType, year, market, location, ""));
+                    }
             }
         } catch (IOException e) {
             e.printStackTrace();

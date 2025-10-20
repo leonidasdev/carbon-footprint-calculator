@@ -33,15 +33,16 @@ public class GasExcelExporter {
     private static final String[] DETAILED_HEADERS;
     static {
         DetailedHeader[] dh = DetailedHeader.values();
-        // Create a new array with two extra slots: GAS_TYPE and EMISSION_FACTOR appended at the end
-        DETAILED_HEADERS = new String[dh.length + 2];
+        // Create a new array with three extra slots: GAS_TYPE and two factor columns appended at the end
+        DETAILED_HEADERS = new String[dh.length + 3];
         int idx = 0;
         for (DetailedHeader h : dh) {
             DETAILED_HEADERS[idx++] = h.label();
         }
-        // append Gas Type and Emission Factor as the right-most columns (Spanish)
+        // append Gas Type and Market/Location factor columns as the right-most columns (Spanish)
         DETAILED_HEADERS[idx++] = "Tipo de gas";
-        DETAILED_HEADERS[idx] = "Factor de emision (kgCO2e/kWh)";
+        DETAILED_HEADERS[idx++] = "Factor de emision market based (kgCO2e/kWh)";
+        DETAILED_HEADERS[idx] = "Factor de emision location based (kgCO2e/kWh)";
     }
 
     private static final String[] TOTAL_HEADERS = {
@@ -72,22 +73,21 @@ public class GasExcelExporter {
                                 : new HSSFWorkbook(fis);
                         Sheet sheet = src.getSheet(providerSheet);
                         if (sheet != null) {
-                            // Load per-year gas-type emission factors (map gasType -> kgCO2e/kWh)
-                            Map<String, Double> gasTypeToFactor = new HashMap<>();
+                            // Load per-year gas-type emission factors (map gasType -> GasFactorEntry)
+                            Map<String, GasFactorEntry> gasTypeToFactor = new HashMap<>();
                             try {
                                 GasFactorServiceCsv gfsvc = new GasFactorServiceCsv();
                                 List<GasFactorEntry> gfs = gfsvc.loadGasFactors(year);
                                 for (GasFactorEntry gfe : gfs) {
                                     String gt = gfe.getGasType() == null ? "" : gfe.getGasType().trim().toUpperCase(java.util.Locale.ROOT);
-                                    double base = gfe.getEmissionFactor();
-                                    if (!gt.isEmpty()) gasTypeToFactor.put(gt, base);
+                                    if (!gt.isEmpty()) gasTypeToFactor.put(gt, gfe);
                                 }
                             } catch (Exception ex) {
                                 // ignore and leave empty map
                             }
 
-                            Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
-                                    validInvoices, gasTypeToFactor);
+                Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
+                    validInvoices, gasTypeToFactor);
                             Sheet perCenter = workbook.createSheet("Por centro");
                             createPerCenterSheet(perCenter, headerStyle, aggregates);
                             Sheet total = workbook.createSheet("Total");
@@ -124,7 +124,7 @@ public class GasExcelExporter {
     }
 
     private static Map<String, double[]> writeExtendedRows(Sheet target, Sheet source, GasMapping mapping, int year,
-        Set<String> validInvoices, Map<String, Double> gasTypeToFactor) {
+        Set<String> validInvoices, Map<String, GasFactorEntry> gasTypeToFactor) {
     DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = source.getWorkbook().getCreationHelper().createFormulaEvaluator();
         Map<String, double[]> perCenterAgg = new HashMap<>();
@@ -231,12 +231,16 @@ public class GasExcelExporter {
             // emission entity not used for gas-type based calculation
             // Lookup factor using the normalized gas type; default to 0.0 when not found
             double factor = 0.0;
+            double locationFactor = 0.0;
             if (!gasTypeNormalized.isEmpty()) {
                 if (gasTypeToFactor.containsKey(gasTypeNormalized)) {
-                    factor = gasTypeToFactor.get(gasTypeNormalized);
+                    GasFactorEntry gfe = gasTypeToFactor.get(gasTypeNormalized);
+                    factor = gfe.getMarketFactor();
+                    locationFactor = gfe.getLocationFactor();
                 } else {
                     diagnostics.add(String.format("Row %d: gas type '%s' not found for year %d; using factor=0.0", i, gasTypeNormalized, reportingYear));
                     factor = 0.0;
+                    locationFactor = 0.0;
                 }
             }
             // Split consumption among centers sharing the same CUPS (if applicable)
@@ -249,7 +253,7 @@ public class GasExcelExporter {
 
             // Compute emissions per center (market and location) using consumoPorCentro
             double emisionesMarketT = (consumoPorCentro * factor) / 1000.0;
-            double emisionesLocationT = (consumoPorCentro * factor) / 1000.0;
+            double emisionesLocationT = (consumoPorCentro * locationFactor) / 1000.0;
 
             double[] agg = perCenterAgg.get(centerName);
             if (agg == null) {
@@ -343,25 +347,28 @@ public class GasExcelExporter {
 
             // Consumo kWh aplicable por año al centro
             int consumoAplicCentroColIndex = 11; // CONSUMO_APLICABLE_CENTRO
+            int pctCentroColIndex = 10; // PCT_POR_CENTRO
             Cell consumoPorCentroCell = out.createCell(col++);
             try {
                 int excelRow = out.getRowNum() + 1;
-                // Formula: =ConsumoAplicableAno / centersCount
-                String formulaCentro = colIndexToName(consumoAplicColIndex) + excelRow + "/" + centersCount;
+                // Formula: =ConsumoAplicableAno * (PctPorCentro / 100)
+                String formulaCentro = colIndexToName(consumoAplicColIndex) + excelRow + "*(" + colIndexToName(pctCentroColIndex) + excelRow + "/100)";
                 consumoPorCentroCell.setCellFormula(formulaCentro);
             } catch (Exception e) {
                 consumoPorCentroCell.setCellValue(consumoPorCentro);
             }
 
             // emissions (market, location) with formatting
-            int marketColIndex = 12; // EMISIONES_MARKET
-            int locationColIndex = 13; // EMISIONES_LOCATION
-            int factorColIndex = 15; // Factor de emision
+            // We'll write two formula columns that reference the corresponding factor column
+            // After these two emissions cells we'll write: Tipo de gas, MarketFactor, LocationFactor
+            int marketFactorColIndex = col + 3; // market factor will be written 3 cells ahead
+            int locationFactorColIndex = col + 4; // location factor will be 4 cells ahead
+
             Cell marketCell = out.createCell(col++);
             try {
                 int excelRow = out.getRowNum() + 1;
-                // Formula: =ConsumoPorCentro * Factor / 1000
-                String marketFormula = colIndexToName(consumoAplicCentroColIndex) + excelRow + "*" + colIndexToName(factorColIndex) + excelRow + "/1000";
+                // Formula: =ConsumoPorCentro * MarketFactorCell
+                String marketFormula = colIndexToName(consumoAplicCentroColIndex) + excelRow + "*" + colIndexToName(marketFactorColIndex) + excelRow;
                 marketCell.setCellFormula(marketFormula);
                 marketCell.setCellStyle(emissionsStyle);
             } catch (Exception e) {
@@ -372,7 +379,8 @@ public class GasExcelExporter {
             Cell locationCell = out.createCell(col++);
             try {
                 int excelRow = out.getRowNum() + 1;
-                String locationFormula = colIndexToName(consumoAplicCentroColIndex) + excelRow + "*" + colIndexToName(factorColIndex) + excelRow + "/1000";
+                // Formula: =ConsumoPorCentro * LocationFactorCell
+                String locationFormula = colIndexToName(consumoAplicCentroColIndex) + excelRow + "*" + colIndexToName(locationFactorColIndex) + excelRow;
                 locationCell.setCellFormula(locationFormula);
                 locationCell.setCellStyle(emissionsStyle);
             } catch (Exception e) {
@@ -380,9 +388,17 @@ public class GasExcelExporter {
                 locationCell.setCellStyle(emissionsStyle);
             }
 
-            // Finally, append the normalized gas type (uppercased) and the emission factor used
+            // Finally, append the normalized gas type (uppercased) and the two emission factor columns used (market, location)
             out.createCell(col++).setCellValue(gasTypeNormalized == null ? "" : gasTypeNormalized);
-            out.createCell(col++).setCellValue(factor);
+            double marketFactorValue = 0.0;
+            double locationFactorValue = 0.0;
+            if (gasTypeToFactor != null && gasTypeToFactor.containsKey(gasTypeNormalized)) {
+                GasFactorEntry gfe = gasTypeToFactor.get(gasTypeNormalized);
+                marketFactorValue = gfe.getMarketFactor();
+                locationFactorValue = gfe.getLocationFactor();
+            }
+            out.createCell(col++).setCellValue(marketFactorValue);
+            out.createCell(col++).setCellValue(locationFactorValue);
         }
         // summary
         diagnostics.add(String.format("Processed %d centers in aggregates", perCenterAgg.size()));

@@ -5,6 +5,10 @@ import com.carboncalc.model.GasMapping;
 import com.carboncalc.util.UIUtils;
 import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 
 import java.awt.*;
 import java.io.IOException;
@@ -291,6 +295,32 @@ public class GasPanel extends BaseModulePanel {
     panel.add(gasTypeSelector, gbc);
     gbc.gridx = 0;
     gbc.gridy++;
+
+    // Make the editable combo's editor uppercase input as the user types
+    try {
+        Component ed = gasTypeSelector.getEditor().getEditorComponent();
+        if (ed instanceof JTextField) {
+            JTextField tf = (JTextField) ed;
+            if (tf.getDocument() instanceof AbstractDocument) {
+                AbstractDocument ad = (AbstractDocument) tf.getDocument();
+                ad.setDocumentFilter(new DocumentFilter() {
+                    @Override
+                    public void insertString(FilterBypass fb, int offset, String text, AttributeSet attr)
+                            throws BadLocationException {
+                        if (text != null) text = text.toUpperCase(java.util.Locale.ROOT);
+                        super.insertString(fb, offset, text, attr);
+                    }
+
+                    @Override
+                    public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
+                            throws BadLocationException {
+                        if (text != null) text = text.toUpperCase(java.util.Locale.ROOT);
+                        super.replace(fb, offset, length, text, attrs);
+                    }
+                });
+            }
+        }
+    } catch (Exception ignored) {}
 
         // Center
         addColumnMapping(panel, gbc, "label.column.center", centerSelector = new JComboBox<>());

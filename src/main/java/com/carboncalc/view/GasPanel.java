@@ -515,7 +515,7 @@ public class GasPanel extends BaseModulePanel {
         // Reserve vertical space so controls are not squeezed
         resultTopPanel.setPreferredSize(new Dimension(0, 40));
         resultTopPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        JLabel yearLabel = new JLabel("Year:");
+    JLabel yearLabel = new JLabel(messages.getString("label.year.short"));
         yearLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(yearLabel);
         // Initialize yearSpinner with value provided by controller (persisted there)
@@ -543,12 +543,13 @@ public class GasPanel extends BaseModulePanel {
         resultTopPanel.add(yearSpinner);
         // Sheet selection for the resulting Excel file
         resultTopPanel.add(Box.createHorizontalStrut(8));
-        JLabel sheetLabel = new JLabel("Sheet:");
+    JLabel sheetLabel = new JLabel(messages.getString("label.sheet.short"));
         sheetLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(sheetLabel);
-        resultSheetSelector = new JComboBox<>(new String[] { "extended", "per center", "total" });
-        resultSheetSelector.setPreferredSize(new Dimension(75, 25));
-        resultSheetSelector.setToolTipText("Select the sheet layout for the generated Excel file");
+    resultSheetSelector = new JComboBox<>(new String[] { messages.getString("result.sheet.extended"),
+        messages.getString("result.sheet.per_center"), messages.getString("result.sheet.total") });
+    resultSheetSelector.setPreferredSize(new Dimension(75, 25));
+    resultSheetSelector.setToolTipText(messages.getString("result.sheet.tooltip"));
         UIUtils.styleComboBox(resultSheetSelector);
         resultSheetSelector.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(resultSheetSelector);

@@ -57,7 +57,9 @@ public class GasController {
              .filter(cup -> com.carboncalc.model.enums.EnergyType.GAS.name().equalsIgnoreCase(cup.getEnergyType()))
              .forEach(cup -> view.addCupsToList(cup.getCups(), cup.getEmissionEntity()));
         } catch (IOException e) {
-            UIUtils.showErrorDialog(view, messages.getString("error.loading.cups"), e.getMessage());
+            // Log details, show a localized friendly message
+            e.printStackTrace();
+            UIUtils.showErrorDialog(view, messages.getString("error.title"), messages.getString("error.loading.cups"));
         }
         // Also populate gas type selector with available gas types for the current year
         try { populateGasTypesForYear(this.currentYear); } catch (Exception ignored) {}
@@ -555,12 +557,12 @@ public class GasController {
                 messages.getString("success.title"),
                 JOptionPane.INFORMATION_MESSAGE);
                 
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(view,
-                messages.getString("excel.save.error") + ": " + e.getMessage(),
-                messages.getString("error.title"),
-                JOptionPane.ERROR_MESSAGE);
-        }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(view,
+                    messages.getString("excel.save.error"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            }
     }
 }

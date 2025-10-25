@@ -32,7 +32,11 @@ public final class ValidationUtils {
      */
     public static void requireValidYear(int year) {
         if (!isValidYear(year))
-            throw new IllegalArgumentException("Invalid year: " + year);
+            // Do not embed user-facing text here; controllers should catch the
+            // exception and present a localized message to the user. Keep the
+            // exception message minimal to avoid leaking hard-coded English text
+            // from utility classes.
+            throw new IllegalArgumentException();
     }
 
     /**

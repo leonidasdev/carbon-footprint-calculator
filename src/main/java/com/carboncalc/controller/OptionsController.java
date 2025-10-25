@@ -47,7 +47,10 @@ public class OptionsController {
             showInfo(messages.getString("message.settings.saved") + "\n" + messages.getString("message.restart.required"),
                     messages.getString("message.title.success"));
         } catch (IOException ex) {
-            showError(messages.getString("error.saving") + ": " + ex.getMessage(),
+            // Log details for diagnostics but present a localized, non-technical
+            // message to the user.
+            ex.printStackTrace();
+            showError(messages.getString("error.saving"),
                       messages.getString("error.title"));
         }
     }

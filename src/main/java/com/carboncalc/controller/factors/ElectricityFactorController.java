@@ -114,9 +114,12 @@ public class ElectricityFactorController implements FactorSubController {
             electricityGeneralFactorService.saveFactors(factorsFromView, selectedYear);
             JOptionPane.showMessageDialog(view, messages.getString("message.save.success"), messages.getString("message.title.success"), JOptionPane.INFORMATION_MESSAGE);
         } catch (IllegalArgumentException iae) {
-            JOptionPane.showMessageDialog(view, iae.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            // Do not show raw exception messages to the user; show a localized friendly message and log details
+            iae.printStackTrace();
+            JOptionPane.showMessageDialog(view, messages.getString("error.invalid.input"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         } catch (IOException ioe) {
-            JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            ioe.printStackTrace();
+            JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -355,10 +358,13 @@ public class ElectricityFactorController implements FactorSubController {
             panel.getGdoTypeComboBox().setSelectedIndex(0);
 
         } catch (IllegalArgumentException iae) {
-            JOptionPane.showMessageDialog(view, iae.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            iae.printStackTrace();
+            JOptionPane.showMessageDialog(view, messages.getString("error.invalid.input"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         } catch (IOException ioe) {
-            JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            ioe.printStackTrace();
+            JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
+            ex.printStackTrace();
             JOptionPane.showMessageDialog(view, messages.getString("error.invalid.emission.factor"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -412,7 +418,8 @@ public class ElectricityFactorController implements FactorSubController {
             ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
             updateGeneralFactors(refreshed);
         } catch (IOException ioe) {
-            JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            ioe.printStackTrace();
+            JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -443,7 +450,8 @@ public class ElectricityFactorController implements FactorSubController {
                 javax.swing.SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed));
             }
         } catch (IOException ioe) {
-            JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            ioe.printStackTrace();
+            JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -499,7 +507,8 @@ public class ElectricityFactorController implements FactorSubController {
                     save(activeYear);
                     dirty = false;
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(panel, messages.getString("error.save.general.factors") + "\n" + ex.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, messages.getString("error.save.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
                 }
             });
 
@@ -521,7 +530,8 @@ public class ElectricityFactorController implements FactorSubController {
                     // mark not-dirty because add triggers an explicit save inside handler
                     dirty = false;
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(panel, messages.getString("error.save.general.factors") + "\n" + ex.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, messages.getString("error.save.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
                 }
             });
 
@@ -534,7 +544,8 @@ public class ElectricityFactorController implements FactorSubController {
                     handleDeleteTradingCompany();
                     dirty = false;
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(panel, messages.getString("error.save.general.factors") + "\n" + ex.getMessage(), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, messages.getString("error.save.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
                 }
             });
 

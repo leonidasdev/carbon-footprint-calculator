@@ -148,7 +148,7 @@ public class MainWindow extends JFrame {
 
     private JPanel createPlaceholderPanel(String messageKey) {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.add(new JLabel(messages.getString(messageKey) + " - Coming Soon", SwingConstants.CENTER));
+        panel.add(new JLabel(messages.getString(messageKey) + " - " + messages.getString("label.coming.soon"), SwingConstants.CENTER));
         return panel;
     }
 

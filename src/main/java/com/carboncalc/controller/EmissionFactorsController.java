@@ -106,8 +106,9 @@ public class EmissionFactorsController {
                 try {
                     active.save(this.currentYear);
                 } catch (Exception ioe) {
+                    ioe.printStackTrace();
                     JOptionPane.showMessageDialog(view,
-                            messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(),
+                            messages.getString("error.save.general.factors"),
                             messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
                     return; // abort switch on save failure
                 }
@@ -269,19 +270,20 @@ public class EmissionFactorsController {
 
             if (resp == JOptionPane.YES_OPTION) {
                 // User chose to save changes before switching year
-                try {
-                    active.save(this.currentYear);
-                } catch (Exception ioe) {
-                    JOptionPane.showMessageDialog(view,
-                            messages.getString("error.save.general.factors") + "\n" + ioe.getMessage(),
-                            messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
-                    // Abort switch on save failure
                     try {
-                        if (view != null && view.getYearSpinner() != null)
-                            view.getYearSpinner().setValue(this.currentYear);
-                    } catch (Exception ignored) {}
-                    return;
-                }
+                        active.save(this.currentYear);
+                    } catch (Exception ioe) {
+                        ioe.printStackTrace();
+                        JOptionPane.showMessageDialog(view,
+                                messages.getString("error.save.general.factors"),
+                                messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                        // Abort switch on save failure
+                        try {
+                            if (view != null && view.getYearSpinner() != null)
+                                view.getYearSpinner().setValue(this.currentYear);
+                        } catch (Exception ignored) {}
+                        return;
+                    }
             }
             // If resp == NO_OPTION, user chose to discard changes; continue without saving
         }
@@ -762,12 +764,13 @@ public class EmissionFactorsController {
                     messages.getString("success.title"),
                     JOptionPane.INFORMATION_MESSAGE);
 
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(view,
-                    messages.getString("error.import.data") + ": " + e.getMessage(),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
-        }
+    } catch (Exception e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(view,
+            messages.getString("error.import.data"),
+            messages.getString("error.title"),
+            JOptionPane.ERROR_MESSAGE);
+    }
     }
 
     public void handleAdd() {
@@ -816,12 +819,13 @@ public class EmissionFactorsController {
                         JOptionPane.INFORMATION_MESSAGE);
             }
 
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(view,
-                    messages.getString("error.save.general.factors") + "\n" + e.getMessage(),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
-        }
+    } catch (Exception e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(view,
+            messages.getString("error.save.general.factors"),
+            messages.getString("error.title"),
+            JOptionPane.ERROR_MESSAGE);
+    }
     }
 
     public void handleDelete() {
@@ -859,12 +863,15 @@ public class EmissionFactorsController {
             updateFactorsTable(refreshed);
             table.clearSelection();
 
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(view,
-                    messages.getString("error.save.general.factors") + "\n" + e.getMessage(),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
-        }
+    } catch (Exception e) {
+        // Log internal exception details and present a localized friendly
+        // error message to the user without exposing internal messages.
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(view,
+            messages.getString("error.save.general.factors"),
+            messages.getString("error.title"),
+            JOptionPane.ERROR_MESSAGE);
+    }
     }
 
     /** Populate the sheet selector combo box from the currently-loaded workbook. */

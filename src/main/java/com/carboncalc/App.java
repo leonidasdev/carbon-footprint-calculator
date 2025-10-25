@@ -101,9 +101,9 @@ public class App {
                 createAndShowGUI(messages);
             } catch (Exception e) {
                 e.printStackTrace();
-                // Show a localized error dialog
+                // Show a localized error dialog (do not display internal exception text to users)
                 JOptionPane.showMessageDialog(null,
-                        messages.getString("error.starting") + ": " + e.getMessage(),
+                        messages.getString("error.starting"),
                         messages.getString("error.title"),
                         JOptionPane.ERROR_MESSAGE);
             }

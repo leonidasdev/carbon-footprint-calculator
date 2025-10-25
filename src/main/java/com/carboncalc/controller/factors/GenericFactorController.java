@@ -53,10 +53,9 @@ public class GenericFactorController implements FactorSubController {
                 model.addRow(new Object[]{f.getEntity(), f.getYear(), f.getBaseFactor(), f.getUnit()});
             }
         } catch (Exception e) {
-            // Log and show friendly message
+            // Log and show friendly message without exposing raw exception text to the user
             e.printStackTrace();
-            String msg = messages.getString("error.load.general.factors") + "\n" + e.getClass().getSimpleName() + ": " + e.getMessage();
-            JOptionPane.showMessageDialog(view, msg, messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(view, messages.getString("error.load.general.factors"), messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         }
     }
 

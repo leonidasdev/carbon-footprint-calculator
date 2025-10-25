@@ -42,7 +42,7 @@ public class GasFactorPanel extends JPanel {
         JPanel leftLabels = new JPanel();
         leftLabels.setLayout(new BoxLayout(leftLabels, BoxLayout.Y_AXIS));
         leftLabels.setBackground(UIUtils.CONTENT_BACKGROUND);
-        leftLabels.add(new JLabel("Gas Type:"));
+    leftLabels.add(new JLabel(messages.getString("label.gas.type") + ":"));
         leftLabels.add(Box.createVerticalStrut(8));
         leftLabels.add(new JLabel(messages.getString("label.emission.factor") + ":"));
 
@@ -85,7 +85,7 @@ public class GasFactorPanel extends JPanel {
             pref = new Dimension(10, 24);
         spacer.setPreferredSize(new Dimension(1, pref.height));
         rightTop.add(spacer);
-        JLabel unitLabel = new JLabel("kgCO₂e/kWh");
+    JLabel unitLabel = new JLabel(messages.getString("unit.kg_co2e_kwh"));
         unitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         unitLabel.setForeground(Color.GRAY);
         rightTop.add(unitLabel);
@@ -93,7 +93,7 @@ public class GasFactorPanel extends JPanel {
 
         JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         addButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        addCompanyButton = new JButton("Add Gas Type");
+    addCompanyButton = new JButton(messages.getString("button.add.gas"));
         UIUtils.styleButton(addCompanyButton);
         addButtonPanel.add(addCompanyButton);
         rightColumn.add(addButtonPanel, BorderLayout.SOUTH);
@@ -109,7 +109,7 @@ public class GasFactorPanel extends JPanel {
         ig.gridy = 0;
         ig.weightx = 0;
         ig.anchor = GridBagConstraints.LINE_START;
-        inputGrid.add(new JLabel("Gas Type:"), ig);
+    inputGrid.add(new JLabel(messages.getString("label.gas.type") + ":"), ig);
         ig.gridx = 1;
         ig.gridy = 0;
         ig.weightx = 1.0;
@@ -158,7 +158,7 @@ public class GasFactorPanel extends JPanel {
         manualInputBox.setMinimumSize(new Dimension(300, 140));
 
         // Trading companies table (gas type, emission factor)
-        String[] columnNames = { "Gas type", messages.getString("table.header.factor") };
+    String[] columnNames = { messages.getString("table.header.gas.type"), messages.getString("table.header.factor") };
         DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {

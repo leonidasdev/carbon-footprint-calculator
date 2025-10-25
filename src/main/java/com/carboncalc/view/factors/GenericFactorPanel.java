@@ -63,11 +63,11 @@ public class GenericFactorPanel extends JPanel {
         UIUtils.styleTextField(mixSinGdoField);
         factorsPanel.add(mixSinGdoField, fgbc);
 
-        fgbc.gridx = 2;
-        fgbc.weightx = 0.0;
-        JLabel mixUnit = new JLabel("kg CO2e/kWh");
-        mixUnit.setForeground(Color.GRAY);
-        factorsPanel.add(mixUnit, fgbc);
+    fgbc.gridx = 2;
+    fgbc.weightx = 0.0;
+    JLabel mixUnit = new JLabel(messages.getString("unit.kg_co2e_kwh"));
+    mixUnit.setForeground(Color.GRAY);
+    factorsPanel.add(mixUnit, fgbc);
 
         // GdO Renovable
         fgbc.gridx = 0;
@@ -84,11 +84,11 @@ public class GenericFactorPanel extends JPanel {
         UIUtils.styleTextField(gdoRenovableField);
         factorsPanel.add(gdoRenovableField, fgbc);
 
-        fgbc.gridx = 2;
-        fgbc.weightx = 0.0;
-        JLabel renovUnit = new JLabel("kg CO2/kWh");
-        renovUnit.setForeground(Color.GRAY);
-        factorsPanel.add(renovUnit, fgbc);
+    fgbc.gridx = 2;
+    fgbc.weightx = 0.0;
+    JLabel renovUnit = new JLabel(messages.getString("unit.kg_co2_kwh"));
+    renovUnit.setForeground(Color.GRAY);
+    factorsPanel.add(renovUnit, fgbc);
 
         // Cogeneracion
         fgbc.gridx = 0;
@@ -105,11 +105,11 @@ public class GenericFactorPanel extends JPanel {
         UIUtils.styleTextField(gdoCogeneracionField);
         factorsPanel.add(gdoCogeneracionField, fgbc);
 
-        fgbc.gridx = 2;
-        fgbc.weightx = 0.0;
-        JLabel cogUnit = new JLabel("kg CO2/kWh");
-        cogUnit.setForeground(Color.GRAY);
-        factorsPanel.add(cogUnit, fgbc);
+    fgbc.gridx = 2;
+    fgbc.weightx = 0.0;
+    JLabel cogUnit = new JLabel(messages.getString("unit.kg_co2_kwh"));
+    cogUnit.setForeground(Color.GRAY);
+    factorsPanel.add(cogUnit, fgbc);
 
         // Location-based
         fgbc.gridx = 0;
@@ -124,11 +124,11 @@ public class GenericFactorPanel extends JPanel {
         locationBasedField.setHorizontalAlignment(JTextField.RIGHT);
         UIUtils.styleTextField(locationBasedField);
         factorsPanel.add(locationBasedField, fgbc);
-        fgbc.gridx = 2;
-        fgbc.weightx = 0.0;
-        JLabel locUnit = new JLabel("kg CO2/kWh");
-        locUnit.setForeground(Color.GRAY);
-        factorsPanel.add(locUnit, fgbc);
+    fgbc.gridx = 2;
+    fgbc.weightx = 0.0;
+    JLabel locUnit = new JLabel(messages.getString("unit.kg_co2_kwh"));
+    locUnit.setForeground(Color.GRAY);
+    factorsPanel.add(locUnit, fgbc);
 
         // Save button
         fgbc.gridx = 0;

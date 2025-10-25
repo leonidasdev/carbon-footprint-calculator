@@ -120,7 +120,8 @@ public class ElectricityController {
                     .filter(cup -> EnergyType.ELECTRICITY.name().equalsIgnoreCase(cup.getEnergyType()))
                     .forEach(cup -> view.addCupsToList(cup.getCups(), cup.getEmissionEntity()));
         } catch (IOException e) {
-            UIUtils.showErrorDialog(view, messages.getString("error.loading.cups"), e.getMessage());
+            e.printStackTrace();
+            UIUtils.showErrorDialog(view, messages.getString("error.title"), messages.getString("error.loading.cups"));
         }
     }
 
@@ -713,13 +714,13 @@ public class ElectricityController {
                     messages.getString("success.title"),
                     JOptionPane.INFORMATION_MESSAGE);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(view,
-                    messages.getString("excel.save.error") + ": " + e.getMessage(),
-                    messages.getString("error.title"),
-                    JOptionPane.ERROR_MESSAGE);
-        }
+    } catch (Exception e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(view,
+            messages.getString("excel.save.error"),
+            messages.getString("error.title"),
+            JOptionPane.ERROR_MESSAGE);
+    }
     }
 
     // Extract a 4-digit year from a string if possible. Returns -1 if none found.

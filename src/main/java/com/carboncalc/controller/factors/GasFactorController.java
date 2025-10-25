@@ -49,7 +49,7 @@ public class GasFactorController extends GenericFactorController {
                     String gasType = sel == null ? "" : sel.toString().trim();
                     String factorText = panel.getEmissionFactorField().getText().trim();
                     if (gasType.isEmpty()) {
-                        JOptionPane.showMessageDialog(panel, "Please enter a gas type.", messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
+                        JOptionPane.showMessageDialog(panel, messages.getString("error.gas.type.required"), messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
                         return;
                     }
                     Double factor = ValidationUtils.tryParseDouble(factorText);
@@ -104,7 +104,7 @@ public class GasFactorController extends GenericFactorController {
                     JTextField gasField = new JTextField(currentGas);
                     JTextField factorField = new JTextField(currentFactor);
                     JPanel form = new JPanel(new GridLayout(2,2,5,5));
-                    form.add(new JLabel("Gas type:")); form.add(gasField);
+                    form.add(new JLabel(messages.getString("label.gas.type") + ":")); form.add(gasField);
                     form.add(new JLabel(messages.getString("label.emission.factor") + ":")); form.add(factorField);
 
                     int ok = JOptionPane.showConfirmDialog(panel, form, messages.getString("button.edit.company"), JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
@@ -155,7 +155,7 @@ public class GasFactorController extends GenericFactorController {
                     }
                     DefaultTableModel model = (DefaultTableModel) panel.getTradingCompaniesTable().getModel();
                     String gasType = String.valueOf(model.getValueAt(sel, 0));
-                    int confirm = JOptionPane.showConfirmDialog(panel, "Delete selected entry?", "Confirm", JOptionPane.YES_NO_OPTION);
+                    int confirm = JOptionPane.showConfirmDialog(panel, messages.getString("message.confirm.delete.company"), messages.getString("confirm.title"), JOptionPane.YES_NO_OPTION);
                     if (confirm != JOptionPane.YES_OPTION) return;
 
                     int saveYear = Year.now().getValue();

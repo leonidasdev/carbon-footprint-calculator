@@ -202,7 +202,7 @@ public class FuelFactorPanel extends JPanel {
         buttonPanel.add(deleteButton);
 
         JPanel factorsPanel = new JPanel(new BorderLayout(10, 10));
-        factorsPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.trading.companies")));
+        factorsPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.fuel.types")));
         factorsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         factorsPanel.add(scrollPane, BorderLayout.CENTER);
         factorsPanel.add(buttonPanel, BorderLayout.SOUTH);

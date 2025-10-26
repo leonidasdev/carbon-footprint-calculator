@@ -176,7 +176,7 @@ public class GasFactorPanel extends JPanel {
         tradingCompanyButtonPanel.add(tradingDeleteButton);
 
         JPanel tradingPanel = new JPanel(new BorderLayout(10, 10));
-        tradingPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.trading.companies")));
+        tradingPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.gas.types")));
         tradingPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         tradingPanel.add(scrollPane, BorderLayout.CENTER);
         tradingPanel.add(tradingCompanyButtonPanel, BorderLayout.SOUTH);

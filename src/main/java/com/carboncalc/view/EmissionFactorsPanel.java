@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.HierarchyEvent;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -76,6 +77,9 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         this.controller = controller;
     }
 
+    // Guard to ensure we only trigger the show-on-visible logic once.
+    private volatile boolean shownOnce = false;
+
     @Override
     protected void initializeComponents() {
         // Main layout with three sections
@@ -136,6 +140,27 @@ public class EmissionFactorsPanel extends BaseModulePanel {
                 controller.handleTypeSelection(FACTOR_TYPES[0]);
             } catch (Exception ignored) {
             }
+        }
+
+        // If this panel is added to a top-level window after initialization,
+        // ensure we re-run type selection when it becomes showing so that
+        // subcontrollers that rely on displayability populate their UIs.
+        try {
+            this.addHierarchyListener(e -> {
+                if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0) {
+                    if (this.isShowing() && !shownOnce) {
+                        shownOnce = true;
+                        try {
+                            String sel = (String) typeComboBox.getSelectedItem();
+                            if (sel != null) {
+                                controller.handleTypeSelection(sel);
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+            });
+        } catch (Exception ignored) {
         }
     }
 

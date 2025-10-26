@@ -61,6 +61,9 @@ public class EmissionFactorsController {
     private final EmissionFactorService emissionFactorService;
     private final ElectricityFactorService electricityGeneralFactorService;
     private final Map<String, FactorSubController> subcontrollers = new HashMap<>();
+    // Track the last year for which each subcontroller was activated to avoid
+    // clearing/populating races (useful during startup ordering variances).
+    private final Map<String, Integer> lastActivatedYear = new HashMap<>();
     private final Function<String, FactorSubController> subcontrollerFactory;
     private String currentFactorType;
     private int currentYear;
@@ -134,9 +137,10 @@ public class EmissionFactorsController {
                     } catch (Exception ignored) {
                     }
                 }
-                // Run showCard and the shared table load on the EDT first so
-                // the card is actually visible/displayable when the
-                // subcontroller populates its own UI.
+                // Ensure card is shown and then activate the subcontroller on the EDT.
+                // Use a single EDT task so showCard, shared-table load and
+                // subcontroller activation happen in a deterministic order
+                // without extra deferred ticks that can cause visibility races.
                 final FactorSubController finalSc = sc;
                 final int activateYear = this.currentYear;
                 SwingUtilities.invokeLater(() -> {
@@ -154,18 +158,21 @@ public class EmissionFactorsController {
                         } catch (Exception ignored) {
                         }
 
-                        // After the card has been shown and the shared table
-                        // is updated, schedule the subcontroller activation on
-                        // the next EDT tick to give layout a final chance.
-                        SwingUtilities.invokeLater(() -> {
+                        // Activate the subcontroller immediately after the card has
+                        // been shown and the shared table updated. Record the
+                        // activation year so subsequent year-change handlers do
+                        // not mistakenly clear the freshly-populated model.
+                        try {
+                            finalSc.onActivate(activateYear);
                             try {
-                                finalSc.onActivate(activateYear);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                JOptionPane.showMessageDialog(view, messages.getString("error.load.general.factors"),
-                                        messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                                lastActivatedYear.put(type, activateYear);
+                            } catch (Exception ignored) {
                             }
-                        });
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            JOptionPane.showMessageDialog(view, messages.getString("error.load.general.factors"),
+                                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                        }
                     } catch (Exception ignored) {
                     }
                 });
@@ -199,6 +206,18 @@ public class EmissionFactorsController {
                                 JComponent panel = c.getPanel();
                                 if (panel != null && panel.getParent() == null) {
                                     this.view.addCard(type, panel);
+                                    // Ensure the newly-added card is actually shown if
+                                    // the view previously requested it before the
+                                    // panel existed (startup ordering). This avoids
+                                    // a situation where the initial showCard call
+                                    // happened earlier and the card never became
+                                    // visible after being added.
+                                    try {
+                                        this.view.showCard(type);
+                                        this.view.getCardsPanel().revalidate();
+                                        this.view.getCardsPanel().repaint();
+                                    } catch (Exception ignored) {
+                                    }
                                 }
                             } catch (Exception ignored) {
                             }
@@ -247,6 +266,8 @@ public class EmissionFactorsController {
             active = getOrCreateSubcontroller(currentFactorType);
         } catch (Exception ignored) {
         }
+
+        // trace year change handling (no console debug output)
 
         if (active != null && active.hasUnsavedChanges()) {
             // Present Save / Discard / Cancel options
@@ -309,19 +330,35 @@ public class EmissionFactorsController {
         // First update the shared factors table for the current type/year
         loadFactorsForType();
 
+        // If the current type is ELECTRICITY, clear the shared table now so
+        // stale rows from the previous year are not visible while the
+        // electricity subcontroller reloads its per-year data asynchronously.
+        // However, avoid clearing when we've already activated the
+        // electricity subcontroller for the same year (startup ordering can
+        // cause activation to run before this handler and we'd wipe the UI).
+        try {
+            if (EnergyType.ELECTRICITY.name().equals(this.currentFactorType) && view != null) {
+                javax.swing.table.DefaultTableModel m = (javax.swing.table.DefaultTableModel) view.getFactorsTable()
+                        .getModel();
+                Integer last = lastActivatedYear.get(this.currentFactorType);
+                if (last == null || last.intValue() != year) {
+                    m.setRowCount(0);
+                } else {
+                    // The subcontroller was already activated for this year; do not clear
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
         // Then ask the active subcontroller to reload its per-year data,
         // but do this on the EDT in a fresh tick so its components are
         // layout/displayable when it populates fields/tables.
         try {
             if (active != null) {
-                final FactorSubController finalActive = active;
-                final int notifyYear = year;
-                SwingUtilities.invokeLater(() -> {
-                    try {
-                        finalActive.onYearChanged(notifyYear);
-                    } catch (Exception ignored) {
-                    }
-                });
+                // Call subcontroller synchronously so per-panel reloads happen
+                // immediately and the UI reflects the new year without needing
+                // a second spinner change.
+                active.onYearChanged(year);
             }
         } catch (Exception ignored) {
         }
@@ -544,6 +581,25 @@ public class EmissionFactorsController {
                         }
                         // Now that components should exist, load the factors into the view
                         loadFactorsForType();
+
+                        // Ensure the current subcontroller is activated on startup so
+                        // per-panel UI (e.g. electricity trading companies table)
+                        // is populated immediately. This covers the initial boot
+                        // path where handleTypeSelection may not have been invoked.
+                        try {
+                            FactorSubController sc = getOrCreateSubcontroller(this.currentFactorType);
+                            if (sc != null) {
+                                sc.setView(view);
+                                try {
+                                    sc.onActivate(this.currentYear);
+                                } catch (Exception e) {
+                                    // Activation failures should not prevent startup; log and continue
+                                    e.printStackTrace();
+                                }
+                            }
+                        } catch (Exception ignored) {
+                        }
+
                     } catch (Exception ignored) {
                     } finally {
                         suppressSpinnerSideEffects = false;

@@ -20,8 +20,6 @@ import java.util.Locale;
 import java.util.List;
 import java.util.Iterator;
 import java.util.ResourceBundle;
-import java.util.Collections;
-import java.util.ArrayList;
 import java.awt.Component;
 import java.awt.KeyboardFocusManager;
 import javax.swing.event.DocumentListener;
@@ -71,29 +69,24 @@ public class ElectricityFactorController implements FactorSubController {
 
     @Override
     public void onActivate(int year) {
+        // Activation: load and populate synchronously on the EDT (caller ensures EDT)
         // Load electricity general factors for the year and populate view
         try {
-        ElectricityGeneralFactors factors = electricityGeneralFactorService.loadFactors(year);
-            // Ensure UI updates happen on the EDT
-            SwingUtilities.invokeLater(() -> {
-                updateGeneralFactors(factors);
-            });
+            ElectricityGeneralFactors factors = electricityGeneralFactorService.loadFactors(year);
+            // updateGeneralFactors manipulates Swing components. onActivate is
+            // already invoked on the EDT by the caller; call it directly so the
+            // table is refreshed synchronously (avoids transient stale rows).
+            updateGeneralFactors(factors);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(view,
                     messages.getString("error.load.general.factors"),
                     messages.getString("error.title"),
                     JOptionPane.ERROR_MESSAGE);
         }
-        // Load per-year emission factors table (delegated to the generic
-        // emissionFactorService). Any failures loading the table are non-fatal
-        // for the general factors panel, so we ignore exceptions here.
-        try {
-            List<? extends EmissionFactor> factors = emissionFactorService
-                    .loadEmissionFactors(EnergyType.ELECTRICITY.name(), year);
-            // Update shared factors table on EDT
-            SwingUtilities.invokeLater(() -> updateFactorsTable(factors));
-        } catch (Exception ignored) {
-        }
+        // For electricity we manage the trading-companies table via the
+        // ElectricityGeneralFactors object (loaded above) so avoid also
+        // loading generic emission factors here which would overwrite the
+        // panel's trading-companies model and cause column/format mismatches.
 
         this.activeYear = year;
         // reset dirty flag after loading
@@ -153,6 +146,7 @@ public class ElectricityFactorController implements FactorSubController {
             SwingUtilities.invokeLater(() -> updateGeneralFactors(factors));
             return;
         }
+        // (previously had debug logging here)
         if (panel == null)
             return;
         // Temporarily disable document listeners while populating fields
@@ -170,10 +164,15 @@ public class ElectricityFactorController implements FactorSubController {
                 }
                 try {
                     List<ElectricityGeneralFactors.TradingCompany> comps = factors.getTradingCompanies();
-                    
+
                     DefaultTableModel tmodel = (DefaultTableModel) panel.getTradingCompaniesTable().getModel();
                     JTable table = panel.getTradingCompaniesTable();
-                    
+
+                    // Always populate the trading companies model immediately.
+                    // Relying on isShowing()/delayed re-populate caused races where
+                    // the model was left empty or partially populated depending on
+                    // EDT scheduling. Populate now and refresh UI; the JTable will
+                    // show the rows when its card becomes visible.
                     tmodel.setRowCount(0);
                     if (comps != null) {
                         for (ElectricityGeneralFactors.TradingCompany c : comps) {
@@ -181,52 +180,13 @@ public class ElectricityFactorController implements FactorSubController {
                                     String.format(Locale.ROOT, "%.4f", c.getEmissionFactor()), c.getGdoType() });
                         }
                     }
-                    
-                    // If the panel/table is not yet showing, schedule a short retry
-                    // on the EDT so layout/displayability can complete.
-                    List<ElectricityGeneralFactors.TradingCompany> delayedComps = comps == null
-                            ? Collections.emptyList()
-                            : new ArrayList<>(comps);
-                    if (!panel.isShowing() || !panel.getTradingCompaniesTable().isShowing()) {
-                        SwingUtilities.invokeLater(() -> {
-                            try {
-                                JTable ttable = panel.getTradingCompaniesTable();
-                                try {
-                                    ttable.revalidate();
-                                    ttable.repaint();
-                                } catch (Exception ignored) {
-                                }
-                                Component anc = SwingUtilities.getAncestorOfClass(JScrollPane.class, ttable);
-                                if (anc instanceof JScrollPane) {
-                                    JScrollPane sp = (JScrollPane) anc;
-                                    try {
-                                        sp.revalidate();
-                                        sp.repaint();
-                                        sp.getViewport().revalidate();
-                                        sp.getViewport().repaint();
-                                    } catch (Exception ignored) {
-                                    }
-                                }
-                                DefaultTableModel current = (DefaultTableModel) ttable.getModel();
-                                if (current.getRowCount() == 0 && !delayedComps.isEmpty()) {
-                                    
-                                    for (ElectricityGeneralFactors.TradingCompany c : delayedComps) {
-                                        current.addRow(new Object[] { c.getName(),
-                                                String.format(Locale.ROOT, "%.4f", c.getEmissionFactor()),
-                                                c.getGdoType() });
-                                    }
-                                    try {
-                                        ttable.revalidate();
-                                        ttable.repaint();
-                                    } catch (Exception ignored) {
-                                    }
-                                }
-                            } catch (Exception ignored) {
-                            }
-                        });
+                    try {
+                        table.revalidate();
+                        table.repaint();
+                    } catch (Exception ignored) {
                     }
                 } catch (Exception e) {
-                    
+
                     e.printStackTrace();
                 }
             } else {
@@ -413,8 +373,9 @@ public class ElectricityFactorController implements FactorSubController {
 
             // Refresh UI from saved file to ensure canonical ordering/format
             ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
-            // update UI on EDT
-            SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed));
+            // Schedule the UI update after pending EDT tasks so that this
+            // refresh wins over other spinner-change driven reloads.
+            SwingUtilities.invokeLater(() -> SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed)));
 
             // Clear inputs
             panel.getCompanyNameField().setText("");
@@ -531,7 +492,8 @@ public class ElectricityFactorController implements FactorSubController {
             if (removed) {
                 electricityGeneralFactorService.saveFactors(factors, yearToSave);
                 ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
-                SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed));
+                // Ensure the update runs after any pending EDT tasks (nested invokeLater)
+                SwingUtilities.invokeLater(() -> SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed)));
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();

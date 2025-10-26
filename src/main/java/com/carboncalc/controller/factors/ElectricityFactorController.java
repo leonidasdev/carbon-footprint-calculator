@@ -29,10 +29,12 @@ import javax.swing.event.DocumentEvent;
  * Controller for electricity-specific factor UI and actions.
  *
  * Responsibilities:
- * - Manage the electricity general factors panel and persist via
- * {@link ElectricityFactorService}.
- * - Populate the shared per-year emission factors table via
- * {@link EmissionFactorService} when activated.
+ * - Own the electricity-specific subpanel (trading companies + general factors)
+ *   and persist data via {@link ElectricityFactorService}.
+ * - Populate the electricity subpanel's controls (including the trading
+ *   companies table) for a given year when activated. The controller
+ *   populates the panel immediately (on the EDT) to avoid races with
+ *   card layout visibility changes.
  */
 public class ElectricityFactorController implements FactorSubController {
     private final ResourceBundle messages;

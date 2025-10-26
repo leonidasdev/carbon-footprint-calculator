@@ -55,8 +55,8 @@ public class MainWindow extends JFrame {
         getContentPane().setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Setup main navigation container with dark blue background
-        mainNavContainer = new JPanel(new BorderLayout());
-        mainNavContainer.setPreferredSize(new Dimension(250, 0));
+    mainNavContainer = new JPanel(new BorderLayout());
+    mainNavContainer.setPreferredSize(new Dimension(UIUtils.NAV_WIDTH, 0));
         mainNavContainer.setBackground(UIUtils.UPM_BLUE);
         mainNavContainer.setOpaque(true);
         mainNavContainer.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
@@ -75,7 +75,7 @@ public class MainWindow extends JFrame {
         // Set window properties
         setSize(1200, 800);
         setLocationRelativeTo(null);
-        setMinimumSize(new Dimension(800, 600));
+    setMinimumSize(new Dimension(UIUtils.APP_MIN_WIDTH, UIUtils.APP_MIN_HEIGHT));
     }
 
     private void setupNavigation() {
@@ -240,8 +240,8 @@ public class MainWindow extends JFrame {
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setFont(button.getFont().deriveFont(Font.PLAIN, 13));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setOpaque(true);
-        button.setPreferredSize(new Dimension(200, 30));
+    button.setOpaque(true);
+    button.setPreferredSize(new Dimension(UIUtils.NAV_BUTTON_WIDTH, UIUtils.NAV_BUTTON_HEIGHT));
         button.setMargin(new Insets(2, 10, 2, 10));
 
         // Selected and hover effects using UIUtils colors

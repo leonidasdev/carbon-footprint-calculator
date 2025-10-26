@@ -377,8 +377,10 @@ public class ElectricityFactorController implements FactorSubController {
         String factorStr = String.valueOf(model.getValueAt(selectedRow, 1));
         String gdoType = (String) model.getValueAt(selectedRow, 2);
 
-        JTextField nameField = new JTextField(name);
-        JTextField factorField = new JTextField(factorStr);
+    javax.swing.JTextField nameField = com.carboncalc.util.UIUtils.createCompactTextField(160, 25);
+    nameField.setText(name);
+    javax.swing.JTextField factorField = com.carboncalc.util.UIUtils.createCompactTextField(120, 25);
+    factorField.setText(factorStr);
         JComboBox<String> gdoBox = new JComboBox<>(new String[] { "Mix sin GdO", "Factor GdO renovable", "Factor GdO cog. alta eficiencia" });
         gdoBox.setSelectedItem(gdoType);
         JPanel form = new JPanel(new java.awt.GridLayout(3,2,6,6));

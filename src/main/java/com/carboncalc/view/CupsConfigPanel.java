@@ -3,6 +3,7 @@ package com.carboncalc.view;
 import com.carboncalc.controller.CupsConfigController;
 import com.carboncalc.model.CenterData;
 import com.carboncalc.util.UIUtils;
+import com.carboncalc.util.UIComponents;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.table.DefaultTableModel;
@@ -89,16 +90,13 @@ public class CupsConfigPanel extends BaseModulePanel {
          * Manual input tab content.
          * Contains a boxed form for entering a single CUPS/center manually.
          * Fields are vertically aligned and the Add button is right-aligned.
+         *
+         * This implementation re-uses the shared UIComponents.createManualInputBox
+         * helper to keep sizing, border and styling consistent with other
+         * manual-input boxes in the app.
          */
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(UIUtils.CONTENT_BACKGROUND);
-        outer.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        // Create a titled group box using the centralized helper (keeps border color
-        // and padding consistent)
-        JPanel box = createGroupPanel("tab.manual.input");
-
-        // Form panel uses two columns: left for CUPS..Energy, right for address fields
+        // Build the form content just like before but don't wrap it in the
+        // group's border here — the helper will provide the titled border.
         JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(UIUtils.CONTENT_BACKGROUND);
         GridBagConstraints gbc = new GridBagConstraints();
@@ -117,48 +115,46 @@ public class CupsConfigPanel extends BaseModulePanel {
         l.gridy = 0;
         left.add(new JLabel(messages.getString("label.cups") + ":"), l);
         l.gridx = 1;
-        cupsField = new JTextField(20);
+        cupsField = UIUtils.createCompactTextField(120, 25);
         left.add(cupsField, l);
 
         l.gridx = 0;
         l.gridy = 1;
         left.add(new JLabel(messages.getString("label.marketer") + ":"), l);
         l.gridx = 1;
-        marketerField = new JTextField(20);
+        marketerField = UIUtils.createCompactTextField(120, 25);
         left.add(marketerField, l);
 
         l.gridx = 0;
         l.gridy = 2;
         left.add(new JLabel(messages.getString("label.center.name") + ":"), l);
         l.gridx = 1;
-        centerNameField = new JTextField(20);
+        centerNameField = UIUtils.createCompactTextField(120, 25);
         left.add(centerNameField, l);
 
         l.gridx = 0;
         l.gridy = 3;
         left.add(new JLabel(messages.getString("label.center.acronym") + ":"), l);
         l.gridx = 1;
-        centerAcronymField = new JTextField(20);
+        centerAcronymField = UIUtils.createCompactTextField(120, 25);
         left.add(centerAcronymField, l);
 
         l.gridx = 0;
         l.gridy = 4;
         left.add(new JLabel(messages.getString("label.energy.type") + ":"), l);
         l.gridx = 1;
-        // Build localized energy type options from the EnergyType enum so the
-        // panel stays in sync with supported types. Resource bundle keys use
-        // the convention energy.type.<id> (e.g. energy.type.electricity).
         java.util.List<String> energyOptions = new java.util.ArrayList<>();
         for (com.carboncalc.model.enums.EnergyType et : com.carboncalc.model.enums.EnergyType.values()) {
             String key = "energy.type." + et.id();
             String label = messages.containsKey(key) ? messages.getString(key) : et.name();
             energyOptions.add(label);
         }
-        energyTypeCombo = new JComboBox<>(energyOptions.toArray(new String[0]));
+        energyTypeCombo = UIUtils.createCompactComboBox(new DefaultComboBoxModel<String>(
+                energyOptions.toArray(new String[0])), 150, 25);
         Border tfBorder = UIManager.getBorder("TextField.border");
         if (tfBorder != null)
             energyTypeCombo.setBorder(tfBorder);
-        UIUtils.styleComboBox(energyTypeCombo);
+        UIUtils.installTruncatingRenderer(energyTypeCombo, 18);
         left.add(energyTypeCombo, l);
 
         // Right column - address fields
@@ -172,28 +168,28 @@ public class CupsConfigPanel extends BaseModulePanel {
         r.gridy = 0;
         right.add(new JLabel(messages.getString("label.street") + ":"), r);
         r.gridx = 1;
-        streetField = new JTextField(20);
+        streetField = UIUtils.createCompactTextField(140, 25);
         right.add(streetField, r);
 
         r.gridx = 0;
         r.gridy = 1;
         right.add(new JLabel(messages.getString("label.postal.code") + ":"), r);
         r.gridx = 1;
-        postalCodeField = new JTextField(8);
+        postalCodeField = UIUtils.createCompactTextField(80, 25);
         right.add(postalCodeField, r);
 
         r.gridx = 0;
         r.gridy = 2;
         right.add(new JLabel(messages.getString("label.city") + ":"), r);
         r.gridx = 1;
-        cityField = new JTextField(20);
+        cityField = UIUtils.createCompactTextField(120, 25);
         right.add(cityField, r);
 
         r.gridx = 0;
         r.gridy = 3;
         right.add(new JLabel(messages.getString("label.province") + ":"), r);
         r.gridx = 1;
-        provinceField = new JTextField(20);
+        provinceField = UIUtils.createCompactTextField(120, 25);
         right.add(provinceField, r);
 
         // Place left and right panels into the main form
@@ -218,18 +214,17 @@ public class CupsConfigPanel extends BaseModulePanel {
         });
         btnPanel.add(addButton);
 
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.gridwidth = 2;
-        gbc.anchor = GridBagConstraints.EAST;
-        gbc.weightx = 0;
-        form.add(btnPanel, gbc);
+        // Use the shared manual-input box helper to ensure consistent borders,
+        // sizing and minimum dimensions across modules. Wrap it with the same
+        // outer empty border used previously to keep spacing identical.
+        JPanel manualBox = UIComponents.createManualInputBox(messages, "tab.manual.input", form, btnPanel,
+                0, UIUtils.MANUAL_INPUT_HEIGHT, UIUtils.MANUAL_INPUT_HEIGHT);
 
-        box.add(form, BorderLayout.CENTER);
-        outer.add(box, BorderLayout.CENTER);
-        // Keep the manual input area compact so the preview/centers table gets more
-        // vertical space
-        outer.setPreferredSize(new Dimension(0, 260));
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBackground(UIUtils.CONTENT_BACKGROUND);
+        outer.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        outer.add(manualBox, BorderLayout.CENTER);
+        outer.setPreferredSize(new Dimension(0, UIUtils.MANUAL_INPUT_HEIGHT));
         return outer;
     }
 
@@ -245,12 +240,12 @@ public class CupsConfigPanel extends BaseModulePanel {
         // File Selection and Column Mapping Panel (compact)
         JPanel topPanel = new JPanel(new GridLayout(1, 2, 10, 0));
         topPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        // Make the top area compact so preview below gets more space
-        topPanel.setPreferredSize(new Dimension(0, 260));
+    // Make the top area compact so preview below gets more space
+    topPanel.setPreferredSize(new Dimension(0, UIUtils.MANUAL_INPUT_HEIGHT));
 
         // File Management Section (keep compact)
         JPanel fileMgmt = createFileManagementPanel();
-        fileMgmt.setPreferredSize(new Dimension(0, 160));
+    fileMgmt.setPreferredSize(new Dimension(0, UIUtils.FILE_MGMT_HEIGHT));
         topPanel.add(fileMgmt);
 
         // Column Mapping Section: wrap in a scroll pane with a controlled height
@@ -259,7 +254,7 @@ public class CupsConfigPanel extends BaseModulePanel {
         colScroll.setBorder(BorderFactory.createEmptyBorder());
         colScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         colScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        colScroll.setPreferredSize(new Dimension(0, 240));
+    colScroll.setPreferredSize(new Dimension(0, UIUtils.COLUMN_SCROLL_HEIGHT));
         topPanel.add(colScroll);
 
         panel.add(topPanel, BorderLayout.CENTER);
@@ -282,26 +277,24 @@ public class CupsConfigPanel extends BaseModulePanel {
         int row = 0;
 
         // Add all column selectors
-        addColumnSelector(panel, gbc, row++, "label.column.cups", cupsColumnSelector = new JComboBox<>());
-        addColumnSelector(panel, gbc, row++, "label.column.marketer", marketerColumnSelector = new JComboBox<>());
-        addColumnSelector(panel, gbc, row++, "label.column.center", centerNameColumnSelector = new JComboBox<>());
-        addColumnSelector(panel, gbc, row++, "label.column.acronym", centerAcronymColumnSelector = new JComboBox<>());
-        addColumnSelector(panel, gbc, row++, "label.column.energy", energyTypeColumnSelector = new JComboBox<>());
-        addColumnSelector(panel, gbc, row++, "label.column.street", streetColumnSelector = new JComboBox<>());
-        addColumnSelector(panel, gbc, row++, "label.column.postal", postalCodeColumnSelector = new JComboBox<>());
-        addColumnSelector(panel, gbc, row++, "label.column.city", cityColumnSelector = new JComboBox<>());
-        addColumnSelector(panel, gbc, row++, "label.column.province", provinceColumnSelector = new JComboBox<>());
-
-        // Style all mapping combo boxes to match visual design
-        UIUtils.styleComboBox(cupsColumnSelector);
-        UIUtils.styleComboBox(marketerColumnSelector);
-        UIUtils.styleComboBox(centerNameColumnSelector);
-        UIUtils.styleComboBox(centerAcronymColumnSelector);
-        UIUtils.styleComboBox(energyTypeColumnSelector);
-        UIUtils.styleComboBox(streetColumnSelector);
-        UIUtils.styleComboBox(postalCodeColumnSelector);
-        UIUtils.styleComboBox(cityColumnSelector);
-        UIUtils.styleComboBox(provinceColumnSelector);
+    cupsColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
+    addColumnSelector(panel, gbc, row++, "label.column.cups", cupsColumnSelector);
+    marketerColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
+    addColumnSelector(panel, gbc, row++, "label.column.marketer", marketerColumnSelector);
+    centerNameColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
+    addColumnSelector(panel, gbc, row++, "label.column.center", centerNameColumnSelector);
+    centerAcronymColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
+    addColumnSelector(panel, gbc, row++, "label.column.acronym", centerAcronymColumnSelector);
+    energyTypeColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
+    addColumnSelector(panel, gbc, row++, "label.column.energy", energyTypeColumnSelector);
+    streetColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
+    addColumnSelector(panel, gbc, row++, "label.column.street", streetColumnSelector);
+    postalCodeColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
+    addColumnSelector(panel, gbc, row++, "label.column.postal", postalCodeColumnSelector);
+    cityColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
+    addColumnSelector(panel, gbc, row++, "label.column.city", cityColumnSelector);
+    provinceColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
+    addColumnSelector(panel, gbc, row++, "label.column.province", provinceColumnSelector);
 
         return panel;
     }
@@ -316,7 +309,7 @@ public class CupsConfigPanel extends BaseModulePanel {
         panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.file.management")));
         panel.setBackground(UIUtils.CONTENT_BACKGROUND);
         // keep this top-left file controls compact vertically
-        panel.setPreferredSize(new Dimension(0, 160));
+    panel.setPreferredSize(new Dimension(0, UIUtils.FILE_MGMT_HEIGHT));
 
         // File management controls panel
         JPanel controlsPanel = new JPanel(new GridBagLayout());
@@ -342,14 +335,15 @@ public class CupsConfigPanel extends BaseModulePanel {
         gbc.gridwidth = 1;
         controlsPanel.add(sheetLabel, gbc);
 
-        sheetSelector = new JComboBox<>();
+        // Use the centralized sheet selector factory which applies sizing,
+        // styling and a truncating renderer.
+        sheetSelector = com.carboncalc.util.UIComponents.createSheetSelector();
         sheetSelector.addActionListener(e -> {
             if (controller != null)
                 controller.handleSheetSelection();
         });
         gbc.gridx = 1;
         controlsPanel.add(sheetSelector, gbc);
-        UIUtils.styleComboBox(sheetSelector);
 
         panel.add(controlsPanel, BorderLayout.NORTH);
 
@@ -427,7 +421,7 @@ public class CupsConfigPanel extends BaseModulePanel {
 
         // Create scroll pane for table
         centersScrollPane = new JScrollPane(centersTable);
-        centersScrollPane.setPreferredSize(new Dimension(0, 200));
+    centersScrollPane.setPreferredSize(new Dimension(0, UIUtils.CENTERS_SCROLL_HEIGHT));
         panel.add(centersScrollPane, BorderLayout.CENTER);
 
         // Add buttons panel
@@ -460,11 +454,17 @@ public class CupsConfigPanel extends BaseModulePanel {
         panel.add(new JLabel(messages.getString(labelKey) + ":"), gbc);
 
         gbc.gridx = 1;
-        selector.setPreferredSize(new Dimension(150, 25));
+        // styling and sizing are applied by the factory in most cases; still
+        // respect existing selectors created elsewhere
+        UIUtils.styleComboBox(selector);
         selector.addActionListener(e -> {
             if (controller != null)
                 controller.handleColumnSelection();
         });
+        // If the caller didn't set preferred size, ensure a sensible default
+        if (selector.getPreferredSize() == null || selector.getPreferredSize().width == 0) {
+            selector.setPreferredSize(new Dimension(UIUtils.SHEET_SELECTOR_WIDTH, UIUtils.SHEET_SELECTOR_HEIGHT));
+        }
         panel.add(selector, gbc);
     }
 

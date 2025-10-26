@@ -52,17 +52,14 @@ public class ElectricityFactorPanel extends JPanel {
 
         fgbc.gridx = 1;
         fgbc.weightx = 0.6;
-        mixSinGdoField = new JTextField();
-        mixSinGdoField.setPreferredSize(new Dimension(140, 26));
+        mixSinGdoField = UIUtils.createCompactTextField(140, 26);
         mixSinGdoField.setHorizontalAlignment(JTextField.RIGHT);
-        UIUtils.styleTextField(mixSinGdoField);
         factorsPanel.add(mixSinGdoField, fgbc);
 
-    fgbc.gridx = 2;
-    fgbc.weightx = 0.0;
-    JLabel mixUnit = new JLabel(messages.getString("unit.kg_co2e_kwh"));
-    mixUnit.setForeground(Color.GRAY);
-    factorsPanel.add(mixUnit, fgbc);
+        fgbc.gridx = 2;
+        fgbc.weightx = 0.0;
+        JLabel mixUnit = UIUtils.createUnitLabel(messages, "unit.kg_co2e_kwh");
+        factorsPanel.add(mixUnit, fgbc);
 
         // GdO Renovable
         fgbc.gridx = 0;
@@ -73,17 +70,14 @@ public class ElectricityFactorPanel extends JPanel {
 
         fgbc.gridx = 1;
         fgbc.weightx = 0.6;
-        gdoRenovableField = new JTextField();
-        gdoRenovableField.setPreferredSize(new Dimension(140, 26));
+        gdoRenovableField = UIUtils.createCompactTextField(140, 26);
         gdoRenovableField.setHorizontalAlignment(JTextField.RIGHT);
-        UIUtils.styleTextField(gdoRenovableField);
         factorsPanel.add(gdoRenovableField, fgbc);
 
-    fgbc.gridx = 2;
-    fgbc.weightx = 0.0;
-    JLabel renovUnit = new JLabel(messages.getString("unit.kg_co2_kwh"));
-    renovUnit.setForeground(Color.GRAY);
-    factorsPanel.add(renovUnit, fgbc);
+        fgbc.gridx = 2;
+        fgbc.weightx = 0.0;
+        JLabel renovUnit = UIUtils.createUnitLabel(messages, "unit.kg_co2_kwh");
+        factorsPanel.add(renovUnit, fgbc);
 
         // Cogeneracion
         fgbc.gridx = 0;
@@ -94,17 +88,14 @@ public class ElectricityFactorPanel extends JPanel {
 
         fgbc.gridx = 1;
         fgbc.weightx = 0.6;
-        gdoCogeneracionField = new JTextField();
-        gdoCogeneracionField.setPreferredSize(new Dimension(140, 26));
+        gdoCogeneracionField = UIUtils.createCompactTextField(140, 26);
         gdoCogeneracionField.setHorizontalAlignment(JTextField.RIGHT);
-        UIUtils.styleTextField(gdoCogeneracionField);
         factorsPanel.add(gdoCogeneracionField, fgbc);
 
-    fgbc.gridx = 2;
-    fgbc.weightx = 0.0;
-    JLabel cogUnit = new JLabel(messages.getString("unit.kg_co2_kwh"));
-    cogUnit.setForeground(Color.GRAY);
-    factorsPanel.add(cogUnit, fgbc);
+        fgbc.gridx = 2;
+        fgbc.weightx = 0.0;
+        JLabel cogUnit = UIUtils.createUnitLabel(messages, "unit.kg_co2_kwh");
+        factorsPanel.add(cogUnit, fgbc);
 
         // Location-based
         fgbc.gridx = 0;
@@ -114,16 +105,13 @@ public class ElectricityFactorPanel extends JPanel {
         factorsPanel.add(locLabel, fgbc);
         fgbc.gridx = 1;
         fgbc.weightx = 0.6;
-        locationBasedField = new JTextField();
-        locationBasedField.setPreferredSize(new Dimension(140, 26));
+        locationBasedField = UIUtils.createCompactTextField(140, 26);
         locationBasedField.setHorizontalAlignment(JTextField.RIGHT);
-        UIUtils.styleTextField(locationBasedField);
         factorsPanel.add(locationBasedField, fgbc);
-    fgbc.gridx = 2;
-    fgbc.weightx = 0.0;
-    JLabel locUnit = new JLabel(messages.getString("unit.kg_co2_kwh"));
-    locUnit.setForeground(Color.GRAY);
-    factorsPanel.add(locUnit, fgbc);
+        fgbc.gridx = 2;
+        fgbc.weightx = 0.0;
+        JLabel locUnit = UIUtils.createUnitLabel(messages, "unit.kg_co2_kwh");
+        factorsPanel.add(locUnit, fgbc);
 
         // Save button
         fgbc.gridx = 0;
@@ -152,29 +140,22 @@ public class ElectricityFactorPanel extends JPanel {
         JPanel middleFields = new JPanel();
         middleFields.setLayout(new BoxLayout(middleFields, BoxLayout.Y_AXIS));
         middleFields.setBackground(UIUtils.CONTENT_BACKGROUND);
-        companyNameField = new JTextField(20);
+        companyNameField = UIUtils.createCompactTextField(120, 25);
         // Limit preferred width and cap height so the left label column has more room
-        companyNameField.setPreferredSize(new Dimension(120, 25));
-        companyNameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
-        companyNameField.setMinimumSize(new Dimension(80, 25));
         middleFields.add(companyNameField);
         middleFields.add(Box.createVerticalStrut(8));
-        emissionFactorField = new JTextField(20);
+        emissionFactorField = UIUtils.createCompactTextField(120, 25);
         // Keep emission factor field compact to help labels fit (30px high)
-        emissionFactorField.setPreferredSize(new Dimension(120, 25));
-        emissionFactorField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
-        emissionFactorField.setMinimumSize(new Dimension(80, 25));
         middleFields.add(emissionFactorField);
         middleFields.add(Box.createVerticalStrut(8));
-    gdoTypeComboBox = new JComboBox<>(
-        new String[] { messages.getString("label.mix.sin.gdo"), messages.getString("label.gdo.renovable"),
-            messages.getString("label.gdo.cogeneracion") });
-        UIUtils.styleComboBox(gdoTypeComboBox);
-        // Keep combo compact so labels have more space (30px high)
-        gdoTypeComboBox.setPreferredSize(new Dimension(140, 25));
-        gdoTypeComboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
-        gdoTypeComboBox.setMinimumSize(new Dimension(100, 25));
-        middleFields.add(gdoTypeComboBox);
+    gdoTypeComboBox = UIUtils.createCompactComboBox(
+        new DefaultComboBoxModel<String>(new String[] { messages.getString("label.mix.sin.gdo"),
+            messages.getString("label.gdo.renovable"), messages.getString("label.gdo.cogeneracion") }),
+        140, 25);
+    // Keep combo compact and install truncating renderer so long localized
+    // names don't break layout; full text is exposed in tooltip.
+    UIUtils.installTruncatingRenderer(gdoTypeComboBox, 18);
+    middleFields.add(gdoTypeComboBox);
 
         JPanel rightColumn = new JPanel(new BorderLayout());
         rightColumn.setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -244,10 +225,7 @@ public class ElectricityFactorPanel extends JPanel {
         ig.weightx = 0.15;
         ig.anchor = GridBagConstraints.LINE_END;
         // ensure unit aligns horizontally with the emission factor field
-        JLabel unitLabel = new JLabel("kgCO₂e/kWh");
-        unitLabel.setForeground(Color.GRAY);
-        unitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        unitLabel.setPreferredSize(new Dimension(110, unitLabel.getPreferredSize().height));
+        JLabel unitLabel = UIUtils.createUnitLabel(messages, "unit.kg_co2e_kwh", 110);
         inputGrid.add(unitLabel, ig);
 
         // Row 2 - GdO Type (larger top inset to push it slightly lower)
@@ -288,13 +266,9 @@ public class ElectricityFactorPanel extends JPanel {
         ig.fill = GridBagConstraints.BOTH;
         inputGrid.add(Box.createGlue(), ig);
 
-        JPanel manualInputBox = new JPanel(new BorderLayout());
-        manualInputBox.setBackground(UIUtils.CONTENT_BACKGROUND);
-        manualInputBox.setBorder(UIUtils.createLightGroupBorder(messages.getString("tab.manual.input")));
-        manualInputBox.add(inputGrid, BorderLayout.CENTER);
-        // Increase height slightly so Add button sits lower and is not cramped
-        manualInputBox.setPreferredSize(new Dimension(600, 180));
-        manualInputBox.setMinimumSize(new Dimension(300, 160));
+    JPanel manualInputBox = com.carboncalc.util.UIComponents.createManualInputBox(messages, "tab.manual.input",
+        inputGrid, addButtonPanel, UIUtils.FACTOR_MANUAL_INPUT_WIDTH, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT,
+        UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_SMALL);
 
         // Trading companies table
         String[] columnNames = { messages.getString("table.header.company"), messages.getString("table.header.factor"),
@@ -309,8 +283,8 @@ public class ElectricityFactorPanel extends JPanel {
         tradingCompaniesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tradingCompaniesTable.getTableHeader().setReorderingAllowed(false);
         UIUtils.styleTable(tradingCompaniesTable);
-        JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
-        scrollPane.setPreferredSize(new Dimension(0, 180));
+    JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
+    scrollPane.setPreferredSize(new Dimension(0, UIUtils.FACTOR_SCROLL_HEIGHT));
         try {
             scrollPane.revalidate();
             scrollPane.repaint();

@@ -132,8 +132,7 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         JPanel typePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         typePanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         typePanel.add(new JLabel(messages.getString("label.factor.type.select")));
-        typeComboBox = new JComboBox<>(FACTOR_TYPES);
-        typeComboBox.setPreferredSize(new Dimension(150, 25));
+        typeComboBox = UIUtils.createCompactComboBox(new DefaultComboBoxModel<String>(FACTOR_TYPES), 150, 25);
         typeComboBox.addActionListener(e -> {
             String sel = (String) typeComboBox.getSelectedItem();
             if (sel != null) {
@@ -146,8 +145,9 @@ public class EmissionFactorsPanel extends BaseModulePanel {
                 controller.handleTypeSelection(sel);
             }
         });
+        // install truncating renderer to keep long names concise
+        UIUtils.installTruncatingRenderer(typeComboBox, 18);
         typePanel.add(typeComboBox);
-        UIUtils.styleComboBox(typeComboBox);
         contentPanel.add(typePanel);
 
         // Year selector at the top so it's always visible regardless of
@@ -159,8 +159,8 @@ public class EmissionFactorsPanel extends BaseModulePanel {
 
         int currentYear = controller.getCurrentYear();
         SpinnerNumberModel yearModel = new SpinnerNumberModel(currentYear, 1900, 2100, 1);
-        yearSpinner = new JSpinner(yearModel);
-        yearSpinner.setPreferredSize(new Dimension(80, 25));
+    yearSpinner = new JSpinner(yearModel);
+    yearSpinner.setPreferredSize(new Dimension(UIUtils.YEAR_SPINNER_WIDTH_LARGE, UIUtils.YEAR_SPINNER_HEIGHT));
         JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "#");
         yearSpinner.setEditor(yearEditor);
         try {

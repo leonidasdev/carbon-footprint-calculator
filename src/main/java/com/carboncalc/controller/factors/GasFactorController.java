@@ -101,8 +101,10 @@ public class GasFactorController extends GenericFactorController {
                     String currentGas = String.valueOf(model.getValueAt(sel, 0));
                     String currentFactor = String.valueOf(model.getValueAt(sel, 1));
 
-                    JTextField gasField = new JTextField(currentGas);
-                    JTextField factorField = new JTextField(currentFactor);
+                    javax.swing.JTextField gasField = com.carboncalc.util.UIUtils.createCompactTextField(160, 25);
+                    gasField.setText(currentGas);
+                    javax.swing.JTextField factorField = com.carboncalc.util.UIUtils.createCompactTextField(120, 25);
+                    factorField.setText(currentFactor);
                     JPanel form = new JPanel(new GridLayout(2,2,5,5));
                     form.add(new JLabel(messages.getString("label.gas.type") + ":")); form.add(gasField);
                     form.add(new JLabel(messages.getString("label.emission.factor") + ":")); form.add(factorField);

@@ -42,35 +42,20 @@ public class GasFactorPanel extends JPanel {
         JPanel leftLabels = new JPanel();
         leftLabels.setLayout(new BoxLayout(leftLabels, BoxLayout.Y_AXIS));
         leftLabels.setBackground(UIUtils.CONTENT_BACKGROUND);
-    leftLabels.add(new JLabel(messages.getString("label.gas.type") + ":"));
+        leftLabels.add(new JLabel(messages.getString("label.gas.type") + ":"));
         leftLabels.add(Box.createVerticalStrut(8));
         leftLabels.add(new JLabel(messages.getString("label.emission.factor") + ":"));
 
         JPanel middleFields = new JPanel();
         middleFields.setLayout(new BoxLayout(middleFields, BoxLayout.Y_AXIS));
         middleFields.setBackground(UIUtils.CONTENT_BACKGROUND);
-        gasTypeSelector = new JComboBox<>();
+    // Use UIUtils factory + truncating renderer for consistent combo behaviour
+    gasTypeSelector = UIUtils.createCompactComboBox(new DefaultComboBoxModel<String>(), 180, 25);
         gasTypeSelector.setEditable(true); // allow typing new gas types
-        gasTypeSelector.setPreferredSize(new Dimension(180, 25));
-        gasTypeSelector.setMaximumSize(new Dimension(180, 25));
-        gasTypeSelector.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
-                    boolean cellHasFocus) {
-                String s = value == null ? "" : value.toString();
-                String display = s.length() > 8 ? s.substring(0, 8) + "..." : s;
-                JLabel lbl = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected,
-                        cellHasFocus);
-                lbl.setToolTipText(s.length() > 8 ? s : null);
-                return lbl;
-            }
-        });
-        UIUtils.styleComboBox(gasTypeSelector);
+        UIUtils.installTruncatingRenderer(gasTypeSelector, 8);
         middleFields.add(gasTypeSelector);
         middleFields.add(Box.createVerticalStrut(8));
-        emissionFactorField = new JTextField(25);
-        emissionFactorField
-                .setMaximumSize(new Dimension(Integer.MAX_VALUE, emissionFactorField.getPreferredSize().height));
+        emissionFactorField = UIUtils.createCompactTextField(140, 25);
         middleFields.add(emissionFactorField);
 
         JPanel rightColumn = new JPanel(new BorderLayout());
@@ -85,15 +70,14 @@ public class GasFactorPanel extends JPanel {
             pref = new Dimension(10, 24);
         spacer.setPreferredSize(new Dimension(1, pref.height));
         rightTop.add(spacer);
-    JLabel unitLabel = new JLabel(messages.getString("unit.kg_co2e_kwh"));
+        JLabel unitLabel = UIUtils.createUnitLabel(messages, "unit.kg_co2e_kwh");
         unitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        unitLabel.setForeground(Color.GRAY);
         rightTop.add(unitLabel);
         rightColumn.add(rightTop, BorderLayout.NORTH);
 
         JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         addButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-    addCompanyButton = new JButton(messages.getString("button.add.gas"));
+        addCompanyButton = new JButton(messages.getString("button.add.gas"));
         UIUtils.styleButton(addCompanyButton);
         addButtonPanel.add(addCompanyButton);
         rightColumn.add(addButtonPanel, BorderLayout.SOUTH);
@@ -109,7 +93,7 @@ public class GasFactorPanel extends JPanel {
         ig.gridy = 0;
         ig.weightx = 0;
         ig.anchor = GridBagConstraints.LINE_START;
-    inputGrid.add(new JLabel(messages.getString("label.gas.type") + ":"), ig);
+        inputGrid.add(new JLabel(messages.getString("label.gas.type") + ":"), ig);
         ig.gridx = 1;
         ig.gridy = 0;
         ig.weightx = 1.0;
@@ -149,16 +133,13 @@ public class GasFactorPanel extends JPanel {
         ig.anchor = GridBagConstraints.SOUTHEAST;
         inputGrid.add(addButtonPanel, ig);
 
-        JPanel manualInputBox = new JPanel(new BorderLayout());
-        manualInputBox.setBackground(UIUtils.CONTENT_BACKGROUND);
-        manualInputBox.setBorder(UIUtils.createLightGroupBorder(messages.getString("tab.manual.input")));
-        manualInputBox.add(inputGrid, BorderLayout.CENTER);
-        // Slightly taller so the Add button is not cropped on compact layouts
-        manualInputBox.setPreferredSize(new Dimension(600, 150));
-        manualInputBox.setMinimumSize(new Dimension(300, 140));
+    JPanel manualInputBox = com.carboncalc.util.UIComponents.createManualInputBox(messages, "tab.manual.input",
+        inputGrid, addButtonPanel, UIUtils.FACTOR_MANUAL_INPUT_WIDTH,
+        UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_SMALL, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_SMALL);
 
         // Trading companies table (gas type, emission factor)
-    String[] columnNames = { messages.getString("table.header.gas.type"), messages.getString("table.header.factor") };
+        String[] columnNames = { messages.getString("table.header.gas.type"),
+                messages.getString("table.header.factor") };
         DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -169,8 +150,8 @@ public class GasFactorPanel extends JPanel {
         tradingCompaniesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tradingCompaniesTable.getTableHeader().setReorderingAllowed(false);
         UIUtils.styleTable(tradingCompaniesTable);
-        JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
-        scrollPane.setPreferredSize(new Dimension(0, 180));
+    JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
+    scrollPane.setPreferredSize(new Dimension(0, UIUtils.FACTOR_SCROLL_HEIGHT));
 
         JPanel tradingCompanyButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         tradingCompanyButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);

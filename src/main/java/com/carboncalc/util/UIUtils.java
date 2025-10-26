@@ -11,6 +11,8 @@ import java.awt.Font;
 import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ResourceBundle;
+import java.awt.Dimension;
 
 /**
  * Collection of small UI helper utilities used across the application.
@@ -25,6 +27,46 @@ public class UIUtils {
     public static final Color GENERAL_BACKGROUND = Color.WHITE;
     public static final Color CONTENT_BACKGROUND = Color.WHITE;
     public static final Color HOVER_COLOR = new Color(0xE8E8E8);
+    /** Muted text color used for unit labels and secondary text */
+    public static final Color MUTED_TEXT = new Color(0x6B6B6B);
+    // Common UI sizing constants to avoid magic numbers spread across the codebase
+    public static final int SHEET_SELECTOR_WIDTH = 150;
+    public static final int SHEET_SELECTOR_HEIGHT = 25;
+    public static final int MAPPING_COMBO_WIDTH = 180;
+    public static final int MAPPING_COMBO_HEIGHT = 25;
+    public static final int PREVIEW_SCROLL_WIDTH = 320;
+    public static final int PREVIEW_SCROLL_HEIGHT = 280;
+    public static final int TOP_SPACER_HEIGHT = 40;
+    public static final int YEAR_SPINNER_WIDTH = 65;
+    public static final int YEAR_SPINNER_HEIGHT = 24;
+    public static final int RESULT_SHEET_WIDTH = 75;
+    // Heights used by the CupsConfigPanel and similar file-management areas
+    public static final int MANUAL_INPUT_HEIGHT = 260;
+    public static final int FILE_MGMT_HEIGHT = 160;
+    public static final int COLUMN_SCROLL_HEIGHT = 240;
+    public static final int CENTERS_SCROLL_HEIGHT = 200;
+    // Width for file-management panels (used by file-management boxes)
+    public static final int FILE_MGMT_PANEL_WIDTH = 300;
+    // Height for the preview container panel that holds the preview tables
+    public static final int PREVIEW_PANEL_HEIGHT = 320;
+    // Factor panel sizing constants (avoid magic numbers in factor UI classes)
+    public static final int FACTOR_MANUAL_INPUT_WIDTH = 600;
+    public static final int FACTOR_MANUAL_INPUT_WIDTH_COMPACT = 380;
+    public static final int FACTOR_MANUAL_INPUT_HEIGHT = 180;
+    public static final int FACTOR_MANUAL_INPUT_HEIGHT_LARGE = 240;
+    public static final int FACTOR_MANUAL_INPUT_HEIGHT_SMALL = 150;
+    public static final int FACTOR_SCROLL_HEIGHT = 180;
+    // Common minimum widths used by manual input boxes across factor panels
+    public static final int MANUAL_INPUT_MIN_WIDTH = 300;
+
+    // Application minimum window size
+    public static final int APP_MIN_WIDTH = 800;
+    public static final int APP_MIN_HEIGHT = 600;
+    // Additional sizing for navigation and larger year spinner
+    public static final int NAV_WIDTH = 250;
+    public static final int NAV_BUTTON_WIDTH = 200;
+    public static final int NAV_BUTTON_HEIGHT = 30;
+    public static final int YEAR_SPINNER_WIDTH_LARGE = 80;
 
     public static void styleButton(JButton button) {
         button.setBackground(UPM_BLUE);
@@ -117,12 +159,101 @@ public class UIUtils {
     }
 
     /**
+     * Create a compact, styled JComboBox using the provided model and preferred
+     * size.
+     * This centralizes sizing and styling for combo boxes used across panels.
+     */
+    public static <T> JComboBox<T> createCompactComboBox(ComboBoxModel<T> model, int prefWidth, int prefHeight) {
+        JComboBox<T> cb = new JComboBox<>(model);
+        cb.setPreferredSize(new Dimension(prefWidth, prefHeight));
+        cb.setMaximumSize(new Dimension(prefWidth, prefHeight));
+        cb.setMinimumSize(new Dimension(80, prefHeight));
+        styleComboBox(cb);
+        return cb;
+    }
+
+    /**
+     * Install a simple truncating renderer on a combo box which shortens long
+     * values
+     * and stores the full value as a tooltip. This avoids repeated anonymous
+     * renderer
+     * implementations across panels.
+     *
+     * @param comboBox the combo box to modify
+     * @param maxChars maximum number of characters to display before truncation
+     */
+    public static void installTruncatingRenderer(final JComboBox<?> comboBox, final int maxChars) {
+        comboBox.setRenderer(new TruncatingRenderer(maxChars));
+    }
+
+    /**
+     * Named renderer used to truncate long combo values and expose the full
+     * text via tooltip. Using a named class avoids repeated anonymous
+     * implementations and makes debugging and potential reuse easier.
+     */
+    private static class TruncatingRenderer extends DefaultListCellRenderer {
+        private final int maxChars;
+
+        TruncatingRenderer(int maxChars) {
+            this.maxChars = maxChars;
+        }
+
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                boolean cellHasFocus) {
+            String s = value == null ? "" : value.toString();
+            String display = s.length() > maxChars ? s.substring(0, maxChars) + "..." : s;
+            JLabel lbl = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
+            lbl.setToolTipText(s);
+            return lbl;
+        }
+    }
+
+    /**
      * Apply consistent styling to text fields used across the UI.
      */
     public static void styleTextField(JTextField textField) {
         textField.setBackground(GENERAL_BACKGROUND);
         textField.setBorder(BorderFactory.createLineBorder(UPM_BLUE));
         // keep right alignment for numeric fields where set by caller
+    }
+
+    /**
+     * Create a right-aligned unit label using the localized unit key.
+     * Uses the shared MUTED_TEXT color and sets a preferred width when
+     * requested.
+     */
+    public static JLabel createUnitLabel(ResourceBundle messages, String unitKey) {
+        JLabel l = new JLabel(messages.getString(unitKey));
+        l.setForeground(MUTED_TEXT);
+        l.setHorizontalAlignment(SwingConstants.RIGHT);
+        return l;
+    }
+
+    public static JLabel createUnitLabel(ResourceBundle messages, String unitKey, int width) {
+        JLabel l = createUnitLabel(messages, unitKey);
+        if (width > 0) {
+            l.setPreferredSize(new Dimension(width, l.getPreferredSize().height));
+        }
+        return l;
+    }
+
+    /** Create a compact, styled JTextField with consistent sizing. */
+    public static JTextField createCompactTextField(int prefWidth, int prefHeight) {
+        JTextField t = new JTextField();
+        t.setPreferredSize(new Dimension(prefWidth, prefHeight));
+        t.setMaximumSize(new Dimension(Integer.MAX_VALUE, prefHeight));
+        t.setMinimumSize(new Dimension(80, prefHeight));
+        styleTextField(t);
+        return t;
+    }
+
+    public static Component createVerticalSpacer(int height) {
+        return Box.createVerticalStrut(height);
+    }
+
+    public static Component createHorizontalSpacer(int width) {
+        return Box.createHorizontalStrut(width);
     }
 
     public static void setupPreviewTable(JTable table) {

@@ -76,10 +76,10 @@ public class OptionsPanel extends BaseModulePanel {
         JLabel languageLabel = new JLabel(messages.getString("label.language"));
         row.add(languageLabel);
 
-        languageSelector = new JComboBox<>(new String[] {
-                messages.getString("language.english"),
-                messages.getString("language.spanish")
-        });
+    languageSelector = UIUtils.createCompactComboBox(
+        new DefaultComboBoxModel<String>(new String[] { messages.getString("language.english"),
+            messages.getString("language.spanish") }),
+        180, UIUtils.SHEET_SELECTOR_HEIGHT);
 
         // When user changes language, close the popup first then call the
         // controller on the EDT so any modal dialog appears after the combo

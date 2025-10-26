@@ -73,15 +73,9 @@ public class ElectricityFactorController implements FactorSubController {
     public void onActivate(int year) {
         // Load electricity general factors for the year and populate view
         try {
-            ElectricityGeneralFactors factors = electricityGeneralFactorService.loadFactors(year);
-            System.out.println("[DEBUG] ElectricityFactorController.onActivate: (pre-invokeLater) thread="
-                    + Thread.currentThread().getName() + ", loaded factors for year=" + year
-                    + ", tradingCompaniesCount="
-                    + (factors.getTradingCompanies() == null ? 0 : factors.getTradingCompanies().size()));
+        ElectricityGeneralFactors factors = electricityGeneralFactorService.loadFactors(year);
             // Ensure UI updates happen on the EDT
             SwingUtilities.invokeLater(() -> {
-                System.out.println("[DEBUG] ElectricityFactorController.onActivate: (invokeLater) thread="
-                        + Thread.currentThread().getName() + ", calling updateGeneralFactors");
                 updateGeneralFactors(factors);
             });
         } catch (IOException e) {
@@ -176,13 +170,10 @@ public class ElectricityFactorController implements FactorSubController {
                 }
                 try {
                     List<ElectricityGeneralFactors.TradingCompany> comps = factors.getTradingCompanies();
-                    System.out.println(
-                            "[DEBUG] ElectricityFactorController.updateGeneralFactors: populating trading companies, factorsListSize="
-                                    + (comps == null ? 0 : comps.size()));
+                    
                     DefaultTableModel tmodel = (DefaultTableModel) panel.getTradingCompaniesTable().getModel();
                     JTable table = panel.getTradingCompaniesTable();
-                    System.out.println("[DEBUG] ElectricityFactorController.updateGeneralFactors: modelIdentity="
-                            + System.identityHashCode(tmodel) + ", tableIdentity=" + System.identityHashCode(table));
+                    
                     tmodel.setRowCount(0);
                     if (comps != null) {
                         for (ElectricityGeneralFactors.TradingCompany c : comps) {
@@ -190,9 +181,7 @@ public class ElectricityFactorController implements FactorSubController {
                                     String.format(Locale.ROOT, "%.4f", c.getEmissionFactor()), c.getGdoType() });
                         }
                     }
-                    System.out.println(
-                            "[DEBUG] ElectricityFactorController.updateGeneralFactors: afterAdd immediateRowCount="
-                                    + tmodel.getRowCount());
+                    
                     // If the panel/table is not yet showing, schedule a short retry
                     // on the EDT so layout/displayability can complete.
                     List<ElectricityGeneralFactors.TradingCompany> delayedComps = comps == null
@@ -220,9 +209,7 @@ public class ElectricityFactorController implements FactorSubController {
                                 }
                                 DefaultTableModel current = (DefaultTableModel) ttable.getModel();
                                 if (current.getRowCount() == 0 && !delayedComps.isEmpty()) {
-                                    System.out.println(
-                                            "[DEBUG] ElectricityFactorController.updateGeneralFactors: nested invokeLater repopulate, compsSize="
-                                                    + delayedComps.size());
+                                    
                                     for (ElectricityGeneralFactors.TradingCompany c : delayedComps) {
                                         current.addRow(new Object[] { c.getName(),
                                                 String.format(Locale.ROOT, "%.4f", c.getEmissionFactor()),
@@ -239,9 +226,7 @@ public class ElectricityFactorController implements FactorSubController {
                         });
                     }
                 } catch (Exception e) {
-                    System.out.println(
-                            "[DEBUG] ElectricityFactorController.updateGeneralFactors: exception populating table: "
-                                    + e.getMessage());
+                    
                     e.printStackTrace();
                 }
             } else {
@@ -259,59 +244,33 @@ public class ElectricityFactorController implements FactorSubController {
                 }
             }
         } finally {
+            // Re-enable document listeners regardless of any error while populating.
             suppressDocumentListeners = false;
-            // Run final UI refresh and diagnostics on the EDT in a fresh tick to avoid
-            // timing issues
+
+            // Run final UI refresh on the EDT to ensure table/layout are up to date.
             SwingUtilities.invokeLater(() -> {
                 try {
                     JTable table = panel.getTradingCompaniesTable();
-                    DefaultTableModel tmodel = (DefaultTableModel) table.getModel();
-                    System.out.println("[DEBUG] ElectricityFactorController.updateGeneralFactors: (post) thread="
-                            + Thread.currentThread().getName() + ", tableRowCount=" + tmodel.getRowCount());
-                    try {
-                        System.out.println("[DEBUG] panel.isShowing=" + panel.isShowing() + ", panel.isVisible="
-                                + panel.isVisible());
-                    } catch (Exception ignored) {
-                    }
-                    try {
-                        System.out.println("[DEBUG] table.isShowing=" + table.isShowing() + ", table.isVisible="
-                                + table.isVisible() + ", table.isDisplayable=" + table.isDisplayable());
-                    } catch (Exception ignored) {
-                    }
-
-                    // Print current general factor field values for cross-check
-                    try {
-                        System.out.println("[DEBUG] mixSinGdoField='" + panel.getMixSinGdoField().getText()
-                                + "', gdoRenovable='" + panel.getGdoRenovableField().getText() + "', gdoCogeneracion='"
-                                + panel.getGdoCogeneracionField().getText() + "'");
-                    } catch (Exception ignored) {
-                    }
-
-                    // Force layout/update so rows are visible immediately when the card becomes
-                    // visible
-                    try {
-                        table.revalidate();
-                        table.repaint();
-                    } catch (Exception ignored) {
-                    }
-                    Component anc = SwingUtilities.getAncestorOfClass(JScrollPane.class, table);
-                    if (anc instanceof JScrollPane) {
-                        JScrollPane sp = (JScrollPane) anc;
+                    if (table != null) {
                         try {
-                            sp.revalidate();
-                            sp.repaint();
-                            sp.getViewport().revalidate();
-                            sp.getViewport().repaint();
+                            table.revalidate();
+                            table.repaint();
                         } catch (Exception ignored) {
                         }
-                    }
-                    // Final confirmation: print parent and model row count
-                    try {
-                        DefaultTableModel finalModel = (DefaultTableModel) panel.getTradingCompaniesTable().getModel();
-                        Component parent = panel.getTradingCompaniesTable().getParent();
-                        System.out.println("[DEBUG] finalModelRowCount=" + finalModel.getRowCount()
-                                + ", tableParentClass=" + (parent == null ? "null" : parent.getClass().getName()));
-                    } catch (Exception ignored) {
+
+                        Component anc = SwingUtilities.getAncestorOfClass(JScrollPane.class, table);
+                        if (anc instanceof JScrollPane) {
+                            JScrollPane sp = (JScrollPane) anc;
+                            try {
+                                sp.revalidate();
+                                sp.repaint();
+                                if (sp.getViewport() != null) {
+                                    sp.getViewport().revalidate();
+                                    sp.getViewport().repaint();
+                                }
+                            } catch (Exception ignored) {
+                            }
+                        }
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();

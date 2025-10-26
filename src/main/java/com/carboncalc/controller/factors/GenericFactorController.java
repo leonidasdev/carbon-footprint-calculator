@@ -53,7 +53,6 @@ public class GenericFactorController implements FactorSubController {
 
     @Override
     public void onActivate(int year) {
-        System.out.println("[DEBUG] GenericFactorController.onActivate: type=" + factorType + ", year=" + year);
         // Load factors for the requested year and replace the table model
         try {
             List<? extends EmissionFactor> factors = emissionFactorService.loadEmissionFactors(factorType, year);

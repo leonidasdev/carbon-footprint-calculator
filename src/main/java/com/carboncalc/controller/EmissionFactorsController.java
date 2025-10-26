@@ -113,8 +113,6 @@ public class EmissionFactorsController {
         }
 
         this.currentFactorType = type;
-        System.out.println("[DEBUG] EmissionFactorsController.handleTypeSelection: selectedType=" + type
-                + ", currentYear=" + this.currentYear);
 
         // Lazy create and register the subcontroller if not present
         FactorSubController sc = getOrCreateSubcontroller(type);
@@ -162,9 +160,6 @@ public class EmissionFactorsController {
                         SwingUtilities.invokeLater(() -> {
                             try {
                                 finalSc.onActivate(activateYear);
-                                System.out.println(
-                                        "[DEBUG] EmissionFactorsController.handleTypeSelection: subcontroller.onActivate completed for type="
-                                                + type + ", year=" + activateYear);
                             } catch (Exception e) {
                                 e.printStackTrace();
                                 JOptionPane.showMessageDialog(view, messages.getString("error.load.general.factors"),
@@ -369,12 +364,8 @@ public class EmissionFactorsController {
     private void loadFactorsForType() {
         if (currentFactorType == null)
             return;
-        System.out.println("[DEBUG] EmissionFactorsController.loadFactorsForType: loading factors for type="
-                + currentFactorType + ", year=" + currentYear);
         List<? extends EmissionFactor> factors = emissionFactorService.loadEmissionFactors(currentFactorType,
                 currentYear);
-        System.out.println("[DEBUG] EmissionFactorsController.loadFactorsForType: loaded factors count="
-                + (factors == null ? 0 : factors.size()));
         // If the current type is ELECTRICITY, the electricity subcontroller
         // manages the trading companies table and will populate it itself.
         // Avoid clearing/replacing its model here to prevent races.

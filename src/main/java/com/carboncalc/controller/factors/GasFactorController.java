@@ -258,7 +258,6 @@ public class GasFactorController extends GenericFactorController {
 
     @Override
     public void onActivate(int year) {
-        System.out.println("[DEBUG] GasFactorController.onActivate: year=" + year);
         // populate the generic factors table via the base class
         super.onActivate(year);
         if (panel != null) {
@@ -266,8 +265,6 @@ public class GasFactorController extends GenericFactorController {
             model.setRowCount(0);
             try {
                 List<GasFactorEntry> entries = gasService.loadGasFactors(year);
-                System.out.println("[DEBUG] GasFactorController.onActivate: loaded gas entries="
-                        + (entries == null ? 0 : entries.size()));
                 Set<String> types = new LinkedHashSet<>();
                 for (GasFactorEntry e : entries) {
                     // table columns: gasType, emissionFactor

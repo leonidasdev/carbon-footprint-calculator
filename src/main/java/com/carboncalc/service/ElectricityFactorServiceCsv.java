@@ -68,9 +68,6 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
         // each line honoring CSV quoting rules instead of naive split(",").
         if (Files.exists(companiesPath)) {
             List<String> lines = Files.readAllLines(companiesPath, StandardCharsets.UTF_8);
-            System.out.println("[DEBUG] ElectricityFactorServiceCsv.loadFactors: companiesPath="
-                    + companiesPath.toAbsolutePath() + ", linesRead=" + lines.size());
-            int parsed = 0;
             for (int i = 1; i < lines.size(); i++) {
                 String line = lines.get(i);
                 List<String> values = parseCsvLine(line);
@@ -81,10 +78,8 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
                     if (ef == null)
                         ef = 0.0;
                     factors.addTradingCompany(new ElectricityGeneralFactors.TradingCompany(name, ef, gdoType));
-                    parsed++;
                 }
             }
-            System.out.println("[DEBUG] ElectricityFactorServiceCsv.loadFactors: parsedCompanies=" + parsed);
         }
 
         return factors;

@@ -1,42 +1,45 @@
 package com.carboncalc.model.factors;
 
 /**
- * Represents an emission factor for refrigerants used in HVAC and cooling
- * systems. Implementations of this POJO store the baseline CO2e intensity
- * (kgCO2 per kg of refrigerant) and supporting metadata such as the
- * refrigerant type and its Global Warming Potential (GWP).
+ * POJO representing a refrigerant emission factor (PCA) row.
  *
  * <p>
- * This class is a simple data container used by controllers and CSV-backed
- * services. It contains no business logic and exists to provide a typed
- * representation of refrigerant emission factor rows.
+ * This class provides a small, well-documented data container used by
+ * controllers and CSV-backed services. It intentionally keeps no business
+ * logic and offers compatibility helpers (for example {@link #setBaseFactor})
+ * so generic code that expects an {@code EmissionFactor} can operate on
+ * refrigerant entries as well.
  * </p>
  */
 public class RefrigerantEmissionFactor implements EmissionFactor {
+    /** Display/entity name (used as the table entity column). */
     private String entity;
-    private int year;
-    private double baseFactor; // kgCO2/kg
-    private double gwp; // Global Warming Potential
-    private String refrigerantType; // R-410A, R-32, etc.
 
-    /**
-     * No-arg constructor used by mapping frameworks and CSV readers.
-     */
+    /** Applicable year for the factor. */
+    private int year;
+
+    /** PCA value associated to the refrigerant type (displayed as the factor). */
+    private double pca;
+
+    /** Refrigerant type identifier (e.g. R-410A). */
+    private String refrigerantType;
+
+    /** No-arg constructor for frameworks and CSV mapping. */
     public RefrigerantEmissionFactor() {
     }
 
     /**
-     * Create a minimal refrigerant emission factor instance.
+     * Construct a refrigerant factor instance.
      *
-     * @param entity          identifier or display name for the provider/entity
+     * @param entity          display/entity name
      * @param year            applicable year
-     * @param baseFactor      baseline kgCO2 per kg of refrigerant
-     * @param refrigerantType refrigerant code or name (e.g., R-410A)
+     * @param pca             PCA numeric value
+     * @param refrigerantType refrigerant code or name
      */
-    public RefrigerantEmissionFactor(String entity, int year, double baseFactor, String refrigerantType) {
+    public RefrigerantEmissionFactor(String entity, int year, double pca, String refrigerantType) {
         this.entity = entity;
         this.year = year;
-        this.baseFactor = baseFactor;
+        this.pca = pca;
         this.refrigerantType = refrigerantType;
     }
 
@@ -57,15 +60,15 @@ public class RefrigerantEmissionFactor implements EmissionFactor {
 
     @Override
     public String getUnit() {
-        return "kgCO2/kg";
+        return "PCA";
     }
 
     @Override
     public double getBaseFactor() {
-        return baseFactor;
+        return pca;
     }
 
-    // Specific getters and setters
+    // Standard setters and getters
     public void setEntity(String entity) {
         this.entity = entity;
     }
@@ -74,16 +77,12 @@ public class RefrigerantEmissionFactor implements EmissionFactor {
         this.year = year;
     }
 
-    public void setBaseFactor(double baseFactor) {
-        this.baseFactor = baseFactor;
+    public void setPca(double pca) {
+        this.pca = pca;
     }
 
-    public double getGwp() {
-        return gwp;
-    }
-
-    public void setGwp(double gwp) {
-        this.gwp = gwp;
+    public double getPca() {
+        return pca;
     }
 
     public String getRefrigerantType() {
@@ -92,5 +91,13 @@ public class RefrigerantEmissionFactor implements EmissionFactor {
 
     public void setRefrigerantType(String refrigerantType) {
         this.refrigerantType = refrigerantType;
+    }
+
+    /**
+     * Backwards-compatible alias used by generic services that operate on the
+     * {@code EmissionFactor} abstraction and expect a "baseFactor" setter.
+     */
+    public void setBaseFactor(double v) {
+        this.pca = v;
     }
 }

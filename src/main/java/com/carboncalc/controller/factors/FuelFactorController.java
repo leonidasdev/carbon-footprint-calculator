@@ -4,13 +4,21 @@ import com.carboncalc.model.factors.FuelEmissionFactor;
 import com.carboncalc.model.factors.EmissionFactor;
 import com.carboncalc.model.enums.EnergyType;
 import com.carboncalc.service.EmissionFactorService;
+import com.carboncalc.service.FuelFactorService;
 import com.carboncalc.util.ValidationUtils;
 import com.carboncalc.util.UIUtils;
 import com.carboncalc.view.EmissionFactorsPanel;
 import com.carboncalc.view.factors.FuelFactorPanel;
-import javax.swing.*;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JOptionPane;
+import javax.swing.JSpinner;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.JLabel;
+import java.awt.KeyboardFocusManager;
+import java.awt.GridLayout;
 import java.time.Year;
 import java.util.List;
 import java.util.Locale;
@@ -19,19 +27,23 @@ import java.util.ResourceBundle;
 /**
  * Controller for fuel emission factors.
  *
- * Mirrors the behavior of {@link GasFactorController} but adapts the model and
- * UI for liquid fuels (kg CO2e per litre). Uses {@link EmissionFactorService}
- * to persist {@link FuelEmissionFactor} instances.
+ * <p>
+ * Wires the {@link FuelFactorPanel} UI to persistence provided by
+ * {@link FuelFactorService}. Responsible for input
+ * validation, composing the model entity, and delegating add/edit/delete
+ * operations to the service layer. UI text is resolved from the provided
+ * {@link ResourceBundle}.
+ * </p>
  */
 public class FuelFactorController extends GenericFactorController {
     private FuelFactorPanel panel;
     private final ResourceBundle messages;
     private final EmissionFactorService emissionFactorService;
-    private final com.carboncalc.service.FuelFactorService fuelService;
+    private final FuelFactorService fuelService;
     private EmissionFactorsPanel parentView;
 
     public FuelFactorController(ResourceBundle messages, EmissionFactorService emissionFactorService,
-            com.carboncalc.service.FuelFactorService fuelService) {
+            FuelFactorService fuelService) {
         super(messages, emissionFactorService, EnergyType.FUEL.name());
         this.messages = messages;
         this.emissionFactorService = emissionFactorService;
@@ -93,7 +105,8 @@ public class FuelFactorController extends GenericFactorController {
 
                     // Compose an entity id that preserves fuel+vehicle for uniqueness
                     // Compose entity while preserving user's original casing and parentheses.
-                    // If the vehicleType already contains surrounding parentheses, don't add extra ones.
+                    // If the vehicleType already contains surrounding parentheses, don't add extra
+                    // ones.
                     String fuelForEntry = fuelType;
                     String vehicleForEntry = vehicleType;
                     String entity;
@@ -108,7 +121,8 @@ public class FuelFactorController extends GenericFactorController {
                         entity = fuelForEntry;
                     }
 
-                    FuelEmissionFactor entry = new FuelEmissionFactor(entity, saveYear, factor, fuelForEntry, vehicleForEntry);
+                    FuelEmissionFactor entry = new FuelEmissionFactor(entity, saveYear, factor, fuelForEntry,
+                            vehicleForEntry);
                     try {
                         // Persist using fuel-specific service for per-row storage
                         fuelService.saveFuelFactor(entry);
@@ -137,7 +151,8 @@ public class FuelFactorController extends GenericFactorController {
                     }
                     // Update vehicleType combo as well
                     try {
-                        String vkeyLower = vehicleForEntry == null ? "" : vehicleForEntry.trim().toLowerCase(Locale.ROOT);
+                        String vkeyLower = vehicleForEntry == null ? ""
+                                : vehicleForEntry.trim().toLowerCase(Locale.ROOT);
                         JComboBox<String> vcombo = panel.getVehicleTypeSelector();
                         boolean vfound = false;
                         for (int i = 0; i < vcombo.getItemCount(); i++) {
@@ -279,15 +294,15 @@ public class FuelFactorController extends GenericFactorController {
                         }
                     }
 
-                        try {
-                            fuelService.deleteFuelFactor(saveYear, entity);
-                            // reload to keep ordering and comboboxes in sync
-                            onActivate(saveYear);
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                            JOptionPane.showMessageDialog(panel, messages.getString("error.delete.failed"),
-                                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
-                        }
+                    try {
+                        fuelService.deleteFuelFactor(saveYear, entity);
+                        // reload to keep ordering and comboboxes in sync
+                        onActivate(saveYear);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(panel, messages.getString("error.delete.failed"),
+                                messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                    }
                 });
 
             } catch (Exception e) {
@@ -304,12 +319,15 @@ public class FuelFactorController extends GenericFactorController {
         if (panel != null) {
             DefaultTableModel model = (DefaultTableModel) panel.getFactorsTable().getModel();
             model.setRowCount(0);
-                try {
+            try {
                 List<FuelEmissionFactor> entries = fuelService.loadFuelFactors(year);
-                // sort by fuel type then by vehicle type (case-insensitive), preserving null/empty safely
+                // sort by fuel type then by vehicle type (case-insensitive), preserving
+                // null/empty safely
                 entries.sort((a, b) -> {
-                    String aFuel = a.getFuelType() == null || a.getFuelType().isBlank() ? a.getEntity() : a.getFuelType();
-                    String bFuel = b.getFuelType() == null || b.getFuelType().isBlank() ? b.getEntity() : b.getFuelType();
+                    String aFuel = a.getFuelType() == null || a.getFuelType().isBlank() ? a.getEntity()
+                            : a.getFuelType();
+                    String bFuel = b.getFuelType() == null || b.getFuelType().isBlank() ? b.getEntity()
+                            : b.getFuelType();
                     String aFuelKey = aFuel == null ? "" : aFuel.toLowerCase(Locale.ROOT);
                     String bFuelKey = bFuel == null ? "" : bFuel.toLowerCase(Locale.ROOT);
                     int cmp = aFuelKey.compareTo(bFuelKey);
@@ -349,7 +367,8 @@ public class FuelFactorController extends GenericFactorController {
                         String fuelType = f.getFuelType() == null ? f.getEntity() : f.getFuelType();
                         if (fuelType == null)
                             fuelType = "";
-                        // Prefer explicit vehicleType stored in the model; fallback to extracting from entity
+                        // Prefer explicit vehicleType stored in the model; fallback to extracting from
+                        // entity
                         String vehicle = f.getVehicleType() == null ? "" : f.getVehicleType().trim();
                         if ((vehicle == null || vehicle.isEmpty()) && f.getEntity() != null) {
                             String entity = f.getEntity();

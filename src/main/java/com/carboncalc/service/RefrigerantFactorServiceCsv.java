@@ -1,31 +1,32 @@
 package com.carboncalc.service;
 
-import com.carboncalc.model.factors.FuelEmissionFactor;
+import com.carboncalc.model.factors.RefrigerantEmissionFactor;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.time.Year;
 
 /**
- * CSV-backed implementation of {@link FuelFactorService}.
+ * CSV-backed implementation for refrigerant PCA factors.
  *
- * Stores per-year fuel factor files under {@code data/emission_factors/{year}/}
- * using a simple CSV with header: fuelType,vehicleType,emissionFactor
+ * <p>
+ * Persists per-year CSV files under {@code data/emission_factors/{year}}.
+ * The CSV format uses a simple header {@code refrigerantType,pca} and the
+ * implementation provides stable upsert semantics by refrigerant type.
  */
-public class FuelFactorServiceCsv implements FuelFactorService {
+public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
     private static final String BASE_PATH = "data/emission_factors";
     private Integer defaultYear;
 
-    public FuelFactorServiceCsv() {
+    public RefrigerantFactorServiceCsv() {
         this.defaultYear = Year.now().getValue();
         createYearDirectory(defaultYear);
     }
 
     @Override
-    public void saveFuelFactor(FuelEmissionFactor entry) {
+    public void saveRefrigerantFactor(RefrigerantEmissionFactor entry) {
         int year = entry.getYear() <= 0 ? defaultYear : entry.getYear();
-        String fileName = "fuel_factors.csv";
-        Path filePath = Paths.get(BASE_PATH, String.valueOf(year), fileName);
+        Path filePath = Paths.get(BASE_PATH, String.valueOf(year), "refrigerant_factors.csv");
         try {
             List<String> lines = new ArrayList<>();
             if (Files.exists(filePath))
@@ -39,33 +40,22 @@ public class FuelFactorServiceCsv implements FuelFactorService {
                         continue;
                     List<String> parts = parseCsvLine(ln);
                     if (parts.size() >= 1) {
-                        String key = normalizeKey(parts.get(0), parts.size() > 1 ? parts.get(1) : null);
+                        String key = parts.get(0) == null ? "" : parts.get(0).trim().toUpperCase(Locale.ROOT);
                         byKey.put(key, ln);
                     }
                 }
             }
 
-            // Determine fuelType and vehicleType to write. Prefer explicit vehicleType from the model
-            String fuelType = entry.getFuelType() == null ? "" : entry.getFuelType().trim();
-            String vehicle = entry.getVehicleType() == null ? "" : entry.getVehicleType().trim();
-            // Fallback: if vehicleType empty, attempt to extract from entity between parentheses
-            if ((vehicle == null || vehicle.isEmpty()) && entry.getEntity() != null) {
-                String entity = entry.getEntity();
-                int idx = entity.indexOf('(');
-                int idx2 = entity.indexOf(')');
-                if (idx >= 0 && idx2 > idx) {
-                    vehicle = entity.substring(idx + 1, idx2).trim();
-                }
-            }
-
-            String row = String.join(",", quoteCsv(fuelType), quoteCsv(vehicle),
-                    String.format(Locale.ROOT, "%.6f", entry.getBaseFactor()));
-
-            String key = normalizeKey(fuelType, vehicle);
+            // Prefer explicit refrigerantType from the model; fall back to entity
+            String rType = entry.getRefrigerantType() == null || entry.getRefrigerantType().isBlank()
+                    ? (entry.getEntity() == null ? "" : entry.getEntity().trim())
+                    : entry.getRefrigerantType().trim();
+            String row = String.join(",", quoteCsv(rType), String.format(Locale.ROOT, "%.6f", entry.getPca()));
+            String key = rType == null ? "" : rType.trim().toUpperCase(Locale.ROOT);
             byKey.put(key, row);
 
             List<String> out = new ArrayList<>();
-            out.add("fuelType,vehicleType,emissionFactor");
+            out.add("refrigerantType,pca");
             out.addAll(byKey.values());
             Files.createDirectories(filePath.getParent());
             Files.write(filePath, out);
@@ -75,9 +65,9 @@ public class FuelFactorServiceCsv implements FuelFactorService {
     }
 
     @Override
-    public List<FuelEmissionFactor> loadFuelFactors(int year) {
-        Path p = Paths.get(BASE_PATH, String.valueOf(year), "fuel_factors.csv");
-        List<FuelEmissionFactor> out = new ArrayList<>();
+    public List<RefrigerantEmissionFactor> loadRefrigerantFactors(int year) {
+        Path p = Paths.get(BASE_PATH, String.valueOf(year), "refrigerant_factors.csv");
+        List<RefrigerantEmissionFactor> out = new ArrayList<>();
         if (!Files.exists(p))
             return out;
         try {
@@ -89,20 +79,18 @@ public class FuelFactorServiceCsv implements FuelFactorService {
                 if (ln == null || ln.isBlank())
                     continue;
                 List<String> parts = parseCsvLine(ln);
-                if (parts.size() >= 2) {
-                    String fuelType = parts.get(0);
-                    String vehicle = parts.size() > 1 ? parts.get(1) : "";
-                    double factor = 0.0;
-                    try {
-                        factor = Double.parseDouble(parts.get(parts.size() - 1));
-                    } catch (Exception ignored) {
+                if (parts.size() >= 1) {
+                    // fields: refrigerantType,pca
+                    String rType = parts.get(0);
+                    double pca = 0.0;
+                    if (parts.size() >= 2) {
+                        try {
+                            pca = Double.parseDouble(parts.get(1));
+                        } catch (Exception ignored) {
+                        }
                     }
-
-                    String entity = fuelType;
-                    if (vehicle != null && !vehicle.isBlank())
-                        entity = fuelType + " (" + vehicle + ")";
-
-                    FuelEmissionFactor f = new FuelEmissionFactor(entity, year, factor, fuelType, vehicle);
+                    String entity = rType == null ? "" : rType;
+                    RefrigerantEmissionFactor f = new RefrigerantEmissionFactor(entity, year, pca, rType);
                     out.add(f);
                 }
             }
@@ -113,23 +101,22 @@ public class FuelFactorServiceCsv implements FuelFactorService {
     }
 
     @Override
-    public void deleteFuelFactor(int year, String entity) {
-        Path p = Paths.get(BASE_PATH, String.valueOf(year), "fuel_factors.csv");
+    public void deleteRefrigerantFactor(int year, String entity) {
+        Path p = Paths.get(BASE_PATH, String.valueOf(year), "refrigerant_factors.csv");
         if (!Files.exists(p))
             return;
         try {
             List<String> lines = Files.readAllLines(p);
             List<String> out = new ArrayList<>();
-            out.add("fuelType,vehicleType,emissionFactor");
+            out.add("refrigerantType,pca");
             String target = entity == null ? "" : entity.trim().toUpperCase(Locale.ROOT);
             for (int i = 1; i < lines.size(); i++) {
                 String ln = lines.get(i);
                 if (ln == null || ln.isBlank())
                     continue;
                 List<String> parts = parseCsvLine(ln);
-                String fuel = parts.size() > 0 ? parts.get(0) : "";
-                String vehicle = parts.size() > 1 ? parts.get(1) : "";
-                String key = normalizeKey(fuel, vehicle);
+                String rt = parts.size() > 0 ? parts.get(0) : "";
+                String key = rt == null ? "" : rt.trim().toUpperCase(Locale.ROOT);
                 if (!key.equals(target))
                     out.add(ln);
             }
@@ -157,11 +144,7 @@ public class FuelFactorServiceCsv implements FuelFactorService {
         }
     }
 
-    // CSV helpers
-    /**
-     * Parse a CSV line handling quoted fields and escaped quotes.
-     * Returns a list of field values (quotes removed, double-quotes unescaped).
-     */
+    // CSV helpers (copied pattern used across factor services)
     private List<String> parseCsvLine(String line) {
         List<String> out = new ArrayList<>();
         if (line == null)
@@ -199,16 +182,6 @@ public class FuelFactorServiceCsv implements FuelFactorService {
     private String quoteCsv(String s) {
         if (s == null)
             return "";
-        // Quote and escape double quotes inside the field
         return '"' + s.replace("\"", "\"\"") + '"';
-    }
-
-    private String normalizeKey(String fuel, String vehicle) {
-        // Produce a stable uppercase key used for de-duplication and lookups
-        String f = fuel == null ? "" : fuel.trim().toUpperCase(Locale.ROOT);
-        String v = vehicle == null ? "" : vehicle.trim().toUpperCase(Locale.ROOT);
-        if (v.isEmpty())
-            return f;
-        return f + " (" + v + ")";
     }
 }

@@ -12,10 +12,9 @@ import java.util.ResourceBundle;
  *
  * <p>
  * Reusable panel used for energy types that share the general-factors
- * UI but do not require file-management/import functionality. It reuses the
- * same layout as {@code ElectricityFactorPanel} and exposes getters used by
- * controllers to operate on the trading-companies table and the compact
- * manual input form.
+ * UI but do not require file-management/import functionality. It provides
+ * a standard layout and exposes getters used by controllers to operate on
+ * the trading-companies table and the compact manual input form.
  *
  * <p>
  * Implementation note: keep the panel focused on view construction; the

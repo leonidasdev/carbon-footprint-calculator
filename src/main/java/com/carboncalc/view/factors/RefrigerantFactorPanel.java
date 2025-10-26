@@ -2,59 +2,43 @@ package com.carboncalc.view.factors;
 
 import com.carboncalc.util.UIUtils;
 import com.carboncalc.util.UIComponents;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingConstants;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
+import java.awt.*;
 import java.util.ResourceBundle;
 
 /**
- * Panel containing controls to manage fuel emission factors.
+ * Panel used to manage refrigerant PCA factors.
  *
  * <p>
- * The panel exposes a compact manual-entry area where the user can enter
- * a fuel type, an optional vehicle type and the emission factor in
- * kg CO2e/l. Added entries appear in the table below. All user-visible
+ * This panel provides refrigerant-specific UI for entering refrigerant
+ * types and associated PCA values. It exposes an editable type selector,
+ * a PCA input field and a table for configured PCA rows. All user-visible
  * strings are loaded from the provided {@link ResourceBundle}.
  * </p>
  */
-public class FuelFactorPanel extends JPanel {
+public class RefrigerantFactorPanel extends JPanel {
     /** Localized messages bundle supplied by the caller. */
     private final ResourceBundle messages;
 
-    /** Table showing configured fuel factor rows for the selected year. */
+    /**
+     * Table showing configured refrigerant PCA rows for the currently selected
+     * year.
+     */
     private JTable factorsTable;
 
-    /** Editable combo for selecting/typing a fuel type. */
-    private JComboBox<String> fuelTypeSelector;
+    /** Editable combo box for refrigerant type (e.g., R-410A). */
+    private JComboBox<String> refrigerantTypeSelector;
 
-    /** Editable combo for selecting/typing a vehicle type (e.g., M1, N1). */
-    private JComboBox<String> vehicleTypeSelector;
+    /** Text field for entering the PCA value. */
+    private JTextField pcaField;
 
-    /** Text field for the emission factor value (kg CO2e / litre). */
-    private JTextField emissionFactorField;
-
-    /** Controls to add/edit/delete rows from the table. */
-    private JButton addFactorButton;
+    /** Controls to add/edit/delete PCA rows. */
+    private JButton addPcaButton;
     private JButton editButton;
     private JButton deleteButton;
 
-    public FuelFactorPanel(ResourceBundle messages) {
+    public RefrigerantFactorPanel(ResourceBundle messages) {
         this.messages = messages;
         initialize();
     }
@@ -63,122 +47,97 @@ public class FuelFactorPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(UIUtils.CONTENT_BACKGROUND);
 
-        // Manual input arranged in three rows: Fuel Type, Vehicle Type, Emission Factor
         JPanel leftLabels = new JPanel();
         leftLabels.setLayout(new BoxLayout(leftLabels, BoxLayout.Y_AXIS));
         leftLabels.setBackground(UIUtils.CONTENT_BACKGROUND);
-        leftLabels.add(new JLabel(messages.getString("label.fuel.type") + ":"));
+        leftLabels.add(new JLabel(messages.getString("label.refrigerant.type") + ":"));
         leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
-        leftLabels.add(new JLabel(messages.getString("label.vehicle.type") + ":"));
-        leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
-        leftLabels.add(new JLabel(messages.getString("label.emission.factor") + ":"));
+        leftLabels.add(new JLabel(messages.getString("label.pca") + ":"));
 
         JPanel middleFields = new JPanel();
         middleFields.setLayout(new BoxLayout(middleFields, BoxLayout.Y_AXIS));
         middleFields.setBackground(UIUtils.CONTENT_BACKGROUND);
-        // Use shared component factory and sizing constants for consistent look
-        fuelTypeSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
-        fuelTypeSelector.setEditable(true);
-        middleFields.add(fuelTypeSelector);
+        refrigerantTypeSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
+        refrigerantTypeSelector.setEditable(true);
+        middleFields.add(refrigerantTypeSelector);
         middleFields.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
-        vehicleTypeSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
-        vehicleTypeSelector.setEditable(true);
-        middleFields.add(vehicleTypeSelector);
-        middleFields.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
-        emissionFactorField = UIUtils.createCompactTextField(UIUtils.MAPPING_COMBO_WIDTH, UIUtils.MAPPING_COMBO_HEIGHT);
-        middleFields.add(emissionFactorField);
+        pcaField = UIUtils.createCompactTextField(140, 25);
+        middleFields.add(pcaField);
 
         JPanel rightColumn = new JPanel(new BorderLayout());
         rightColumn.setBackground(UIUtils.CONTENT_BACKGROUND);
-        JPanel rightTop = new JPanel(new GridLayout(3, 1, 0, 8));
+        JPanel rightTop = new JPanel(new GridLayout(2, 1, 0, 8));
         rightTop.setBackground(UIUtils.CONTENT_BACKGROUND);
-        // Spacer aligns the unit label vertically with the field
+        // Align the unit label with the PCA field height
         JLabel spacer = new JLabel(" ");
         spacer.setOpaque(false);
-        Dimension pref = emissionFactorField.getPreferredSize();
+        Dimension pref = pcaField.getPreferredSize();
         if (pref == null)
             pref = new Dimension(UIUtils.SMALL_STRUT_WIDTH, UIUtils.YEAR_SPINNER_HEIGHT);
         spacer.setPreferredSize(new Dimension(UIUtils.TINY_STRUT_WIDTH, pref.height));
         rightTop.add(spacer);
-        rightTop.add(new JLabel(" "));
-        JLabel unitLabel = UIUtils.createUnitLabel(messages, "unit.kg_co2e_l");
+        JLabel unitLabel = UIUtils.createUnitLabel(messages, "unit.pca");
         unitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         rightTop.add(unitLabel);
         rightColumn.add(rightTop, BorderLayout.NORTH);
 
         JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         addButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        addFactorButton = new JButton(messages.getString("button.add.fuel"));
-        UIUtils.styleButton(addFactorButton);
-        addButtonPanel.add(addFactorButton);
+        addPcaButton = new JButton(messages.getString("button.add.refrigerant"));
+        UIUtils.styleButton(addPcaButton);
+        addButtonPanel.add(addPcaButton);
         rightColumn.add(addButtonPanel, BorderLayout.SOUTH);
 
-        // Build the input grid using GridBagLayout for fine-grained alignment
         JPanel inputGrid = new JPanel(new GridBagLayout());
         inputGrid.setBackground(UIUtils.CONTENT_BACKGROUND);
         GridBagConstraints ig = new GridBagConstraints();
         ig.insets = new Insets(6, 6, 6, 6);
         ig.fill = GridBagConstraints.HORIZONTAL;
 
-        // Row 0: Fuel Type
         ig.gridx = 0;
         ig.gridy = 0;
         ig.weightx = 0;
         ig.anchor = GridBagConstraints.LINE_START;
-        inputGrid.add(new JLabel(messages.getString("label.fuel.type") + ":"), ig);
+        inputGrid.add(new JLabel(messages.getString("label.refrigerant.type") + ":"), ig);
         ig.gridx = 1;
         ig.gridy = 0;
         ig.weightx = 1.0;
-        inputGrid.add(fuelTypeSelector, ig);
+        inputGrid.add(refrigerantTypeSelector, ig);
 
-        // Row 1: Vehicle Type
         ig.gridx = 0;
         ig.gridy = 1;
         ig.weightx = 0;
-        inputGrid.add(new JLabel(messages.getString("label.vehicle.type") + ":"), ig);
+        inputGrid.add(new JLabel(messages.getString("label.pca") + ":"), ig);
         ig.gridx = 1;
         ig.gridy = 1;
         ig.weightx = 1.0;
-        inputGrid.add(vehicleTypeSelector, ig);
-
-        // Row 2: Emission Factor + unit
-        ig.gridx = 0;
-        ig.gridy = 2;
-        ig.weightx = 0;
-        inputGrid.add(new JLabel(messages.getString("label.emission.factor") + ":"), ig);
-        ig.gridx = 1;
-        ig.gridy = 2;
-        ig.weightx = 1.0;
-        inputGrid.add(emissionFactorField, ig);
+        inputGrid.add(pcaField, ig);
         ig.gridx = 2;
-        ig.gridy = 2;
+        ig.gridy = 1;
         ig.weightx = 0;
         ig.anchor = GridBagConstraints.LINE_END;
         inputGrid.add(unitLabel, ig);
 
-        // Row 3: spacer + add button
         ig.gridx = 0;
-        ig.gridy = 3;
+        ig.gridy = 2;
         ig.weightx = 1.0;
         ig.weighty = 1.0;
         ig.fill = GridBagConstraints.BOTH;
         inputGrid.add(Box.createGlue(), ig);
         ig.gridx = 2;
-        ig.gridy = 3;
+        ig.gridy = 2;
         ig.weightx = 0;
         ig.weighty = 0;
         ig.fill = GridBagConstraints.NONE;
         ig.anchor = GridBagConstraints.SOUTHEAST;
         inputGrid.add(addButtonPanel, ig);
 
-        // Use a larger manual input box so fields are not cropped on small displays
         JPanel manualInputBox = UIComponents.createManualInputBox(messages, "tab.manual.input",
                 inputGrid, addButtonPanel, UIUtils.FACTOR_MANUAL_INPUT_WIDTH,
-                UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_FUEL, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_FUEL);
+                UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_SMALL, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_SMALL);
 
-        // Factors table (fuel type, vehicle type, emission factor)
-        String[] columnNames = { messages.getString("table.header.fuel.type"),
-                messages.getString("table.header.vehicle.type"), messages.getString("table.header.factor") };
+        String[] columnNames = { messages.getString("table.header.refrigerant.type"),
+                messages.getString("table.header.pca") };
         DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -219,25 +178,21 @@ public class FuelFactorPanel extends JPanel {
         add(wrapperPanel, BorderLayout.CENTER);
     }
 
-    // Getters used by controller
+    // Getters for controller wiring
     public JTable getFactorsTable() {
         return factorsTable;
     }
 
-    public JComboBox<String> getFuelTypeSelector() {
-        return fuelTypeSelector;
+    public JComboBox<String> getRefrigerantTypeSelector() {
+        return refrigerantTypeSelector;
     }
 
-    public JComboBox<String> getVehicleTypeSelector() {
-        return vehicleTypeSelector;
+    public JTextField getPcaField() {
+        return pcaField;
     }
 
-    public JTextField getEmissionFactorField() {
-        return emissionFactorField;
-    }
-
-    public JButton getAddFactorButton() {
-        return addFactorButton;
+    public JButton getAddPcaButton() {
+        return addPcaButton;
     }
 
     public JButton getEditButton() {

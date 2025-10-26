@@ -196,7 +196,8 @@ public class MainWindow extends JFrame {
         EmissionFactorService efService = new EmissionFactorServiceCsv();
         ElectricityFactorService egfService = new ElectricityFactorServiceCsv();
         GasFactorService gasFactorService = new GasFactorServiceCsv();
-    com.carboncalc.service.FuelFactorService fuelFactorService = new com.carboncalc.service.FuelFactorServiceCsv();
+        com.carboncalc.service.FuelFactorService fuelFactorService = new com.carboncalc.service.FuelFactorServiceCsv();
+        com.carboncalc.service.RefrigerantFactorService refrigerantFactorService = new com.carboncalc.service.RefrigerantFactorServiceCsv();
 
         // Provide a factory lambda that creates subcontrollers lazily by type
         Function<String, FactorSubController> factory = (type) -> {
@@ -210,7 +211,7 @@ public class MainWindow extends JFrame {
                 } else if (type.equals(EnergyType.FUEL.name())) {
                     return new FuelFactorController(messages, efService, fuelFactorService);
                 } else if (type.equals(EnergyType.REFRIGERANT.name())) {
-                    return new RefrigerantFactorController(messages, efService);
+                    return new RefrigerantFactorController(messages, efService, refrigerantFactorService);
                 } else {
                     return new GenericFactorController(messages, efService, type);
                 }

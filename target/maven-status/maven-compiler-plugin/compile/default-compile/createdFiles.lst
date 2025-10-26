@@ -1,5 +1,3 @@
 com\carboncalc\controller\EmissionFactorsController$2.class
-com\carboncalc\controller\ElectricityController$2.class
-com\carboncalc\util\excel\ElectricityExcelExporter$1.class
 com\carboncalc\controller\GasController$2.class
 com\carboncalc\util\excel\GasExcelExporter$1.class

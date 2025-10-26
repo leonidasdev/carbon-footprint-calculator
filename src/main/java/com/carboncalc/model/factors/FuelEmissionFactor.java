@@ -13,6 +13,7 @@ public class FuelEmissionFactor implements EmissionFactor {
     private int year;
     private double baseFactor; // kgCO2/L
     private String fuelType; // Diesel, Gasoline, etc.
+    private String vehicleType; // e.g., Car, Van, Truck
     private double density; // kg/L
     private double energyContent; // kWh/L
 
@@ -29,12 +30,24 @@ public class FuelEmissionFactor implements EmissionFactor {
      * @param year       applicable year
      * @param baseFactor baseline kgCO2 per litre
      * @param fuelType   descriptive fuel type (Diesel, Gasoline, ...)
+     * @param vehicleType vehicle classification (Car, Truck, ...). May be null/empty.
      */
     public FuelEmissionFactor(String entity, int year, double baseFactor, String fuelType) {
         this.entity = entity;
         this.year = year;
         this.baseFactor = baseFactor;
         this.fuelType = fuelType;
+    }
+
+    /**
+     * Extended constructor including vehicle type.
+     */
+    public FuelEmissionFactor(String entity, int year, double baseFactor, String fuelType, String vehicleType) {
+        this.entity = entity;
+        this.year = year;
+        this.baseFactor = baseFactor;
+        this.fuelType = fuelType;
+        this.vehicleType = vehicleType;
     }
 
     @Override
@@ -81,6 +94,14 @@ public class FuelEmissionFactor implements EmissionFactor {
 
     public void setFuelType(String fuelType) {
         this.fuelType = fuelType;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
     }
 
     public double getDensity() {

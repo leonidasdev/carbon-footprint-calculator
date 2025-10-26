@@ -35,6 +35,11 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
             // Prepare header and read existing rows (if any)
             List<String> lines = new ArrayList<>();
             String header = "entity,year,baseFactor,unit";
+            boolean isFuel = "FUEL".equalsIgnoreCase(factor.getType());
+            if (isFuel) {
+                // include vehicleType column for fuel factors
+                header = "entity,year,baseFactor,unit,vehicleType";
+            }
             if (Files.exists(filePath)) {
                 lines = Files.readAllLines(filePath);
             }
@@ -61,7 +66,14 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
             String qEntity = quoteCsv(entity);
             String qUnit = quoteCsv(unit);
             String baseStr = String.format(java.util.Locale.ROOT, "%.6f", factor.getBaseFactor());
-            String row = String.join(",", qEntity, String.valueOf(factor.getYear()), baseStr, qUnit);
+            String row;
+            if (isFuel && factor instanceof com.carboncalc.model.factors.FuelEmissionFactor) {
+                com.carboncalc.model.factors.FuelEmissionFactor ff = (com.carboncalc.model.factors.FuelEmissionFactor) factor;
+                String vehicle = ff.getVehicleType() == null ? "" : ff.getVehicleType();
+                row = String.join(",", qEntity, String.valueOf(factor.getYear()), baseStr, qUnit, quoteCsv(vehicle));
+            } else {
+                row = String.join(",", qEntity, String.valueOf(factor.getYear()), baseStr, qUnit);
+            }
 
             existingByEntity.put(entity, row);
 
@@ -94,7 +106,7 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
                 if (ln == null || ln.isBlank())
                     continue;
                 List<String> parts = parseCsvLine(ln);
-                // expected: entity,year,baseFactor,unit
+                // expected: entity,year,baseFactor,unit[,vehicleType]
                 if (parts.size() >= 4) {
                     String entity = parts.get(0);
                     int y = 0;
@@ -125,6 +137,10 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
                         e.setEntity(entity);
                         e.setYear(y);
                         e.setBaseFactor(base);
+                        // optional vehicleType in column 4
+                        if (parts.size() >= 5) {
+                            e.setVehicleType(parts.get(4));
+                        }
                     } else if (ef instanceof com.carboncalc.model.factors.RefrigerantEmissionFactor) {
                         com.carboncalc.model.factors.RefrigerantEmissionFactor e = (com.carboncalc.model.factors.RefrigerantEmissionFactor) ef;
                         e.setEntity(entity);

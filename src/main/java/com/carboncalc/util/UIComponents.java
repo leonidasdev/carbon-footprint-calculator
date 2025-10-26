@@ -10,8 +10,16 @@ import java.util.ResourceBundle;
 
 /**
  * Small collection of higher-level UI component factories that compose
- * existing `UIUtils` helpers. Keep these helpers tiny and focused so callers
- * can create consistently styled components with a single call.
+ * existing {@link UIUtils} helpers.
+ *
+ * <p>
+ * Keep these helpers tiny and focused so callers can create consistently
+ * styled components with a single call. Many factories accept a
+ * {@link ResourceBundle} key and therefore integrate cleanly with
+ * the project's localization strategy.
+ * </p>
+ *
+ * @since 0.0.1
  */
 public class UIComponents {
 

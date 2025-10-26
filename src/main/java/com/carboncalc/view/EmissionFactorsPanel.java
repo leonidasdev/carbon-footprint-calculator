@@ -18,12 +18,31 @@ import com.carboncalc.view.factors.ElectricityFactorPanel;
 import com.carboncalc.view.factors.GasFactorPanel;
 
 /**
- * Panel to manage emission factors. Contains controls to import Excel files,
- * select factor type/year, edit factor entries and preview imported data.
+ * EmissionFactorsPanel
  *
- * Styling and strings are centralized: colors in
- * {@link com.carboncalc.util.UIUtils}
- * and texts from the resource bundle passed to the base class.
+ * <p>
+ * Top-level panel that coordinates factor management UI. It exposes
+ * controls to choose a factor type (energy category), select the year,
+ * import data, and display/edit factor entries. The panel hosts a card
+ * area where energy-type-specific subpanels are added by their
+ * corresponding sub-controllers.
+ *
+ * <p>
+ * Responsibilities:
+ * <ul>
+ * <li>Provide a single entry point for factor-related UI and forward
+ * user actions to {@link EmissionFactorsController}.</li>
+ * <li>Maintain the cards container where type-specific factor panels
+ * are attached and managed.</li>
+ * <li>Expose a stable accessor {@link #getFactorsTable()} so controllers
+ * and subcontrollers operate on a single backing table instance.</li>
+ * </ul>
+ *
+ * <p>
+ * Implementation notes: UI strings are localized through the resource
+ * bundle passed to the base class, and visual constants are provided by
+ * {@link UIUtils}. This class avoids heavy logic and delegates validation
+ * and persistence to its controller.
  */
 public class EmissionFactorsPanel extends BaseModulePanel {
     private final EmissionFactorsController controller;
@@ -159,8 +178,8 @@ public class EmissionFactorsPanel extends BaseModulePanel {
 
         int currentYear = controller.getCurrentYear();
         SpinnerNumberModel yearModel = new SpinnerNumberModel(currentYear, 1900, 2100, 1);
-    yearSpinner = new JSpinner(yearModel);
-    yearSpinner.setPreferredSize(new Dimension(UIUtils.YEAR_SPINNER_WIDTH_LARGE, UIUtils.YEAR_SPINNER_HEIGHT));
+        yearSpinner = new JSpinner(yearModel);
+        yearSpinner.setPreferredSize(new Dimension(UIUtils.YEAR_SPINNER_WIDTH_LARGE, UIUtils.YEAR_SPINNER_HEIGHT));
         JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "#");
         yearSpinner.setEditor(yearEditor);
         try {
@@ -286,8 +305,16 @@ public class EmissionFactorsPanel extends BaseModulePanel {
     private JTextField emissionFactorField;
     private JComboBox<String> gdoTypeComboBox;
 
-    // Getters for controller - forward factors table access to the
-    // trading companies table so only one table exists in the UI.
+    /**
+     * Return the single {@link JTable} instance used by factor management.
+     * Controllers and subpanels should use this accessor so all edits
+     * operate on the same backing table regardless of which subpanel is
+     * currently visible.
+     *
+     * @return the table used for factor editing/viewing; never create new
+     *         table instances for subcontrollers — reuse this one when
+     *         possible.
+     */
     public JTable getFactorsTable() {
         // If the electricity panel is attached, forward to its trading
         // companies table. Otherwise return the local tradingCompaniesTable.
@@ -353,7 +380,16 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         return cardsPanel;
     }
 
-    /** Add a card component into the cards area under the given name. */
+    /**
+     * Add a card component into the cards area under the given name.
+     *
+     * <p>
+     * Safely registers the component, revalidates the container and
+     * stores a reference for future lookups via {@link #showCard(String)}.
+     *
+     * @param name the card identifier (must be non-null)
+     * @param comp the component to add as a new card
+     */
     public void addCard(String name, JComponent comp) {
         if (name == null || comp == null)
             return;
@@ -379,7 +415,13 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         this.gasGeneralFactorsPanel = panel;
     }
 
-    /** Show card by name (if present). */
+    /**
+     * Show the card identified by {@code name} if it has been previously
+     * registered with {@link #addCard(String, JComponent)}. This method is
+     * tolerant to {@code null} and missing card names.
+     *
+     * @param name card identifier to show
+     */
     public void showCard(String name) {
         if (name == null)
             return;
@@ -391,7 +433,14 @@ public class EmissionFactorsPanel extends BaseModulePanel {
         }
     }
 
-    // Getter for the year selector used by controllers for validation and saving
+    /**
+     * Accessor for the year selector spinner. Controllers may query and set
+     * the selected year via this spinner; prefer using the controller
+     * callbacks {@code handleYearSelection(...)} for validation/business
+     * logic rather than manipulating the model directly.
+     *
+     * @return the JSpinner used for selecting the factor's year
+     */
     public JSpinner getYearSpinner() {
         return yearSpinner;
     }

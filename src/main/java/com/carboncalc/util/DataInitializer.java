@@ -6,11 +6,23 @@ import java.nio.file.Path;
 import java.time.Year;
 
 /**
- * DataInitializer
+ * Helper for ensuring the repository's lightweight data workspace exists.
  *
- * Small helper that ensures the workspace 'data' folder and commonly used
- * subfolders exist. This avoids scattered code creating directories in
- * multiple places.
+ * <p>
+ * This utility centralizes creation of the top-level {@code data} folder and
+ * a small set of subfolders used by the application (language, cups_center,
+ * emission_factors, year). Calling {@link #ensureDataFolders()} is safe to do
+ * repeatedly (it is idempotent) and is intended to run on application startup
+ * before any code tries to read or write files in {@code data/}.
+ * </p>
+ *
+ * <p>
+ * No existing files are modified; the method will only create missing
+ * directories and will create a minimal {@code current_year.txt} file if it
+ * does not exist (populated with the current system year).
+ * </p>
+ *
+ * @since 0.0.1
  */
 public final class DataInitializer {
     private DataInitializer() {
@@ -19,7 +31,13 @@ public final class DataInitializer {
     /**
      * Ensure common data folders exist. Creates directories if missing.
      *
-     * @throws IOException on failure to create directories
+     * <p>
+     * Idempotent: it is safe to call this method more than once. If the
+     * {@code year/current_year.txt} file is missing it will be created using
+     * the system year; existing files or directories are left untouched.
+     * </p>
+     *
+     * @throws IOException on failure to create directories or write the year file
      */
     public static void ensureDataFolders() throws IOException {
         Path base = Path.of("data");

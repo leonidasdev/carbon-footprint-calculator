@@ -1,5 +1,12 @@
 package com.carboncalc.model;
 
+/**
+ * Simple data holder representing a CUPS center row.
+ *
+ * This class is a plain POJO used by the Cups configuration UI and import
+ * flow. It intentionally keeps no validation logic; controllers and services
+ * *are* responsible for validating and normalizing values prior to persistence.
+ */
 public class CenterData {
     private String cups;
     private String marketer;
@@ -10,11 +17,26 @@ public class CenterData {
     private String postalCode;
     private String city;
     private String province;
-    
-    public CenterData() {}
-    
+
+    public CenterData() {
+    }
+
+    /**
+     * Full-value constructor.
+     *
+     * @param cups          CUPS identifier
+     * @param marketer      marketer name or identifier
+     * @param centerName    display name for the center
+     * @param centerAcronym short acronym for the center
+     * @param energyType    energy type identifier (localized label is resolved in
+     *                      the UI)
+     * @param street        street/address
+     * @param postalCode    postal code
+     * @param city          city name
+     * @param province      province name
+     */
     public CenterData(String cups, String marketer, String centerName, String centerAcronym, String energyType,
-                     String street, String postalCode, String city, String province) {
+            String street, String postalCode, String city, String province) {
         this.cups = cups;
         this.marketer = marketer;
         this.centerName = centerName;
@@ -25,32 +47,77 @@ public class CenterData {
         this.city = city;
         this.province = province;
     }
-    
+
     // Getters and setters
-    public String getCups() { return cups; }
-    public void setCups(String cups) { this.cups = cups; }
-    
-    public String getMarketer() { return marketer; }
-    public void setMarketer(String marketer) { this.marketer = marketer; }
-    
-    public String getCenterName() { return centerName; }
-    public void setCenterName(String centerName) { this.centerName = centerName; }
-    
-    public String getCenterAcronym() { return centerAcronym; }
-    public void setCenterAcronym(String centerAcronym) { this.centerAcronym = centerAcronym; }
-    
-    public String getEnergyType() { return energyType; }
-    public void setEnergyType(String energyType) { this.energyType = energyType; }
-    
-    public String getStreet() { return street; }
-    public void setStreet(String street) { this.street = street; }
-    
-    public String getPostalCode() { return postalCode; }
-    public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
-    
-    public String getCity() { return city; }
-    public void setCity(String city) { this.city = city; }
-    
-    public String getProvince() { return province; }
-    public void setProvince(String province) { this.province = province; }
+    public String getCups() {
+        return cups;
+    }
+
+    public void setCups(String cups) {
+        this.cups = cups;
+    }
+
+    public String getMarketer() {
+        return marketer;
+    }
+
+    public void setMarketer(String marketer) {
+        this.marketer = marketer;
+    }
+
+    public String getCenterName() {
+        return centerName;
+    }
+
+    public void setCenterName(String centerName) {
+        this.centerName = centerName;
+    }
+
+    public String getCenterAcronym() {
+        return centerAcronym;
+    }
+
+    public void setCenterAcronym(String centerAcronym) {
+        this.centerAcronym = centerAcronym;
+    }
+
+    public String getEnergyType() {
+        return energyType;
+    }
+
+    public void setEnergyType(String energyType) {
+        this.energyType = energyType;
+    }
+
+    public String getStreet() {
+        return street;
+    }
+
+    public void setStreet(String street) {
+        this.street = street;
+    }
+
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public void setPostalCode(String postalCode) {
+        this.postalCode = postalCode;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getProvince() {
+        return province;
+    }
+
+    public void setProvince(String province) {
+        this.province = province;
+    }
 }

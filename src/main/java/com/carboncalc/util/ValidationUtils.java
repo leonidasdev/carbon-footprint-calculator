@@ -106,4 +106,19 @@ public final class ValidationUtils {
         int len = s.length();
         return len >= 20 && len <= 22;
     }
+
+    /**
+     * Try to parse an integer safely returning {@code null} on failure.
+     * This helper is used by a number of parsers and keeps parsing logic
+     * centralized to avoid repeated try/catch blocks in controllers.
+     */
+    public static Integer tryParseInt(String text) {
+        if (text == null)
+            return null;
+        try {
+            return Integer.parseInt(text.trim());
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

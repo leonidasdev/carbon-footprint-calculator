@@ -2,6 +2,11 @@ package com.carboncalc.model;
 
 /**
  * Represents the mapping of Excel columns for electricity data processing.
+ *
+ * Used by the Excel import pipeline to determine which columns contain the
+ * expected values (CUPS, invoice numbers, consumption ranges, etc.). The
+ * {@link #isComplete()}-style check allows callers to verify the mapping is
+ * valid before attempting to parse rows.
  */
 public class ElectricityMapping {
     private int cupsIndex;
@@ -17,7 +22,7 @@ public class ElectricityMapping {
         // Initialize with default values
         this.cupsIndex = -1;
         this.invoiceNumberIndex = -1;
-    // issueDate removed
+        // issueDate removed
         this.startDateIndex = -1;
         this.endDateIndex = -1;
         this.consumptionIndex = -1;
@@ -25,8 +30,8 @@ public class ElectricityMapping {
         this.emissionEntityIndex = -1;
     }
 
-    public ElectricityMapping(int cupsIndex, int invoiceNumberIndex, int startDateIndex, 
-            int endDateIndex, int consumptionIndex, int centerIndex, 
+    public ElectricityMapping(int cupsIndex, int invoiceNumberIndex, int startDateIndex,
+            int endDateIndex, int consumptionIndex, int centerIndex,
             int emissionEntityIndex) {
         this.cupsIndex = cupsIndex;
         this.invoiceNumberIndex = invoiceNumberIndex;
@@ -38,36 +43,71 @@ public class ElectricityMapping {
     }
 
     // Getters and setters
-    public int getCupsIndex() { return cupsIndex; }
-    public void setCupsIndex(int index) { this.cupsIndex = index; }
+    public int getCupsIndex() {
+        return cupsIndex;
+    }
 
-    public int getInvoiceNumberIndex() { return invoiceNumberIndex; }
-    public void setInvoiceNumberIndex(int index) { this.invoiceNumberIndex = index; }
+    public void setCupsIndex(int index) {
+        this.cupsIndex = index;
+    }
+
+    public int getInvoiceNumberIndex() {
+        return invoiceNumberIndex;
+    }
+
+    public void setInvoiceNumberIndex(int index) {
+        this.invoiceNumberIndex = index;
+    }
 
     // issueDate accessors removed
 
-    public int getStartDateIndex() { return startDateIndex; }
-    public void setStartDateIndex(int index) { this.startDateIndex = index; }
+    public int getStartDateIndex() {
+        return startDateIndex;
+    }
 
-    public int getEndDateIndex() { return endDateIndex; }
-    public void setEndDateIndex(int index) { this.endDateIndex = index; }
+    public void setStartDateIndex(int index) {
+        this.startDateIndex = index;
+    }
 
-    public int getConsumptionIndex() { return consumptionIndex; }
-    public void setConsumptionIndex(int index) { this.consumptionIndex = index; }
+    public int getEndDateIndex() {
+        return endDateIndex;
+    }
 
-    public int getCenterIndex() { return centerIndex; }
-    public void setCenterIndex(int index) { this.centerIndex = index; }
+    public void setEndDateIndex(int index) {
+        this.endDateIndex = index;
+    }
 
-    public int getEmissionEntityIndex() { return emissionEntityIndex; }
-    public void setEmissionEntityIndex(int index) { this.emissionEntityIndex = index; }
+    public int getConsumptionIndex() {
+        return consumptionIndex;
+    }
+
+    public void setConsumptionIndex(int index) {
+        this.consumptionIndex = index;
+    }
+
+    public int getCenterIndex() {
+        return centerIndex;
+    }
+
+    public void setCenterIndex(int index) {
+        this.centerIndex = index;
+    }
+
+    public int getEmissionEntityIndex() {
+        return emissionEntityIndex;
+    }
+
+    public void setEmissionEntityIndex(int index) {
+        this.emissionEntityIndex = index;
+    }
 
     public boolean isComplete() {
-        return cupsIndex != -1 && 
-               invoiceNumberIndex != -1 && 
-               startDateIndex != -1 && 
-               endDateIndex != -1 && 
-               consumptionIndex != -1 &&
-               centerIndex != -1 &&
-               emissionEntityIndex != -1;
+        return cupsIndex != -1 &&
+                invoiceNumberIndex != -1 &&
+                startDateIndex != -1 &&
+                endDateIndex != -1 &&
+                consumptionIndex != -1 &&
+                centerIndex != -1 &&
+                emissionEntityIndex != -1;
     }
 }

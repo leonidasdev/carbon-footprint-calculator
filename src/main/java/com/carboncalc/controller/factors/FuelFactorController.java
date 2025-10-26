@@ -5,8 +5,10 @@ import com.carboncalc.model.enums.EnergyType;
 import java.util.ResourceBundle;
 
 /**
- * Thin controller for fuel emission factors. Delegates to GenericFactorController
- * and exists to provide a named controller for factory-based creation.
+ * Thin controller for fuel emission factors.
+ *
+ * Delegates loading and table population to {@link GenericFactorController}.
+ * This class exists to provide a distinct controller type for factory wiring.
  */
 public class FuelFactorController extends GenericFactorController {
     public FuelFactorController(ResourceBundle messages, EmissionFactorService emissionFactorService) {

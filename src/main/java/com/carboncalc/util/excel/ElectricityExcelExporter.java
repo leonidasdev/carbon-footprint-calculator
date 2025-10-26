@@ -35,20 +35,31 @@ import java.util.ArrayList;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
+/**
+ * Electricity Excel exporter.
+ *
+ * <p>
+ * Creates Excel reports for electricity consumption. The exporter reads
+ * provider sheets, loads supporting lookups (CUPS mappings, marketer factors),
+ * and writes three main sheets: detailed (Extendido), per-center (Por centro)
+ * and total (Total).
+ * </p>
+ *
+ * <p>
+ * Design notes:
+ * <ul>
+ * <li>The class delegates work to small helper methods to keep responsibilities
+ * focused and testable.</li>
+ * <li>Header labels and sheet names are currently written in Spanish for
+ * backward compatibility. When adding localization, perform resource-bundle
+ * lookups at write-time and avoid changing column ordering to preserve
+ * compatibility with downstream consumers.</li>
+ * </ul>
+ * </p>
+ *
+ * @since 1.0.0
+ */
 public class ElectricityExcelExporter {
-
-    /**
-     * Electricity Excel exporter.
-     *
-     * Responsibilities are intentionally small and delegated to helper methods:
-     * - reading provider data
-     * - loading supporting lookups (CUPS -> centers, CUPS -> marketer, marketer ->
-     * factor)
-     * - creating cell styles
-     * - writing sheets (detailed, per-center, total)
-     *
-     * This keeps the class modular and easier to test/extend.
-     */
 
     public static void exportElectricityData(String filePath) throws IOException {
         // Backward-compatible call: no data provided -> create empty template

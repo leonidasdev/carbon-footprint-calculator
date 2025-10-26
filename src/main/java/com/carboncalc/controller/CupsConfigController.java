@@ -6,6 +6,7 @@ import com.carboncalc.view.CupsConfigPanel;
 import com.carboncalc.model.enums.EnergyType;
 import com.carboncalc.service.CupsService;
 import com.carboncalc.service.CupsServiceCsv;
+import com.carboncalc.util.ValidationUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -26,14 +27,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Controller for the CUPS configuration panel.
  *
  * Responsibilities:
- * - Load persisted CUPS->Center mappings from CSV and populate the UI table.
- * - Allow import from Excel (preview) and mapping column selection.
- * - Provide add/edit/delete operations against the CSV-backed service.
+ * - Load and persist CUPS->Center mappings and provide import/edit/delete
+ * operations driven by the CSV-backed service.
  *
- * Implementation notes:
- * - UI initialization may run before the Swing components are available; the
- * controller schedules a small retry loop on the EDT to wait for the view
- * controls to be ready.
+ * Notes:
+ * - UI initialization can occur before Swing components exist; the
+ * controller schedules a short retry on the EDT to wait for the view.
  */
 public class CupsConfigController {
     private final ResourceBundle messages;
@@ -65,7 +64,7 @@ public class CupsConfigController {
     private EnergyType resolveEnergyType(String labelOrToken) {
         if (labelOrToken == null)
             return null;
-        String key = labelOrToken.trim().toLowerCase(java.util.Locale.ROOT);
+        String key = labelOrToken.trim().toLowerCase(Locale.ROOT);
         return energyLabelToEnum.getOrDefault(key, null);
     }
 
@@ -82,7 +81,7 @@ public class CupsConfigController {
             return messages.containsKey(key) ? messages.getString(key) : et.name();
         } catch (Exception ex) {
             // Unknown token: try direct label map lookup
-            String k = storedToken.trim().toLowerCase(java.util.Locale.ROOT);
+            String k = storedToken.trim().toLowerCase(Locale.ROOT);
             EnergyType e = energyLabelToEnum.get(k);
             if (e != null) {
                 String key = "energy.type." + e.id();
@@ -94,42 +93,32 @@ public class CupsConfigController {
 
     public void setView(CupsConfigPanel view) {
         this.view = view;
-        // When the view is attached, load existing centers from CSV so the table
-        // reflects current persisted data on startup.
-        // The view's initializeComponents() is invoked asynchronously (via
-        // SwingUtilities.invokeLater()) by BaseModulePanel, so the UI controls
-        // may not exist yet. Schedule the load to run afterwards on the EDT and
-        // retry a few times if the components are still not ready.
+        // When the view is attached, schedule a load of persisted centers on the
+        // EDT. The view may initialize its components asynchronously, so retry a
+        // few times before giving up and showing a friendly error.
         final AtomicInteger attempts = new AtomicInteger(0);
         Runnable tryLoad = new Runnable() {
             @Override
             public void run() {
                 try {
-                    // If the centers table hasn't been created yet, retry a few times
+                    // If the centers table isn't ready yet, retry a few times.
                     if (view.getCentersTable() == null) {
                         if (attempts.incrementAndGet() <= 5) {
-                            // Re-schedule later on the EDT
                             SwingUtilities.invokeLater(this);
                             return;
                         } else {
-                            // Give up after retries
                             System.err.println("CupsConfigPanelController: centersTable not ready after retries");
-                            JOptionPane.showMessageDialog(view,
-                                    messages.getString("error.loading.cups"),
-                                    messages.getString("error.title"),
-                                    JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(view, messages.getString("error.loading.cups"),
+                                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
                             return;
                         }
                     }
 
                     loadCentersTable();
                 } catch (Exception e) {
-                    // Log the exception for diagnostics and show a user-friendly message
                     e.printStackTrace(System.err);
-                    JOptionPane.showMessageDialog(view,
-                            messages.getString("error.loading.cups"),
-                            messages.getString("error.title"),
-                            JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(view, messages.getString("error.loading.cups"),
+                            messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
@@ -291,8 +280,8 @@ public class CupsConfigController {
 
         // Clean and validate CUPS: normalize and uppercase.
         String rawCups = centerData.getCups();
-        String normalizedCups = com.carboncalc.util.ValidationUtils.normalizeCups(rawCups);
-        if (!com.carboncalc.util.ValidationUtils.isValidCups(normalizedCups)) {
+        String normalizedCups = ValidationUtils.normalizeCups(rawCups);
+        if (!ValidationUtils.isValidCups(normalizedCups)) {
             JOptionPane.showMessageDialog(view,
                     messages.getString("error.invalid.cups"),
                     messages.getString("error.title"),
@@ -303,7 +292,7 @@ public class CupsConfigController {
         // Uppercase acronym as requested
         String acronym = centerData.getCenterAcronym();
         if (acronym != null)
-            acronym = acronym.toUpperCase(java.util.Locale.getDefault());
+            acronym = acronym.toUpperCase(Locale.getDefault());
 
         // Resolve selected (localized) energy label to canonical EnergyType and persist
         // its name.

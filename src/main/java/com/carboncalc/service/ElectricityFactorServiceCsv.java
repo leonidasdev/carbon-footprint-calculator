@@ -14,13 +14,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * CSV-backed implementation for ElectricityGeneralFactorService.
+ * CSV-backed implementation of {@link ElectricityFactorService}.
+ *
+ * Persists electricity general factors and the per-year list of trading
+ * companies under {@code data/emission_factors/{year}/}. The implementation
+ * uses careful CSV handling to preserve quoted textual fields and performs
+ * atomic writes with a safe rename strategy to reduce corruption risk.
  */
 public class ElectricityFactorServiceCsv implements ElectricityFactorService {
     // Use `data/emission_factors/{year}` directory for electricity general files
     private static final Path BASE_PATH = Paths.get("data", "emission_factors");
 
     @Override
+    /**
+     * Load electricity general factors and trading companies for a year.
+     * <p>
+     * Returns an {@link ElectricityGeneralFactors} instance populated from
+     * {@code emission_factors_electricity_general.csv} (general values) and
+     * {@code emission_factors_electricity.csv} (trading companies). Missing
+     * files are treated as empty data.
+     * </p>
+     */
     public ElectricityGeneralFactors loadFactors(int year) throws IOException {
         Path generalPath = BASE_PATH.resolve(String.valueOf(year)).resolve("emission_factors_electricity_general.csv");
         Path companiesPath = BASE_PATH.resolve(String.valueOf(year)).resolve("emission_factors_electricity.csv");
@@ -37,10 +51,14 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
                     Double v1 = ValidationUtils.tryParseDouble(values[1]);
                     Double v2 = ValidationUtils.tryParseDouble(values[2]);
                     Double v3 = values.length > 3 ? ValidationUtils.tryParseDouble(values[3]) : null;
-                    if (v0 != null) factors.setMixSinGdo(v0);
-                    if (v1 != null) factors.setGdoRenovable(v1);
-                    if (v2 != null) factors.setGdoCogeneracionAltaEficiencia(v2);
-                    if (v3 != null) factors.setLocationBasedFactor(v3);
+                    if (v0 != null)
+                        factors.setMixSinGdo(v0);
+                    if (v1 != null)
+                        factors.setGdoRenovable(v1);
+                    if (v2 != null)
+                        factors.setGdoCogeneracionAltaEficiencia(v2);
+                    if (v3 != null)
+                        factors.setLocationBasedFactor(v3);
                 }
             }
         }
@@ -50,7 +68,8 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
         // each line honoring CSV quoting rules instead of naive split(",").
         if (Files.exists(companiesPath)) {
             List<String> lines = Files.readAllLines(companiesPath, StandardCharsets.UTF_8);
-            System.out.println("[DEBUG] ElectricityFactorServiceCsv.loadFactors: companiesPath=" + companiesPath.toAbsolutePath() + ", linesRead=" + lines.size());
+            System.out.println("[DEBUG] ElectricityFactorServiceCsv.loadFactors: companiesPath="
+                    + companiesPath.toAbsolutePath() + ", linesRead=" + lines.size());
             int parsed = 0;
             for (int i = 1; i < lines.size(); i++) {
                 String line = lines.get(i);
@@ -59,7 +78,8 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
                     String name = values.get(0);
                     Double ef = ValidationUtils.tryParseDouble(values.get(1));
                     String gdoType = values.get(2);
-                    if (ef == null) ef = 0.0;
+                    if (ef == null)
+                        ef = 0.0;
                     factors.addTradingCompany(new ElectricityGeneralFactors.TradingCompany(name, ef, gdoType));
                     parsed++;
                 }
@@ -71,6 +91,10 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
     }
 
     @Override
+    /**
+     * Persist electricity general factors and companies for the given year.
+     * Writes two CSV files (general + companies) using atomic replace semantics.
+     */
     public void saveFactors(ElectricityGeneralFactors factors, int year) throws IOException {
         Path yearDir = BASE_PATH.resolve(String.valueOf(year));
         Path generalFile = yearDir.resolve("emission_factors_electricity_general.csv");
@@ -82,10 +106,10 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
         List<String> generalLines = new ArrayList<>();
         generalLines.add("mix_sin_gdo,gdo_renovable,gdo_cogeneracion_alta_eficiencia,location_based_factor");
         generalLines.add(String.format(java.util.Locale.ROOT, "%.3f,%.3f,%.3f,%.3f",
-            factors.getMixSinGdo(),
-            factors.getGdoRenovable(),
-            factors.getGdoCogeneracionAltaEficiencia(),
-            factors.getLocationBasedFactor()));
+                factors.getMixSinGdo(),
+                factors.getGdoRenovable(),
+                factors.getGdoCogeneracionAltaEficiencia(),
+                factors.getLocationBasedFactor()));
 
         List<String> companyLines = new ArrayList<>();
         companyLines.add("comercializadora,factor_emision,tipo_gdo");
@@ -103,7 +127,8 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
         }
 
         // Write using atomic replace: write to temp file in same directory then move
-        // Optionally keep a timestamped backup of the previous file in case of corruption
+        // Optionally keep a timestamped backup of the previous file in case of
+        // corruption
         writeAtomicWithBackup(generalFile, generalLines);
         writeAtomicWithBackup(companiesFile, companyLines);
     }
@@ -115,25 +140,33 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
      */
     private void writeAtomicWithBackup(Path targetPath, List<String> lines) throws IOException {
         Path dir = targetPath.getParent();
-        if (dir == null) dir = BASE_PATH;
+        if (dir == null)
+            dir = BASE_PATH;
         Files.createDirectories(dir);
 
         // Do not create extra backup files to avoid clutter. We perform an
         // atomic replace by writing to a temp file and moving it into place.
 
-        // Create temporary file in same directory to ensure atomic move on same filesystem
+        // Create temporary file in same directory to ensure atomic move on same
+        // filesystem
         Path temp = Files.createTempFile(dir, targetPath.getFileName().toString(), ".tmp");
         try {
             Files.write(temp, lines, StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
-            // Attempt atomic move; if not supported, fallback to non-atomic REPLACE_EXISTING
+            // Attempt atomic move; if not supported, fallback to non-atomic
+            // REPLACE_EXISTING
             try {
-                Files.move(temp, targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                Files.move(temp, targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException amnse) {
                 Files.move(temp, targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
         } finally {
             // Cleanup temp if it still exists
-            try { if (Files.exists(temp)) Files.delete(temp); } catch (Exception ignored) {}
+            try {
+                if (Files.exists(temp))
+                    Files.delete(temp);
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -149,7 +182,8 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
      */
     private static List<String> parseCsvLine(String line) {
         List<String> out = new ArrayList<>();
-        if (line == null) return out;
+        if (line == null)
+            return out;
 
         StringBuilder cur = new StringBuilder();
         boolean inQuotes = false;

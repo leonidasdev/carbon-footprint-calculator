@@ -7,7 +7,14 @@ import java.util.*;
 import java.time.Year;
 
 /**
- * CSV-backed GasFactorService. Stores rows as: entity,gasType,year,emissionFactor,unit
+ * CSV-backed implementation of {@link GasFactorService}.
+ *
+ * Stores per-year gas factor files under {@code data/emission_factors/{year}/}.
+ * The CSV format supports both a legacy 2-column representation
+ * {@code gasType,emissionFactor} and a newer 3-column format
+ * {@code gasType,marketFactor,locationFactor}. The implementation normalizes
+ * gas type names to uppercase for stable upserts and tolerates minor CSV
+ * variations for backward compatibility.
  */
 public class GasFactorServiceCsv implements GasFactorService {
     private static final String BASE_PATH = "data/emission_factors";
@@ -25,14 +32,16 @@ public class GasFactorServiceCsv implements GasFactorService {
         Path filePath = Paths.get(BASE_PATH, String.valueOf(year), fileName);
         try {
             List<String> lines = new ArrayList<>();
-            if (Files.exists(filePath)) lines = Files.readAllLines(filePath);
+            if (Files.exists(filePath))
+                lines = Files.readAllLines(filePath);
 
             // Map existing rows by gasType (normalized) to allow upsert
             Map<String, String> byGasType = new LinkedHashMap<>();
             if (!lines.isEmpty()) {
                 for (int i = 1; i < lines.size(); i++) {
                     String ln = lines.get(i);
-                    if (ln == null || ln.isBlank()) continue;
+                    if (ln == null || ln.isBlank())
+                        continue;
                     List<String> parts = parseCsvLine(ln);
                     if (parts.size() >= 1) {
                         String gt = parts.get(0) == null ? "" : parts.get(0).trim().toUpperCase(java.util.Locale.ROOT);
@@ -46,10 +55,9 @@ public class GasFactorServiceCsv implements GasFactorService {
             String gas = gasRaw == null ? "" : gasRaw.trim().toUpperCase(java.util.Locale.ROOT);
             // write as 3-column CSV: gasType,marketFactor,locationFactor
             String row = String.join(",",
-                quoteCsv(gas),
-                String.format(Locale.ROOT, "%.6f", entry.getMarketFactor()),
-                String.format(Locale.ROOT, "%.6f", entry.getLocationFactor())
-            );
+                    quoteCsv(gas),
+                    String.format(Locale.ROOT, "%.6f", entry.getMarketFactor()),
+                    String.format(Locale.ROOT, "%.6f", entry.getLocationFactor()));
             byGasType.put(gas, row);
 
             List<String> out = new ArrayList<>();
@@ -63,33 +71,44 @@ public class GasFactorServiceCsv implements GasFactorService {
     }
 
     @Override
+    /** Load gas factors for the provided year; handles legacy and new formats. */
     public List<GasFactorEntry> loadGasFactors(int year) {
         Path p = Paths.get(BASE_PATH, String.valueOf(year), "gas_factors.csv");
         List<GasFactorEntry> out = new ArrayList<>();
-        if (!Files.exists(p)) return out;
+        if (!Files.exists(p))
+            return out;
         try {
             List<String> lines = Files.readAllLines(p);
-            if (lines.isEmpty()) return out;
+            if (lines.isEmpty())
+                return out;
             for (int i = 1; i < lines.size(); i++) {
                 String ln = lines.get(i);
-                if (ln == null || ln.isBlank()) continue;
+                if (ln == null || ln.isBlank())
+                    continue;
                 List<String> parts = parseCsvLine(ln);
-                    // Handle legacy 2-column (gasType,emissionFactor) or new 3-column
-                    // (gasType,marketFactor,locationFactor)
-                    if (parts.size() >= 2) {
-                        String gasType = parts.get(0);
-                        double market = 0.0;
-                        double location = 0.0;
-                        try { market = Double.parseDouble(parts.get(1)); } catch (Exception ignored) {}
-                        if (parts.size() >= 3) {
-                            try { location = Double.parseDouble(parts.get(2)); } catch (Exception ignored) { location = market; }
-                        } else {
-                            // legacy: use same factor for location
+                // Handle legacy 2-column (gasType,emissionFactor) or new 3-column
+                // (gasType,marketFactor,locationFactor)
+                if (parts.size() >= 2) {
+                    String gasType = parts.get(0);
+                    double market = 0.0;
+                    double location = 0.0;
+                    try {
+                        market = Double.parseDouble(parts.get(1));
+                    } catch (Exception ignored) {
+                    }
+                    if (parts.size() >= 3) {
+                        try {
+                            location = Double.parseDouble(parts.get(2));
+                        } catch (Exception ignored) {
                             location = market;
                         }
-                        // create GasFactorEntry: set entity equal to gasType for compatibility
-                        out.add(new GasFactorEntry(gasType, gasType, year, market, location, ""));
+                    } else {
+                        // legacy: use same factor for location
+                        location = market;
                     }
+                    // create GasFactorEntry: set entity equal to gasType for compatibility
+                    out.add(new GasFactorEntry(gasType, gasType, year, market, location, ""));
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -98,9 +117,11 @@ public class GasFactorServiceCsv implements GasFactorService {
     }
 
     @Override
+    /** Delete a gas factor (by normalized gas-type/entity) for the given year. */
     public void deleteGasFactor(int year, String entity) {
         Path p = Paths.get(BASE_PATH, String.valueOf(year), "gas_factors.csv");
-        if (!Files.exists(p)) return;
+        if (!Files.exists(p))
+            return;
         try {
             List<String> lines = Files.readAllLines(p);
             List<String> out = new ArrayList<>();
@@ -108,44 +129,77 @@ public class GasFactorServiceCsv implements GasFactorService {
             String target = entity == null ? "" : entity.trim().toUpperCase(java.util.Locale.ROOT);
             for (int i = 1; i < lines.size(); i++) {
                 String ln = lines.get(i);
-                if (ln == null || ln.isBlank()) continue;
+                if (ln == null || ln.isBlank())
+                    continue;
                 List<String> parts = parseCsvLine(ln);
-                String gt = parts.size() > 0 ? (parts.get(0) == null ? "" : parts.get(0).trim().toUpperCase(java.util.Locale.ROOT)) : "";
-                if (!gt.equals(target)) out.add(ln);
+                String gt = parts.size() > 0
+                        ? (parts.get(0) == null ? "" : parts.get(0).trim().toUpperCase(java.util.Locale.ROOT))
+                        : "";
+                if (!gt.equals(target))
+                    out.add(ln);
             }
             Files.write(p, out);
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
-    public Optional<Integer> getDefaultYear() { return Optional.ofNullable(defaultYear); }
+    public Optional<Integer> getDefaultYear() {
+        return Optional.ofNullable(defaultYear);
+    }
 
     @Override
-    public void setDefaultYear(int year) { this.defaultYear = year; createYearDirectory(year); }
+    public void setDefaultYear(int year) {
+        this.defaultYear = year;
+        createYearDirectory(year);
+    }
 
     private void createYearDirectory(int year) {
-        try { Files.createDirectories(Paths.get(BASE_PATH, String.valueOf(year))); } catch (IOException ignored) {}
+        try {
+            Files.createDirectories(Paths.get(BASE_PATH, String.valueOf(year)));
+        } catch (IOException ignored) {
+        }
     }
 
     // CSV helpers (simple quoted field parser reused)
     private List<String> parseCsvLine(String line) {
         List<String> out = new ArrayList<>();
-        if (line == null) return out;
+        if (line == null)
+            return out;
         StringBuilder cur = new StringBuilder();
         boolean inQuotes = false;
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
             if (inQuotes) {
                 if (c == '"') {
-                    if (i + 1 < line.length() && line.charAt(i + 1) == '"') { cur.append('"'); i++; } else { inQuotes = false; }
-                } else { cur.append(c); }
+                    if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                        cur.append('"');
+                        i++;
+                    } else {
+                        inQuotes = false;
+                    }
+                } else {
+                    cur.append(c);
+                }
             } else {
-                if (c == '"') { inQuotes = true; } else if (c == ',') { out.add(cur.toString()); cur.setLength(0); } else { cur.append(c); }
+                if (c == '"') {
+                    inQuotes = true;
+                } else if (c == ',') {
+                    out.add(cur.toString());
+                    cur.setLength(0);
+                } else {
+                    cur.append(c);
+                }
             }
         }
         out.add(cur.toString());
         return out;
     }
 
-    private String quoteCsv(String s) { if (s == null) return ""; return '"' + s.replace("\"", "\"\"") + '"'; }
+    private String quoteCsv(String s) {
+        if (s == null)
+            return "";
+        return '"' + s.replace("\"", "\"\"") + '"';
+    }
 }

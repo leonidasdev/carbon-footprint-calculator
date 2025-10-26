@@ -10,6 +10,7 @@ import java.awt.Font;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import com.carboncalc.util.Settings;
+import com.carboncalc.util.DataInitializer;
 import java.io.IOException;
 
 public class App {
@@ -22,15 +23,14 @@ public class App {
      * Application entry point.
      *
      * Responsibilities performed here:
-     * - Load persisted language preference (via
-     * {@link com.carboncalc.util.Settings}).
+     * - Load persisted language preference (via {@link Settings}).
      * - Configure a small set of UI defaults and look-and-feel settings.
      * - Start the Swing UI on the EDT using localized messages.
      */
     public static void main(String[] args) {
         // Ensure workspace data folders exist before any settings IO
         try {
-            com.carboncalc.util.DataInitializer.ensureDataFolders();
+            DataInitializer.ensureDataFolders();
         } catch (IOException e) {
             // If directory creation fails we continue; Settings will also throw
             // a clearer IOException if attempted. We avoid hard-failing the
@@ -101,7 +101,8 @@ public class App {
                 createAndShowGUI(messages);
             } catch (Exception e) {
                 e.printStackTrace();
-                // Show a localized error dialog (do not display internal exception text to users)
+                // Show a localized error dialog (do not display internal exception text to
+                // users)
                 JOptionPane.showMessageDialog(null,
                         messages.getString("error.starting"),
                         messages.getString("error.title"),

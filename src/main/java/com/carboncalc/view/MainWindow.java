@@ -15,6 +15,8 @@ import com.carboncalc.service.EmissionFactorService;
 import com.carboncalc.service.EmissionFactorServiceCsv;
 import com.carboncalc.service.ElectricityFactorService;
 import com.carboncalc.service.ElectricityFactorServiceCsv;
+import com.carboncalc.service.GasFactorService;
+import com.carboncalc.service.GasFactorServiceCsv;
 import com.carboncalc.controller.factors.FactorSubController;
 import com.carboncalc.controller.factors.ElectricityFactorController;
 import com.carboncalc.controller.factors.GasFactorController;
@@ -24,10 +26,24 @@ import com.carboncalc.controller.factors.GenericFactorController;
 import java.util.function.Function;
 
 /**
- * Main application window. Holds the navigation bar and a card-based
- * content area where each module panel (electricity, gas, cups, etc.) is shown.
+ * Main application window.
  *
- * UI colors and minor behavioral styling are centralized in {@link UIUtils}.
+ * <p>
+ * Hosts the left navigation bar and a card-based content area where each
+ * module (electricity, gas, cups, factors, options, etc.) is shown. The
+ * class is responsible for wiring controllers to their view panels and
+ * providing the application-level card switching behavior.
+ *
+ * <p>
+ * Notes and contract:
+ * <ul>
+ * <li>The constructor builds the UI and registers controllers; it expects a
+ * {@link MainController} and a localized {@link ResourceBundle}.</li>
+ * <li>UI creation is performed on the caller thread. To be safe, instantiate
+ * and show this window from the Event Dispatch Thread (EDT).</li>
+ * <li>Styling constants (colors, sizes) are provided by {@link UIUtils} to
+ * keep appearance consistent across modules.</li>
+ * </ul>
  */
 public class MainWindow extends JFrame {
     private final ResourceBundle messages;
@@ -55,8 +71,8 @@ public class MainWindow extends JFrame {
         getContentPane().setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Setup main navigation container with dark blue background
-    mainNavContainer = new JPanel(new BorderLayout());
-    mainNavContainer.setPreferredSize(new Dimension(UIUtils.NAV_WIDTH, 0));
+        mainNavContainer = new JPanel(new BorderLayout());
+        mainNavContainer.setPreferredSize(new Dimension(UIUtils.NAV_WIDTH, 0));
         mainNavContainer.setBackground(UIUtils.UPM_BLUE);
         mainNavContainer.setOpaque(true);
         mainNavContainer.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
@@ -75,7 +91,7 @@ public class MainWindow extends JFrame {
         // Set window properties
         setSize(1200, 800);
         setLocationRelativeTo(null);
-    setMinimumSize(new Dimension(UIUtils.APP_MIN_WIDTH, UIUtils.APP_MIN_HEIGHT));
+        setMinimumSize(new Dimension(UIUtils.APP_MIN_WIDTH, UIUtils.APP_MIN_HEIGHT));
     }
 
     private void setupNavigation() {
@@ -98,11 +114,11 @@ public class MainWindow extends JFrame {
         addNavigationButton("module.general", "general");
 
         // Add a separator
-        navigationPanel.add(Box.createVerticalStrut(20));
+        navigationPanel.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_LARGE));
         JSeparator separator = new JSeparator();
         separator.setForeground(UIUtils.UPM_LIGHT_BLUE); // Light blue separator
         navigationPanel.add(separator);
-        navigationPanel.add(Box.createVerticalStrut(20));
+        navigationPanel.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_LARGE));
 
         // Configuration modules
         addNavigationButton("module.cups", "cups");
@@ -146,9 +162,18 @@ public class MainWindow extends JFrame {
         return panel;
     }
 
+    /**
+     * Create a simple placeholder panel used for modules that are not yet
+     * implemented. The displayed text is localized via the provided
+     * {@code messageKey} and the common "coming soon" suffix.
+     *
+     * @param messageKey resource key for the module name
+     * @return a ready-to-add JPanel containing a centered message
+     */
     private JPanel createPlaceholderPanel(String messageKey) {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.add(new JLabel(messages.getString(messageKey) + " - " + messages.getString("label.coming.soon"), SwingConstants.CENTER));
+        panel.add(new JLabel(messages.getString(messageKey) + " - " + messages.getString("label.coming.soon"),
+                SwingConstants.CENTER));
         return panel;
     }
 
@@ -167,10 +192,10 @@ public class MainWindow extends JFrame {
     }
 
     private JPanel createEmissionFactorsPanel() {
-    // Create concrete implementations here and inject into the controller.
-    EmissionFactorService efService = new EmissionFactorServiceCsv();
-    ElectricityFactorService egfService = new ElectricityFactorServiceCsv();
-    com.carboncalc.service.GasFactorService gasFactorService = new com.carboncalc.service.GasFactorServiceCsv();
+        // Create concrete implementations here and inject into the controller.
+        EmissionFactorService efService = new EmissionFactorServiceCsv();
+        ElectricityFactorService egfService = new ElectricityFactorServiceCsv();
+        GasFactorService gasFactorService = new GasFactorServiceCsv();
 
         // Provide a factory lambda that creates subcontrollers lazily by type
         Function<String, FactorSubController> factory = (type) -> {
@@ -180,7 +205,7 @@ public class MainWindow extends JFrame {
                 if (type.equals(EnergyType.ELECTRICITY.name())) {
                     return new ElectricityFactorController(messages, efService, egfService);
                 } else if (type.equals(EnergyType.GAS.name())) {
-                    return new com.carboncalc.controller.factors.GasFactorController(messages, efService, gasFactorService);
+                    return new GasFactorController(messages, efService, gasFactorService);
                 } else if (type.equals(EnergyType.FUEL.name())) {
                     return new FuelFactorController(messages, efService);
                 } else if (type.equals(EnergyType.REFRIGERANT.name())) {
@@ -209,6 +234,14 @@ public class MainWindow extends JFrame {
 
     private ButtonGroup navigationButtonGroup;
 
+    /**
+     * Create and style a navigation toggle button that switches the main
+     * content card to {@code cardName} when activated. The button label
+     * is obtained from the resource bundle using {@code messageKey}.
+     *
+     * @param messageKey resource key for the button text
+     * @param cardName   name of the card to show in the main content panel
+     */
     private void addNavigationButton(String messageKey, String cardName) {
         JToggleButton button = new JToggleButton(messages.getString(messageKey));
 
@@ -240,8 +273,8 @@ public class MainWindow extends JFrame {
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setFont(button.getFont().deriveFont(Font.PLAIN, 13));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-    button.setOpaque(true);
-    button.setPreferredSize(new Dimension(UIUtils.NAV_BUTTON_WIDTH, UIUtils.NAV_BUTTON_HEIGHT));
+        button.setOpaque(true);
+        button.setPreferredSize(new Dimension(UIUtils.NAV_BUTTON_WIDTH, UIUtils.NAV_BUTTON_HEIGHT));
         button.setMargin(new Insets(2, 10, 2, 10));
 
         // Selected and hover effects using UIUtils colors

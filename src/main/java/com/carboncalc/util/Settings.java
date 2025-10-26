@@ -35,4 +35,13 @@ public final class Settings {
             return null;
         return Files.readString(LANG_FILE).trim();
     }
+
+    /**
+     * Remove the saved language code, if present. This is used by tests and
+     * by the options UI when restoring defaults.
+     */
+    public static void clearLanguageCode() throws IOException {
+        if (Files.exists(LANG_FILE))
+            Files.delete(LANG_FILE);
+    }
 }

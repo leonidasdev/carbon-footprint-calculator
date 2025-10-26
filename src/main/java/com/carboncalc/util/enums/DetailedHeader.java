@@ -2,8 +2,15 @@ package com.carboncalc.util.enums;
 
 /**
  * Column headers for the detailed ("Extendido") electricity/gas export sheet.
- * Declared in a dedicated type so other exporters (gas, etc.) can reuse the same
- * logical column ordering and labels.
+ *
+ * <p>
+ * These labels are the user-facing column titles used when generating the
+ * detailed export sheet. They are currently provided in Spanish; they are
+ * declared in a dedicated enum so multiple exporters (electricity, gas)
+ * reuse a single canonical ordering. Localization of these labels is planned
+ * (resource-bundle based) and should be applied at the point where the
+ * exporter writes the sheet.
+ * </p>
  */
 public enum DetailedHeader {
     ID("Id"),
@@ -22,6 +29,12 @@ public enum DetailedHeader {
     EMISIONES_LOCATION("Emisiones tCO2 location based");
 
     private final String label;
-    DetailedHeader(String label) { this.label = label; }
-    public String label() { return label; }
+
+    DetailedHeader(String label) {
+        this.label = label;
+    }
+
+    public String label() {
+        return label;
+    }
 }

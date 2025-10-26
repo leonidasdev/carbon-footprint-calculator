@@ -30,20 +30,43 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 /**
- * Gas exporter that mirrors the Electricity exporter behaviour but adapted for
- * gas mappings.
+ * Gas Excel exporter.
+ *
+ * <p>
+ * Produces Excel reports for gas consumption mirroring the electricity
+ * exporter behavior but adapted to gas-specific mappings and gas-type based
+ * emission factors.
+ * </p>
+ *
+ * <p>
+ * Responsibilities (high level):
+ * <ul>
+ * <li>Write the detailed (Extendido), per-center (Por centro) and total
+ * (Total) sheets.</li>
+ * <li>Load per-year gas-type emission factors and apply them to consumption
+ * rows.</li>
+ * <li>Write formulas into the workbook so the resulting sheet is
+ * inspectable and editable by the user.</li>
+ * </ul>
+ * </p>
+ *
+ * <p>
+ * Notes on localization: the exporter currently writes Spanish labels and
+ * sheet names (for backward compatibility). When full localization is added,
+ * apply resource-bundle lookups for header titles and sheet names at the
+ * point where the exporter writes the workbook; avoid changing the exported
+ * column ordering to preserve compatibility with any downstream processing.
+ * </p>
+ *
+ * @since 1.0.0
  */
 public class GasExcelExporter {
     /**
      * Utility exporter for Gas-related Excel reports.
      *
-     * Responsibilities:
-     * - Produce the detailed, per-center and total sheets for gas consumption
-     * - Lookup per-year market/location emission factors
-     * - Emit Excel formulas for key computed columns so results are inspectable
-     *
-     * The implementation favors small helper methods to keep each step testable
-     * and easy to maintain.
+     * Implementation detail: the class is intentionally modular (small helper
+     * methods) so individual pieces can be unit tested and localization can be
+     * introduced later with minimal changes.
      */
     // Build detailed headers by taking the electricity detailed headers and
     // inserting

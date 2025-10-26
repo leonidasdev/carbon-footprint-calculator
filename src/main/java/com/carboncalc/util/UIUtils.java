@@ -49,6 +49,14 @@ public class UIUtils {
     public static final int FILE_MGMT_PANEL_WIDTH = 300;
     // Height for the preview container panel that holds the preview tables
     public static final int PREVIEW_PANEL_HEIGHT = 320;
+    // Small spacing constants used in a few places to avoid magic literals
+    public static final int SMALL_STRUT_WIDTH = 10;
+    public static final int TINY_STRUT_WIDTH = 1;
+    // Standardized strut sizes for Box spacers
+    public static final int VERTICAL_STRUT_SMALL = 5;
+    public static final int VERTICAL_STRUT_MEDIUM = 8;
+    public static final int VERTICAL_STRUT_LARGE = 20;
+    public static final int HORIZONTAL_STRUT_SMALL = 8;
     // Factor panel sizing constants (avoid magic numbers in factor UI classes)
     public static final int FACTOR_MANUAL_INPUT_WIDTH = 600;
     public static final int FACTOR_MANUAL_INPUT_WIDTH_COMPACT = 380;
@@ -88,6 +96,15 @@ public class UIUtils {
             }
         });
     }
+
+    /**
+     * Show an error dialog using localized title and message provided by caller.
+     * Keep this helper minimal so callers can pass already-localized text.
+     *
+     * @param parent  parent component for dialog positioning
+     * @param title   localized dialog title
+     * @param message localized message text
+     */
 
     public static void styleNavigationButton(JButton button) {
         button.setBackground(GENERAL_BACKGROUND);

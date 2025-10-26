@@ -1,16 +1,25 @@
 package com.carboncalc.view.factors;
 
 import com.carboncalc.util.UIUtils;
+import com.carboncalc.util.UIComponents;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ResourceBundle;
 
 /**
- * Generic factor panel for non-electricity types.
- * Uses the same general-factors + trading companies layout as
- * ElectricityFactorPanel
- * and removes the file-management/import box which is unused for these types.
+ * GenericFactorPanel
+ *
+ * <p>
+ * Reusable panel used for energy types that share the general-factors
+ * UI but do not require file-management/import functionality. It reuses the
+ * same layout as {@code ElectricityFactorPanel} and exposes getters used by
+ * controllers to operate on the trading-companies table and the compact
+ * manual input form.
+ *
+ * <p>
+ * Implementation note: keep the panel focused on view construction; the
+ * controller layer should handle data validation and persistence.
  */
 public class GenericFactorPanel extends JPanel {
     private final ResourceBundle messages;
@@ -141,12 +150,12 @@ public class GenericFactorPanel extends JPanel {
         emissionFactorField = UIUtils.createCompactTextField(120, 25);
         inputPanel.add(emissionFactorField);
         inputPanel.add(new JLabel(messages.getString("label.gdo.type") + ":"));
-    gdoTypeComboBox = UIUtils.createCompactComboBox(
-        new DefaultComboBoxModel<String>(new String[] { messages.getString("label.mix.sin.gdo"),
-            messages.getString("label.gdo.renovable"), messages.getString("label.gdo.cogeneracion") }),
-        140, 25);
-    UIUtils.installTruncatingRenderer(gdoTypeComboBox, 18);
-    inputPanel.add(gdoTypeComboBox);
+        gdoTypeComboBox = UIUtils.createCompactComboBox(
+                new DefaultComboBoxModel<String>(new String[] { messages.getString("label.mix.sin.gdo"),
+                        messages.getString("label.gdo.renovable"), messages.getString("label.gdo.cogeneracion") }),
+                140, 25);
+        UIUtils.installTruncatingRenderer(gdoTypeComboBox, 18);
+        inputPanel.add(gdoTypeComboBox);
 
         JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         addButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -154,9 +163,9 @@ public class GenericFactorPanel extends JPanel {
         UIUtils.styleButton(addCompanyButton);
         addButtonPanel.add(addCompanyButton);
 
-    JPanel manualInputBox = com.carboncalc.util.UIComponents.createManualInputBox(messages, "tab.manual.input",
-        inputPanel, addButtonPanel, UIUtils.FACTOR_MANUAL_INPUT_WIDTH_COMPACT,
-        UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_LARGE, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT);
+        JPanel manualInputBox = UIComponents.createManualInputBox(messages, "tab.manual.input",
+                inputPanel, addButtonPanel, UIUtils.FACTOR_MANUAL_INPUT_WIDTH_COMPACT,
+                UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_LARGE, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT);
 
         // Trading companies table
         String[] columnNames = { messages.getString("table.header.company"), messages.getString("table.header.factor"),
@@ -171,8 +180,8 @@ public class GenericFactorPanel extends JPanel {
         tradingCompaniesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tradingCompaniesTable.getTableHeader().setReorderingAllowed(false);
         UIUtils.styleTable(tradingCompaniesTable);
-    JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
-    scrollPane.setPreferredSize(new Dimension(0, UIUtils.FACTOR_SCROLL_HEIGHT));
+        JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
+        scrollPane.setPreferredSize(new Dimension(0, UIUtils.FACTOR_SCROLL_HEIGHT));
 
         JPanel tradingCompanyButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         tradingCompanyButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);

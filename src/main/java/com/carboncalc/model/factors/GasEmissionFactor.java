@@ -1,5 +1,13 @@
 package com.carboncalc.model.factors;
 
+/**
+ * Represents a gas emission factor for a specific entity and year.
+ * <p>
+ * This simple data holder implements {@link EmissionFactor} and stores the
+ * baseline kgCO2 per cubic meter and related technical fields (pressure
+ * adjustments, calorific value) used by conversion services.
+ * </p>
+ */
 public class GasEmissionFactor implements EmissionFactor {
     private String entity;
     private int year;
@@ -7,8 +15,18 @@ public class GasEmissionFactor implements EmissionFactor {
     private double pressureFactor;
     private double calorificValue;  // kWh/m³
 
+    /**
+     * No-arg constructor for frameworks and CSV mapping.
+     */
     public GasEmissionFactor() {}
 
+    /**
+     * Construct a minimal GasEmissionFactor instance.
+     *
+     * @param entity     the entity identifier
+     * @param year       the applicable year
+     * @param baseFactor baseline kgCO2 per cubic meter
+     */
     public GasEmissionFactor(String entity, int year, double baseFactor) {
         this.entity = entity;
         this.year = year;

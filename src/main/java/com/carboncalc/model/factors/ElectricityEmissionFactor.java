@@ -1,15 +1,36 @@
 package com.carboncalc.model.factors;
 
+/**
+ * Represents an electricity emission factor for a given entity and year.
+ * <p>
+ * This POJO implements {@link EmissionFactor} and stores baseline and
+ * adjustment factors used when converting electricity consumption to CO2e.
+ * It is intentionally lightweight and contains no business logic.
+ * </p>
+ * Fields include the base factor (kgCO2/kWh), optional peak/off-peak
+ * adjustments and the renewable percentage for informational purposes.
+ */
 public class ElectricityEmissionFactor implements EmissionFactor {
     private String entity;
     private int year;
-    private double baseFactor;     // kgCO2/kWh
-    private double peakFactor;     // Additional factor during peak hours
-    private double offPeakFactor;  // Additional factor during off-peak
+    private double baseFactor; // kgCO2/kWh
+    private double peakFactor; // Additional factor during peak hours
+    private double offPeakFactor; // Additional factor during off-peak
     private double renewablePercentage;
 
-    public ElectricityEmissionFactor() {}
+    /**
+     * No-arg constructor for frameworks/CSV mapping.
+     */
+    public ElectricityEmissionFactor() {
+    }
 
+    /**
+     * Create a minimal electricity emission factor.
+     *
+     * @param entity     the entity identifier (e.g., company or tariff)
+     * @param year       the applicable year
+     * @param baseFactor baseline kgCO2 per kWh
+     */
     public ElectricityEmissionFactor(String entity, int year, double baseFactor) {
         this.entity = entity;
         this.year = year;

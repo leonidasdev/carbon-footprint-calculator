@@ -1,14 +1,38 @@
 package com.carboncalc.model.factors;
 
+/**
+ * Represents an emission factor for refrigerants used in HVAC and cooling
+ * systems. Implementations of this POJO store the baseline CO2e intensity
+ * (kgCO2 per kg of refrigerant) and supporting metadata such as the
+ * refrigerant type and its Global Warming Potential (GWP).
+ *
+ * <p>
+ * This class is a simple data container used by controllers and CSV-backed
+ * services. It contains no business logic and exists to provide a typed
+ * representation of refrigerant emission factor rows.
+ * </p>
+ */
 public class RefrigerantEmissionFactor implements EmissionFactor {
     private String entity;
     private int year;
-    private double baseFactor;     // kgCO2/kg
-    private double gwp;            // Global Warming Potential
+    private double baseFactor; // kgCO2/kg
+    private double gwp; // Global Warming Potential
     private String refrigerantType; // R-410A, R-32, etc.
 
-    public RefrigerantEmissionFactor() {}
+    /**
+     * No-arg constructor used by mapping frameworks and CSV readers.
+     */
+    public RefrigerantEmissionFactor() {
+    }
 
+    /**
+     * Create a minimal refrigerant emission factor instance.
+     *
+     * @param entity          identifier or display name for the provider/entity
+     * @param year            applicable year
+     * @param baseFactor      baseline kgCO2 per kg of refrigerant
+     * @param refrigerantType refrigerant code or name (e.g., R-410A)
+     */
     public RefrigerantEmissionFactor(String entity, int year, double baseFactor, String refrigerantType) {
         this.entity = entity;
         this.year = year;

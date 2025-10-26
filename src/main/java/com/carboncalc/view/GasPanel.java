@@ -3,6 +3,7 @@ package com.carboncalc.view;
 import com.carboncalc.controller.GasController;
 import com.carboncalc.model.GasMapping;
 import com.carboncalc.util.UIUtils;
+import com.carboncalc.util.UIComponents;
 import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
 import javax.swing.text.AbstractDocument;
@@ -11,10 +12,11 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 
 import java.awt.*;
- 
+
 import java.util.Locale;
 import java.text.DecimalFormat;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -26,9 +28,20 @@ import java.util.ResourceBundle;
 /**
  * GasPanel
  *
- * Panel for configuring gas-related imports: provider and ERP
- * file management, column mapping and preview. Mirrors ElectricityPanel
- * structure but uses GasController and GasColumnMapping.
+ * <p>
+ * View component for gas import workflows. Mirrors the structure of
+ * {@link ElectricityPanel} but binds to {@link GasController} and uses
+ * {@link GasMapping} for mapping column indices. Responsibilities include
+ * file selection, column mapping and previewing the parsed data.
+ *
+ * <p>
+ * Notes:
+ * <ul>
+ * <li>The panel delegates persistence and business rules to the provided
+ * controller; view methods should avoid performing IO directly.</li>
+ * <li>Visual helpers and localized text come from {@link UIUtils} and the
+ * injected resource bundle.</li>
+ * </ul>
  */
 public class GasPanel extends BaseModulePanel {
     private final GasController controller;
@@ -79,7 +92,10 @@ public class GasPanel extends BaseModulePanel {
         this.controller = controller;
     }
 
-    /** Return the EnergyType of this panel. */
+    /**
+     * Return the EnergyType of this panel. Used by the hosting window to
+     * register and select the appropriate card.
+     */
     public EnergyType getEnergyType() {
         return TYPE;
     }
@@ -144,7 +160,8 @@ public class GasPanel extends BaseModulePanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.file.management")));
         panel.setBackground(UIUtils.CONTENT_BACKGROUND);
-    panel.setPreferredSize(new Dimension(UIUtils.FILE_MGMT_PANEL_WIDTH, UIUtils.FILE_MGMT_HEIGHT)); // Reduced height
+        panel.setPreferredSize(new Dimension(UIUtils.FILE_MGMT_PANEL_WIDTH, UIUtils.FILE_MGMT_HEIGHT)); // Reduced
+                                                                                                        // height
 
         // Create a panel for the file sections in horizontal layout
         JPanel filesPanel = new JPanel(new GridLayout(1, 2, 5, 0));
@@ -162,26 +179,26 @@ public class GasPanel extends BaseModulePanel {
         addProviderFileButton.addActionListener(e -> controller.handleProviderFileSelection());
         UIUtils.styleButton(addProviderFileButton);
 
-    providerFileLabel = new JLabel(messages.getString("label.file.none"));
-    providerFileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-    providerFileLabel.setForeground(UIUtils.MUTED_TEXT);
+        providerFileLabel = new JLabel(messages.getString("label.file.none"));
+        providerFileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        providerFileLabel.setForeground(UIUtils.MUTED_TEXT);
 
         // Provider Sheet Selection
         JLabel providerSheetLabel = new JLabel(messages.getString("label.sheet.select"));
         providerSheetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-    providerSheetSelector = com.carboncalc.util.UIComponents.createSheetSelector();
-    providerSheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
-    providerSheetSelector.addActionListener(e -> controller.handleProviderSheetSelection());
+        providerSheetSelector = UIComponents.createSheetSelector();
+        providerSheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
+        providerSheetSelector.addActionListener(e -> controller.handleProviderSheetSelection());
 
         // Add components to provider panel with some spacing
-        providerPanel.add(Box.createVerticalStrut(5));
+        providerPanel.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_SMALL));
         providerPanel.add(addProviderFileButton);
-        providerPanel.add(Box.createVerticalStrut(5));
+        providerPanel.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_SMALL));
         providerPanel.add(providerFileLabel);
-        providerPanel.add(Box.createVerticalStrut(5));
+        providerPanel.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_SMALL));
         providerPanel.add(providerSheetLabel);
-        providerPanel.add(Box.createVerticalStrut(5));
+        providerPanel.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_SMALL));
         providerPanel.add(providerSheetSelector);
 
         // ERP File Section
@@ -196,26 +213,26 @@ public class GasPanel extends BaseModulePanel {
         addErpFileButton.addActionListener(e -> controller.handleErpFileSelection());
         UIUtils.styleButton(addErpFileButton);
 
-    erpFileLabel = new JLabel(messages.getString("label.file.none"));
-    erpFileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-    erpFileLabel.setForeground(UIUtils.MUTED_TEXT);
+        erpFileLabel = new JLabel(messages.getString("label.file.none"));
+        erpFileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        erpFileLabel.setForeground(UIUtils.MUTED_TEXT);
 
         // ERP Sheet Selection
         JLabel erpSheetLabel = new JLabel(messages.getString("label.sheet.select"));
         erpSheetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-    erpSheetSelector = com.carboncalc.util.UIComponents.createSheetSelector();
-    erpSheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
-    erpSheetSelector.addActionListener(e -> controller.handleErpSheetSelection());
+        erpSheetSelector = UIComponents.createSheetSelector();
+        erpSheetSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
+        erpSheetSelector.addActionListener(e -> controller.handleErpSheetSelection());
 
         // Add components to ERP panel with some spacing
-        erpPanel.add(Box.createVerticalStrut(5));
+        erpPanel.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_SMALL));
         erpPanel.add(addErpFileButton);
-        erpPanel.add(Box.createVerticalStrut(5));
+        erpPanel.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_SMALL));
         erpPanel.add(erpFileLabel);
-        erpPanel.add(Box.createVerticalStrut(5));
+        erpPanel.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_SMALL));
         erpPanel.add(erpSheetLabel);
-        erpPanel.add(Box.createVerticalStrut(5));
+        erpPanel.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_SMALL));
         erpPanel.add(erpSheetSelector);
 
         // Add file panels to horizontal layout
@@ -237,38 +254,38 @@ public class GasPanel extends BaseModulePanel {
         gbc.gridx = 0;
         gbc.gridy = 0;
 
-    // CUPS
-    cupsSelector = com.carboncalc.util.UIComponents.createMappingCombo(180);
-    addColumnMapping(panel, gbc, "label.column.cups", cupsSelector);
+        // CUPS
+        cupsSelector = UIComponents.createMappingCombo(180);
+        addColumnMapping(panel, gbc, "label.column.cups", cupsSelector);
 
-    // Invoice Number
-    invoiceNumberSelector = com.carboncalc.util.UIComponents.createMappingCombo(180);
-    addColumnMapping(panel, gbc, "label.column.invoice", invoiceNumberSelector);
+        // Invoice Number
+        invoiceNumberSelector = UIComponents.createMappingCombo(180);
+        addColumnMapping(panel, gbc, "label.column.invoice", invoiceNumberSelector);
 
-    // Issue Date removed from mapping UI
+        // Issue Date removed from mapping UI
 
-    // Start Date
-    startDateSelector = com.carboncalc.util.UIComponents.createMappingCombo(180);
-    addColumnMapping(panel, gbc, "label.column.start.date", startDateSelector);
+        // Start Date
+        startDateSelector = UIComponents.createMappingCombo(180);
+        addColumnMapping(panel, gbc, "label.column.start.date", startDateSelector);
 
-    // End Date
-    endDateSelector = com.carboncalc.util.UIComponents.createMappingCombo(180);
-    addColumnMapping(panel, gbc, "label.column.end.date", endDateSelector);
+        // End Date
+        endDateSelector = UIComponents.createMappingCombo(180);
+        addColumnMapping(panel, gbc, "label.column.end.date", endDateSelector);
 
-    // Consumption
-    consumptionSelector = com.carboncalc.util.UIComponents.createMappingCombo(180);
-    addColumnMapping(panel, gbc, "label.column.consumption", consumptionSelector);
+        // Consumption
+        consumptionSelector = UIComponents.createMappingCombo(180);
+        addColumnMapping(panel, gbc, "label.column.consumption", consumptionSelector);
 
-    // Gas Type (dropdown populated from gas_factors.csv per-year)
-    panel.add(new JLabel(messages.getString("label.column.gas.type")), gbc);
-    gbc.gridx = 1;
-    gasTypeSelector = com.carboncalc.util.UIComponents.createMappingCombo(180);
-    gasTypeSelector.setEditable(true); // allow typing new gas types
-    // Ensure typed input is uppercased on commit by listeners (controller may
-    // normalize)
-    panel.add(gasTypeSelector, gbc);
-    gbc.gridx = 0;
-    gbc.gridy++;
+        // Gas Type (dropdown populated from gas_factors.csv per-year)
+        panel.add(new JLabel(messages.getString("label.column.gas.type")), gbc);
+        gbc.gridx = 1;
+        gasTypeSelector = UIComponents.createMappingCombo(180);
+        gasTypeSelector.setEditable(true); // allow typing new gas types
+        // Ensure typed input is uppercased on commit by listeners (controller may
+        // normalize)
+        panel.add(gasTypeSelector, gbc);
+        gbc.gridx = 0;
+        gbc.gridy++;
 
         // Make the editable combo's editor uppercase input as the user types
         try {
@@ -299,13 +316,13 @@ public class GasPanel extends BaseModulePanel {
         } catch (Exception ignored) {
         }
 
-    // Center
-    centerSelector = com.carboncalc.util.UIComponents.createMappingCombo(180);
-    addColumnMapping(panel, gbc, "label.column.center", centerSelector);
+        // Center
+        centerSelector = UIComponents.createMappingCombo(180);
+        addColumnMapping(panel, gbc, "label.column.center", centerSelector);
 
-    // Emission Entity
-    emissionEntitySelector = com.carboncalc.util.UIComponents.createMappingCombo(180);
-    addColumnMapping(panel, gbc, "label.column.emission.entity", emissionEntitySelector);
+        // Emission Entity
+        emissionEntitySelector = UIComponents.createMappingCombo(180);
+        addColumnMapping(panel, gbc, "label.column.emission.entity", emissionEntitySelector);
     }
 
     private void setupErpMappingPanel(JPanel panel) {
@@ -315,16 +332,16 @@ public class GasPanel extends BaseModulePanel {
         gbc.gridx = 0;
         gbc.gridy = 0;
 
-    // Invoice Number
-    erpInvoiceNumberSelector = com.carboncalc.util.UIComponents.createMappingCombo(180);
-    addColumnMapping(panel, gbc, "label.column.invoice", erpInvoiceNumberSelector);
+        // Invoice Number
+        erpInvoiceNumberSelector = UIComponents.createMappingCombo(180);
+        addColumnMapping(panel, gbc, "label.column.invoice", erpInvoiceNumberSelector);
 
-    // Conformity Date
-    conformityDateSelector = com.carboncalc.util.UIComponents.createMappingCombo(180);
-    addColumnMapping(panel, gbc, "label.column.conformity.date", conformityDateSelector);
+        // Conformity Date
+        conformityDateSelector = UIComponents.createMappingCombo(180);
+        addColumnMapping(panel, gbc, "label.column.conformity.date", conformityDateSelector);
 
-    // `UIComponents.createMappingCombo` applies consistent styling and the
-    // truncating renderer, so we don't need to re-apply them here.
+        // `UIComponents.createMappingCombo` applies consistent styling and the
+        // truncating renderer, so we don't need to re-apply them here.
     }
 
     private void addColumnMapping(JPanel panel, GridBagConstraints gbc, String labelKey, JComboBox<String> comboBox) {
@@ -358,7 +375,7 @@ public class GasPanel extends BaseModulePanel {
         panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         panel.setBackground(UIUtils.CONTENT_BACKGROUND);
         // Reduce overall preview panel height so top controls (Year/Sheet) align better
-    panel.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_PANEL_HEIGHT)); // Set minimum height for preview
+        panel.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_PANEL_HEIGHT)); // Set minimum height for preview
 
         // Provider Preview Panel
         JPanel providerPanel = new JPanel(new BorderLayout());
@@ -370,15 +387,16 @@ public class GasPanel extends BaseModulePanel {
         providerPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         UIUtils.styleTable(providerPreviewTable);
 
-    providerTableScrollPane = new JScrollPane(providerPreviewTable);
+        providerTableScrollPane = new JScrollPane(providerPreviewTable);
         providerTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         providerTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-    providerTableScrollPane.setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH, UIUtils.PREVIEW_SCROLL_HEIGHT));
+        providerTableScrollPane
+                .setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH, UIUtils.PREVIEW_SCROLL_HEIGHT));
 
         // Add a small top spacer so provider table aligns vertically with result
         // controls
-    JPanel providerTopSpacer = new JPanel();
-    providerTopSpacer.setPreferredSize(new Dimension(0, UIUtils.TOP_SPACER_HEIGHT));
+        JPanel providerTopSpacer = new JPanel();
+        providerTopSpacer.setPreferredSize(new Dimension(0, UIUtils.TOP_SPACER_HEIGHT));
         providerTopSpacer.setOpaque(false);
         providerPanel.add(providerTopSpacer, BorderLayout.NORTH);
         // UIUtils.setupPreviewTable(providerPreviewTable); -- moved to controller after
@@ -395,14 +413,14 @@ public class GasPanel extends BaseModulePanel {
         erpPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         UIUtils.styleTable(erpPreviewTable);
 
-    erpTableScrollPane = new JScrollPane(erpPreviewTable);
+        erpTableScrollPane = new JScrollPane(erpPreviewTable);
         erpTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         erpTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-    erpTableScrollPane.setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH, UIUtils.PREVIEW_SCROLL_HEIGHT));
+        erpTableScrollPane.setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH, UIUtils.PREVIEW_SCROLL_HEIGHT));
 
         // Add a small top spacer so ERP table aligns vertically with result controls
-    JPanel erpTopSpacer = new JPanel();
-    erpTopSpacer.setPreferredSize(new Dimension(0, UIUtils.TOP_SPACER_HEIGHT));
+        JPanel erpTopSpacer = new JPanel();
+        erpTopSpacer.setPreferredSize(new Dimension(0, UIUtils.TOP_SPACER_HEIGHT));
         erpTopSpacer.setOpaque(false);
         erpPanel.add(erpTopSpacer, BorderLayout.NORTH);
         // UIUtils.setupPreviewTable(erpPreviewTable); -- moved to controller after
@@ -419,21 +437,22 @@ public class GasPanel extends BaseModulePanel {
         resultPreviewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         UIUtils.styleTable(resultPreviewTable);
 
-    resultTableScrollPane = new JScrollPane(resultPreviewTable);
+        resultTableScrollPane = new JScrollPane(resultPreviewTable);
         resultTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         resultTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-    resultTableScrollPane.setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH, UIUtils.PREVIEW_SCROLL_HEIGHT));
+        resultTableScrollPane
+                .setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH, UIUtils.PREVIEW_SCROLL_HEIGHT));
 
         // UIUtils.setupPreviewTable(resultPreviewTable); -- moved to controller after
         // model is set
         resultPanel.add(resultTableScrollPane, BorderLayout.CENTER);
 
         // Add a small top controls panel for result: year selector
-    JPanel resultTopPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
-    // Reserve vertical space so controls are not squeezed
-    resultTopPanel.setPreferredSize(new Dimension(0, UIUtils.TOP_SPACER_HEIGHT));
+        JPanel resultTopPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+        // Reserve vertical space so controls are not squeezed
+        resultTopPanel.setPreferredSize(new Dimension(0, UIUtils.TOP_SPACER_HEIGHT));
         resultTopPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-    JLabel yearLabel = new JLabel(messages.getString("label.year.short"));
+        JLabel yearLabel = new JLabel(messages.getString("label.year.short"));
         yearLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(yearLabel);
         // Initialize yearSpinner with value provided by controller (persisted there)
@@ -442,12 +461,12 @@ public class GasPanel extends BaseModulePanel {
         JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSpinner, "####");
         yearSpinner.setEditor(yearEditor);
         ((DecimalFormat) yearEditor.getFormat()).setGroupingUsed(false);
-    yearSpinner.setPreferredSize(new Dimension(UIUtils.YEAR_SPINNER_WIDTH, UIUtils.YEAR_SPINNER_HEIGHT));
+        yearSpinner.setPreferredSize(new Dimension(UIUtils.YEAR_SPINNER_WIDTH, UIUtils.YEAR_SPINNER_HEIGHT));
         yearSpinner.addChangeListener(new ChangeListener() {
             private boolean init = true;
 
             @Override
-            public void stateChanged(javax.swing.event.ChangeEvent e) {
+            public void stateChanged(ChangeEvent e) {
                 if (init) {
                     init = false;
                     return;
@@ -460,17 +479,17 @@ public class GasPanel extends BaseModulePanel {
         yearSpinner.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(yearSpinner);
         // Sheet selection for the resulting Excel file
-        resultTopPanel.add(Box.createHorizontalStrut(8));
-    JLabel sheetLabel = new JLabel(messages.getString("label.sheet.short"));
+        resultTopPanel.add(Box.createHorizontalStrut(UIUtils.HORIZONTAL_STRUT_SMALL));
+        JLabel sheetLabel = new JLabel(messages.getString("label.sheet.short"));
         sheetLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(sheetLabel);
-    resultSheetSelector = com.carboncalc.util.UIComponents.createSheetSelector(UIUtils.RESULT_SHEET_WIDTH);
-    resultSheetSelector.setModel(new javax.swing.DefaultComboBoxModel<String>(new String[] {
-            messages.getString("result.sheet.extended"), messages.getString("result.sheet.per_center"),
-            messages.getString("result.sheet.total") }));
-    resultSheetSelector.setToolTipText(messages.getString("result.sheet.tooltip"));
-    resultSheetSelector.setAlignmentY(Component.CENTER_ALIGNMENT);
-    resultTopPanel.add(resultSheetSelector);
+        resultSheetSelector = UIComponents.createSheetSelector(UIUtils.RESULT_SHEET_WIDTH);
+        resultSheetSelector.setModel(new DefaultComboBoxModel<>(new String[] {
+                messages.getString("result.sheet.extended"), messages.getString("result.sheet.per_center"),
+                messages.getString("result.sheet.total") }));
+        resultSheetSelector.setToolTipText(messages.getString("result.sheet.tooltip"));
+        resultSheetSelector.setAlignmentY(Component.CENTER_ALIGNMENT);
+        resultTopPanel.add(resultSheetSelector);
 
         // Populate gas types for the initially selected year so the gas type
         // dropdown is ready as soon as the panel is opened.
@@ -668,8 +687,14 @@ public class GasPanel extends BaseModulePanel {
     }
 
     /**
-     * Load the year from data/year/current_year.txt. Return current year as
-     * fallback.
+     * Load the year from data/year/current_year.txt. Returns the current
+     * system year if the file is missing or cannot be parsed.
+     *
+     * <p>
+     * Controllers should provide persistent year values where possible;
+     * this method is a safe fallback for UI initialization.
+     *
+     * @return the year to use for initialization
      */
     private int loadCurrentYearFromFile() {
         try {

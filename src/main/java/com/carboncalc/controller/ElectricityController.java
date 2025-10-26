@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.Vector;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.awt.Dimension;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -43,11 +46,8 @@ import org.apache.poi.ss.usermodel.FormulaEvaluator;
  * ElectricityMapping and trigger export using ElectricityExcelExporter.
  * - Load persisted CUPS configuration and current year, and persist changes.
  *
- * Notes:
- * - This is a Swing-focused controller and performs inexpensive I/O on
- * user actions. Heavy I/O while generating the output file is done
- * synchronously in the current implementation; if exports are slow we
- * could move that work to a background thread.
+ * Note: This is a Swing-focused controller; heavy I/O (export) currently runs
+ * synchronously and can be moved to a background thread if needed.
  */
 public class ElectricityController {
     private final ResourceBundle messages;
@@ -128,12 +128,10 @@ public class ElectricityController {
     public void handleProviderFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-
-        // Add Excel filter
         FileNameExtensionFilter filter = new FileNameExtensionFilter(
-                "Archivos Excel (*.xlsx, *.xls)", "xlsx", "xls");
+                messages.getString("file.filter.excel"), "xlsx", "xls");
         fileChooser.setFileFilter(filter);
-        fileChooser.setAcceptAllFileFilterUsed(false); // Only show Excel files
+        fileChooser.setAcceptAllFileFilterUsed(false);
 
         if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
             try {
@@ -163,12 +161,10 @@ public class ElectricityController {
     public void handleErpFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-
-        // Add Excel filter
         FileNameExtensionFilter filter = new FileNameExtensionFilter(
-                "Archivos Excel (*.xlsx, *.xls)", "xlsx", "xls");
+                messages.getString("file.filter.excel"), "xlsx", "xls");
         fileChooser.setFileFilter(filter);
-        fileChooser.setAcceptAllFileFilterUsed(false); // Only show Excel files
+        fileChooser.setAcceptAllFileFilterUsed(false);
 
         if (fileChooser.showOpenDialog(view) == JFileChooser.APPROVE_OPTION) {
             try {
@@ -430,9 +426,7 @@ public class ElectricityController {
         JTable targetTable = isProvider ? view.getProviderPreviewTable() : view.getErpPreviewTable();
         targetTable.setModel(model);
 
-        // Quiet: do not print preview diagnostics in normal runs.
-
-        // Add row numbers and styling
+        // Add row numbers and styling for the preview table
         targetTable.setRowSelectionAllowed(true);
         TableRowSorter<TableModel> sorter = new TableRowSorter<>(model);
         targetTable.setRowSorter(sorter);
@@ -453,7 +447,7 @@ public class ElectricityController {
         try {
             // Run UI setup on the Event Dispatch Thread and force revalidate/repaint after
             // setup
-            javax.swing.SwingUtilities.invokeLater(() -> {
+            SwingUtilities.invokeLater(() -> {
                 try {
                     UIUtils.setupPreviewTable(targetTable);
                 } catch (Exception ex) {
@@ -462,10 +456,9 @@ public class ElectricityController {
                 try {
                     targetTable.revalidate();
                     targetTable.repaint();
-                    java.awt.Component anc = javax.swing.SwingUtilities
-                            .getAncestorOfClass(javax.swing.JScrollPane.class, targetTable);
-                    if (anc instanceof javax.swing.JScrollPane) {
-                        javax.swing.JScrollPane sp = (javax.swing.JScrollPane) anc;
+                    Component anc = SwingUtilities.getAncestorOfClass(JScrollPane.class, targetTable);
+                    if (anc instanceof JScrollPane) {
+                        JScrollPane sp = (JScrollPane) anc;
                         sp.revalidate();
                         sp.repaint();
                         // Diagnostics: print viewport and column widths
@@ -476,8 +469,7 @@ public class ElectricityController {
                             int approxWidth = Math.min(1600, Math.max(400, targetTable.getColumnCount() * 120));
                             int approxHeight = Math.min(800,
                                     Math.max(200, targetTable.getRowHeight() * Math.min(data.size(), 20)));
-                            targetTable.setPreferredScrollableViewportSize(
-                                    new java.awt.Dimension(approxWidth, approxHeight));
+                            targetTable.setPreferredScrollableViewportSize(new Dimension(approxWidth, approxHeight));
                             sp.getViewport().revalidate();
                             sp.getViewport().repaint();
                         } catch (Exception ex3) {
@@ -633,7 +625,7 @@ public class ElectricityController {
             String providerSheet = (String) view.getProviderSheetSelector().getSelectedItem();
             String erpPath = erpFile != null ? erpFile.getAbsolutePath() : null;
             String erpSheet = (String) view.getErpSheetSelector().getSelectedItem();
-            com.carboncalc.model.ElectricityMapping mapping = view.getSelectedColumns();
+            ElectricityMapping mapping = view.getSelectedColumns();
             int selectedYear = (Integer) view.getYearSpinner().getValue();
             String sheetMode = (String) view.getResultSheetSelector().getSelectedItem();
 
@@ -714,13 +706,13 @@ public class ElectricityController {
                     messages.getString("success.title"),
                     JOptionPane.INFORMATION_MESSAGE);
 
-    } catch (Exception e) {
-        e.printStackTrace();
-        JOptionPane.showMessageDialog(view,
-            messages.getString("excel.save.error"),
-            messages.getString("error.title"),
-            JOptionPane.ERROR_MESSAGE);
-    }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(view,
+                    messages.getString("excel.save.error"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     // Extract a 4-digit year from a string if possible. Returns -1 if none found.
@@ -728,7 +720,7 @@ public class ElectricityController {
         if (s == null)
             return -1;
         // First try explicit 4-digit year (e.g., 2023)
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(19|20)\\d{2}").matcher(s);
+        Matcher m = Pattern.compile("(19|20)\\d{2}").matcher(s);
         if (m.find()) {
             try {
                 return Integer.parseInt(m.group());
@@ -737,8 +729,7 @@ public class ElectricityController {
         }
 
         // Then try Spanish-style two-digit year in dates like dd/MM/yy or dd-MM-yy
-        java.util.regex.Matcher m2 = java.util.regex.Pattern.compile("(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{2})")
-                .matcher(s);
+        Matcher m2 = Pattern.compile("(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{2})").matcher(s);
         if (m2.find()) {
             try {
                 int yy = Integer.parseInt(m2.group(3));

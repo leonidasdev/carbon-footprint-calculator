@@ -9,16 +9,25 @@ import java.util.ResourceBundle;
 /**
  * OptionsPanel
  *
- * Lightweight settings panel. Currently exposes application language
- * selection and an About button. The panel is intentionally small and
- * uses centralized styling from {@link UIUtils} so it remains consistent
- * with other modules.
+ * <p>
+ * Small configuration panel that exposes application-level options such
+ * as the UI language and the About dialog. This class is a lightweight
+ * {@link BaseModulePanel} implementation and delegates behavior to an
+ * {@link OptionsController}.
  *
- * Design goals:
- * - Keep the UI construction modular (helper factory methods for each
- * control) so future changes are localized.
- * - Avoid side-effects during programmatic initialization (see
- * {@link #suppressLanguageEvents}).
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Constructor receives an {@code OptionsController} and a
+ * {@link ResourceBundle} (messages) used for localization.</li>
+ * <li>UI construction should be performed on the Event Dispatch Thread
+ * (EDT). Controllers should handle any long-running or blocking work.</li>
+ * </ul>
+ *
+ * <p>
+ * Design goals: keep UI construction modular (small factory methods),
+ * avoid side-effects during programmatic initialization and centralize
+ * styling via {@link UIUtils}.
  */
 public class OptionsPanel extends BaseModulePanel {
     private final OptionsController controller;
@@ -76,10 +85,10 @@ public class OptionsPanel extends BaseModulePanel {
         JLabel languageLabel = new JLabel(messages.getString("label.language"));
         row.add(languageLabel);
 
-    languageSelector = UIUtils.createCompactComboBox(
-        new DefaultComboBoxModel<String>(new String[] { messages.getString("language.english"),
-            messages.getString("language.spanish") }),
-        180, UIUtils.SHEET_SELECTOR_HEIGHT);
+        languageSelector = UIUtils.createCompactComboBox(
+                new DefaultComboBoxModel<String>(new String[] { messages.getString("language.english"),
+                        messages.getString("language.spanish") }),
+                180, UIUtils.SHEET_SELECTOR_HEIGHT);
 
         // When user changes language, close the popup first then call the
         // controller on the EDT so any modal dialog appears after the combo
@@ -112,11 +121,27 @@ public class OptionsPanel extends BaseModulePanel {
         controller.handleSave();
     }
 
-    // Getters
+    /**
+     * Persist/save hook called by the framework when the containing module
+     * requests a save. Delegates to the controller for actual persistence.
+     */
+    // Getters / setters
+    /**
+     * Return the language currently selected in the UI. May be {@code null}
+     * if no selection has been made. This accessor is used by controllers
+     * when saving preferences.
+     */
     public String getSelectedLanguage() {
         return (String) languageSelector.getSelectedItem();
     }
 
+    /**
+     * Programmatically set the language selection. This method temporarily
+     * suppresses the combo action listener so startup selection does not
+     * trigger user-facing side-effects.
+     *
+     * @param language language key or display name expected by the combo
+     */
     public void setSelectedLanguage(String language) {
         suppressLanguageEvents = true;
         try {

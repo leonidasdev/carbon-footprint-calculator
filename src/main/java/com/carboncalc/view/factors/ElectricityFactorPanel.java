@@ -1,6 +1,7 @@
 package com.carboncalc.view.factors;
 
 import com.carboncalc.util.UIUtils;
+import com.carboncalc.util.UIComponents;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -8,8 +9,22 @@ import java.awt.*;
 import java.util.ResourceBundle;
 
 /**
- * Electricity-specific panel containing general factors, year is provided
- * externally by the top-level container.
+ * ElectricityFactorPanel
+ *
+ * <p>
+ * Panel containing fields and controls for editing electricity-specific
+ * emission factors and the trading-companies table. This view exposes
+ * localized labels, compact input fields and a trading companies table
+ * which controllers can read and modify via the public getters.
+ *
+ * <p>
+ * Notes:
+ * <ul>
+ * <li>The panel itself does not perform persistence or heavy parsing;
+ * such work belongs to the corresponding controller.</li>
+ * <li>The selected year is supplied and managed by the top-level
+ * container (e.g., {@code EmissionFactorsPanel}).</li>
+ * </ul>
  */
 public class ElectricityFactorPanel extends JPanel {
     private final ResourceBundle messages;
@@ -132,9 +147,9 @@ public class ElectricityFactorPanel extends JPanel {
         leftLabels.setBackground(UIUtils.CONTENT_BACKGROUND);
         leftLabels.setBorder(new EmptyBorder(0, 12, 0, 12));
         leftLabels.add(new JLabel(messages.getString("label.company.name") + ":"));
-        leftLabels.add(Box.createVerticalStrut(8));
+        leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
         leftLabels.add(new JLabel(messages.getString("label.emission.factor") + ":"));
-        leftLabels.add(Box.createVerticalStrut(8));
+        leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
         leftLabels.add(new JLabel(messages.getString("label.gdo.type") + ":"));
 
         JPanel middleFields = new JPanel();
@@ -143,19 +158,19 @@ public class ElectricityFactorPanel extends JPanel {
         companyNameField = UIUtils.createCompactTextField(120, 25);
         // Limit preferred width and cap height so the left label column has more room
         middleFields.add(companyNameField);
-        middleFields.add(Box.createVerticalStrut(8));
+        middleFields.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
         emissionFactorField = UIUtils.createCompactTextField(120, 25);
         // Keep emission factor field compact to help labels fit (30px high)
         middleFields.add(emissionFactorField);
-        middleFields.add(Box.createVerticalStrut(8));
-    gdoTypeComboBox = UIUtils.createCompactComboBox(
-        new DefaultComboBoxModel<String>(new String[] { messages.getString("label.mix.sin.gdo"),
-            messages.getString("label.gdo.renovable"), messages.getString("label.gdo.cogeneracion") }),
-        140, 25);
-    // Keep combo compact and install truncating renderer so long localized
-    // names don't break layout; full text is exposed in tooltip.
-    UIUtils.installTruncatingRenderer(gdoTypeComboBox, 18);
-    middleFields.add(gdoTypeComboBox);
+        middleFields.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
+        gdoTypeComboBox = UIUtils.createCompactComboBox(
+                new DefaultComboBoxModel<String>(new String[] { messages.getString("label.mix.sin.gdo"),
+                        messages.getString("label.gdo.renovable"), messages.getString("label.gdo.cogeneracion") }),
+                140, 25);
+        // Keep combo compact and install truncating renderer so long localized
+        // names don't break layout; full text is exposed in tooltip.
+        UIUtils.installTruncatingRenderer(gdoTypeComboBox, 18);
+        middleFields.add(gdoTypeComboBox);
 
         JPanel rightColumn = new JPanel(new BorderLayout());
         rightColumn.setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -206,7 +221,7 @@ public class ElectricityFactorPanel extends JPanel {
         ig.gridx = 2;
         ig.gridy = 0;
         ig.weightx = 0.15;
-        inputGrid.add(Box.createHorizontalStrut(8), ig);
+        inputGrid.add(Box.createHorizontalStrut(UIUtils.HORIZONTAL_STRUT_SMALL), ig);
 
         // Row 1 - Emission Factor + unit
         ig.insets = new Insets(6, 6, 4, 6);
@@ -245,7 +260,7 @@ public class ElectricityFactorPanel extends JPanel {
         ig.gridy = 2;
         ig.weightx = 0.15;
         ig.anchor = GridBagConstraints.LINE_END;
-        inputGrid.add(Box.createHorizontalStrut(8), ig);
+        inputGrid.add(Box.createHorizontalStrut(UIUtils.HORIZONTAL_STRUT_SMALL), ig);
 
         // Row 3 - Add button placed just below GdO row
         ig.insets = new Insets(6, 6, 4, 6);
@@ -266,9 +281,9 @@ public class ElectricityFactorPanel extends JPanel {
         ig.fill = GridBagConstraints.BOTH;
         inputGrid.add(Box.createGlue(), ig);
 
-    JPanel manualInputBox = com.carboncalc.util.UIComponents.createManualInputBox(messages, "tab.manual.input",
-        inputGrid, addButtonPanel, UIUtils.FACTOR_MANUAL_INPUT_WIDTH, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT,
-        UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_SMALL);
+        JPanel manualInputBox = UIComponents.createManualInputBox(messages, "tab.manual.input",
+                inputGrid, addButtonPanel, UIUtils.FACTOR_MANUAL_INPUT_WIDTH, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT,
+                UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_SMALL);
 
         // Trading companies table
         String[] columnNames = { messages.getString("table.header.company"), messages.getString("table.header.factor"),
@@ -283,8 +298,8 @@ public class ElectricityFactorPanel extends JPanel {
         tradingCompaniesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tradingCompaniesTable.getTableHeader().setReorderingAllowed(false);
         UIUtils.styleTable(tradingCompaniesTable);
-    JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
-    scrollPane.setPreferredSize(new Dimension(0, UIUtils.FACTOR_SCROLL_HEIGHT));
+        JScrollPane scrollPane = new JScrollPane(tradingCompaniesTable);
+        scrollPane.setPreferredSize(new Dimension(0, UIUtils.FACTOR_SCROLL_HEIGHT));
         try {
             scrollPane.revalidate();
             scrollPane.repaint();

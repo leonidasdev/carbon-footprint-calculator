@@ -10,7 +10,7 @@ import java.io.IOException;
  *
  * A subcontroller is responsible for:
  * - Providing its own Swing panel via {@link #getPanel()} which will be added
- *   to the parent panel's CardLayout by the top-level controller.
+ * to the parent panel's CardLayout by the top-level controller.
  * - Loading and saving per-year data (onActivate/onYearChanged/save).
  * - Indicating whether it has unsaved changes so navigation can be vetoed.
  */

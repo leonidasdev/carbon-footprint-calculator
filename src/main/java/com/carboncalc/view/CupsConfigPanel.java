@@ -4,18 +4,34 @@ import com.carboncalc.controller.CupsConfigController;
 import com.carboncalc.model.CenterData;
 import com.carboncalc.util.UIUtils;
 import com.carboncalc.util.UIComponents;
+import com.carboncalc.model.enums.EnergyType;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 /**
  * CupsConfigPanel
  *
- * Panel that allows configuring CUPS centers either via manual input or
- * importing an Excel file. All visible strings come from the resource
- * bundle and styling should use UIUtils constants/helpers.
+ * <p>
+ * UI for managing CUPS centers. Offers two workflows:
+ * <ul>
+ * <li>Manual input: add a single CUPS/center via a compact form.</li>
+ * <li>Excel import: map spreadsheet columns to center fields and preview
+ * the parsed rows before import.</li>
+ * </ul>
+ *
+ * <p>
+ * Design notes:
+ * - All user-visible strings are provided via the resource bundle so the
+ * panel is fully localizable.
+ * - Sizing and shared controls are created via {@link UIUtils} and
+ * {@link UIComponents} to ensure consistent look-and-feel.
+ * - The controller is responsible for validation and persistence; this
+ * class should remain focused on building and exposing the view.
  */
 public class CupsConfigPanel extends BaseModulePanel {
     private final CupsConfigController controller;
@@ -143,8 +159,8 @@ public class CupsConfigPanel extends BaseModulePanel {
         l.gridy = 4;
         left.add(new JLabel(messages.getString("label.energy.type") + ":"), l);
         l.gridx = 1;
-        java.util.List<String> energyOptions = new java.util.ArrayList<>();
-        for (com.carboncalc.model.enums.EnergyType et : com.carboncalc.model.enums.EnergyType.values()) {
+        List<String> energyOptions = new ArrayList<>();
+        for (EnergyType et : EnergyType.values()) {
             String key = "energy.type." + et.id();
             String label = messages.containsKey(key) ? messages.getString(key) : et.name();
             energyOptions.add(label);
@@ -240,12 +256,12 @@ public class CupsConfigPanel extends BaseModulePanel {
         // File Selection and Column Mapping Panel (compact)
         JPanel topPanel = new JPanel(new GridLayout(1, 2, 10, 0));
         topPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-    // Make the top area compact so preview below gets more space
-    topPanel.setPreferredSize(new Dimension(0, UIUtils.MANUAL_INPUT_HEIGHT));
+        // Make the top area compact so preview below gets more space
+        topPanel.setPreferredSize(new Dimension(0, UIUtils.MANUAL_INPUT_HEIGHT));
 
         // File Management Section (keep compact)
         JPanel fileMgmt = createFileManagementPanel();
-    fileMgmt.setPreferredSize(new Dimension(0, UIUtils.FILE_MGMT_HEIGHT));
+        fileMgmt.setPreferredSize(new Dimension(0, UIUtils.FILE_MGMT_HEIGHT));
         topPanel.add(fileMgmt);
 
         // Column Mapping Section: wrap in a scroll pane with a controlled height
@@ -254,7 +270,7 @@ public class CupsConfigPanel extends BaseModulePanel {
         colScroll.setBorder(BorderFactory.createEmptyBorder());
         colScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         colScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-    colScroll.setPreferredSize(new Dimension(0, UIUtils.COLUMN_SCROLL_HEIGHT));
+        colScroll.setPreferredSize(new Dimension(0, UIUtils.COLUMN_SCROLL_HEIGHT));
         topPanel.add(colScroll);
 
         panel.add(topPanel, BorderLayout.CENTER);
@@ -277,24 +293,24 @@ public class CupsConfigPanel extends BaseModulePanel {
         int row = 0;
 
         // Add all column selectors
-    cupsColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
-    addColumnSelector(panel, gbc, row++, "label.column.cups", cupsColumnSelector);
-    marketerColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
-    addColumnSelector(panel, gbc, row++, "label.column.marketer", marketerColumnSelector);
-    centerNameColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
-    addColumnSelector(panel, gbc, row++, "label.column.center", centerNameColumnSelector);
-    centerAcronymColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
-    addColumnSelector(panel, gbc, row++, "label.column.acronym", centerAcronymColumnSelector);
-    energyTypeColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
-    addColumnSelector(panel, gbc, row++, "label.column.energy", energyTypeColumnSelector);
-    streetColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
-    addColumnSelector(panel, gbc, row++, "label.column.street", streetColumnSelector);
-    postalCodeColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
-    addColumnSelector(panel, gbc, row++, "label.column.postal", postalCodeColumnSelector);
-    cityColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
-    addColumnSelector(panel, gbc, row++, "label.column.city", cityColumnSelector);
-    provinceColumnSelector = com.carboncalc.util.UIComponents.createMappingCombo(150);
-    addColumnSelector(panel, gbc, row++, "label.column.province", provinceColumnSelector);
+        cupsColumnSelector = UIComponents.createMappingCombo(150);
+        addColumnSelector(panel, gbc, row++, "label.column.cups", cupsColumnSelector);
+        marketerColumnSelector = UIComponents.createMappingCombo(150);
+        addColumnSelector(panel, gbc, row++, "label.column.marketer", marketerColumnSelector);
+        centerNameColumnSelector = UIComponents.createMappingCombo(150);
+        addColumnSelector(panel, gbc, row++, "label.column.center", centerNameColumnSelector);
+        centerAcronymColumnSelector = UIComponents.createMappingCombo(150);
+        addColumnSelector(panel, gbc, row++, "label.column.acronym", centerAcronymColumnSelector);
+        energyTypeColumnSelector = UIComponents.createMappingCombo(150);
+        addColumnSelector(panel, gbc, row++, "label.column.energy", energyTypeColumnSelector);
+        streetColumnSelector = UIComponents.createMappingCombo(150);
+        addColumnSelector(panel, gbc, row++, "label.column.street", streetColumnSelector);
+        postalCodeColumnSelector = UIComponents.createMappingCombo(150);
+        addColumnSelector(panel, gbc, row++, "label.column.postal", postalCodeColumnSelector);
+        cityColumnSelector = UIComponents.createMappingCombo(150);
+        addColumnSelector(panel, gbc, row++, "label.column.city", cityColumnSelector);
+        provinceColumnSelector = UIComponents.createMappingCombo(150);
+        addColumnSelector(panel, gbc, row++, "label.column.province", provinceColumnSelector);
 
         return panel;
     }
@@ -309,7 +325,7 @@ public class CupsConfigPanel extends BaseModulePanel {
         panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.file.management")));
         panel.setBackground(UIUtils.CONTENT_BACKGROUND);
         // keep this top-left file controls compact vertically
-    panel.setPreferredSize(new Dimension(0, UIUtils.FILE_MGMT_HEIGHT));
+        panel.setPreferredSize(new Dimension(0, UIUtils.FILE_MGMT_HEIGHT));
 
         // File management controls panel
         JPanel controlsPanel = new JPanel(new GridBagLayout());
@@ -337,7 +353,7 @@ public class CupsConfigPanel extends BaseModulePanel {
 
         // Use the centralized sheet selector factory which applies sizing,
         // styling and a truncating renderer.
-        sheetSelector = com.carboncalc.util.UIComponents.createSheetSelector();
+        sheetSelector = UIComponents.createSheetSelector();
         sheetSelector.addActionListener(e -> {
             if (controller != null)
                 controller.handleSheetSelection();
@@ -421,7 +437,7 @@ public class CupsConfigPanel extends BaseModulePanel {
 
         // Create scroll pane for table
         centersScrollPane = new JScrollPane(centersTable);
-    centersScrollPane.setPreferredSize(new Dimension(0, UIUtils.CENTERS_SCROLL_HEIGHT));
+        centersScrollPane.setPreferredSize(new Dimension(0, UIUtils.CENTERS_SCROLL_HEIGHT));
         panel.add(centersScrollPane, BorderLayout.CENTER);
 
         // Add buttons panel

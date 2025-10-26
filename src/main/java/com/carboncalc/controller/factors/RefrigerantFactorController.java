@@ -7,8 +7,8 @@ import java.util.ResourceBundle;
 /**
  * Thin controller for refrigerant emission factors.
  *
- * This class currently delegates all behavior to {@link GenericFactorController}
- * and exists to provide a distinct type/name for lazy factory creation.
+ * Delegates to {@link GenericFactorController} and provides a distinct type
+ * for factory registration and UI wiring.
  */
 public class RefrigerantFactorController extends GenericFactorController {
     public RefrigerantFactorController(ResourceBundle messages, EmissionFactorService emissionFactorService) {

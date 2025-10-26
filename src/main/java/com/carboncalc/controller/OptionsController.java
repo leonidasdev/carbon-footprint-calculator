@@ -3,34 +3,38 @@ package com.carboncalc.controller;
 import com.carboncalc.view.OptionsPanel;
 import com.carboncalc.util.Settings;
 import javax.swing.JOptionPane;
+import java.text.MessageFormat;
+import com.carboncalc.App;
 import java.io.IOException;
 import java.util.ResourceBundle;
 
 /**
- * Controller for {@link com.carboncalc.view.OptionsPanel}.
+ * Controller for {@link OptionsPanel}.
  *
  * Responsibilities:
  * - React to user interactions in the Options panel (language change,
- *   about request, save).
+ * about request, save).
  * - Keep controller logic minimal and delegate I/O to the Settings helper.
  *
  * Design notes:
  * - The controller intentionally avoids performing UI construction. It
- *   translates the localized display strings into internal codes (e.g. "en", "es")
- *   and persists them using {@link Settings}.
+ * translates the localized display strings into internal codes (e.g. "en",
+ * "es")
+ * and persists them using {@link Settings}.
  */
 
 public class OptionsController {
     private OptionsPanel view;
     private final ResourceBundle messages;
-    
+
     public OptionsController(ResourceBundle messages) {
         this.messages = messages;
     }
-    
+
     public void setView(OptionsPanel view) {
         this.view = view;
     }
+
     /**
      * Handle a user-requested language change.
      * <p>
@@ -44,14 +48,16 @@ public class OptionsController {
         String code = mapDisplayLanguageToCode(selectedLanguage);
         try {
             persistLanguageCode(code);
-            showInfo(messages.getString("message.settings.saved") + "\n" + messages.getString("message.restart.required"),
+            showInfo(
+                    messages.getString("message.settings.saved") + "\n"
+                            + messages.getString("message.restart.required"),
                     messages.getString("message.title.success"));
         } catch (IOException ex) {
             // Log details for diagnostics but present a localized, non-technical
             // message to the user.
             ex.printStackTrace();
             showError(messages.getString("error.saving"),
-                      messages.getString("error.title"));
+                    messages.getString("error.title"));
         }
     }
 
@@ -62,9 +68,12 @@ public class OptionsController {
      * Returns null when no mapping is available.
      */
     private String mapDisplayLanguageToCode(String display) {
-        if (display == null) return null;
-        if (display.equals(messages.getString("language.english"))) return "en";
-        if (display.equals(messages.getString("language.spanish"))) return "es";
+        if (display == null)
+            return null;
+        if (display.equals(messages.getString("language.english")))
+            return "en";
+        if (display.equals(messages.getString("language.spanish")))
+            return "es";
         return null;
     }
 
@@ -75,38 +84,34 @@ public class OptionsController {
         Settings.saveLanguageCode(code);
     }
 
-    /**
-     * Small wrapper around JOptionPane for information dialogs. Keeps calls
-     * in controllers concise and consistent.
-     */
+    /** Show an information dialog. */
     private void showInfo(String message, String title) {
         JOptionPane.showMessageDialog(view, message, title, JOptionPane.INFORMATION_MESSAGE);
     }
 
-    /**
-     * Small wrapper around JOptionPane for error dialogs.
-     */
+    /** Show an error dialog. */
     private void showError(String message, String title) {
         JOptionPane.showMessageDialog(view, message, title, JOptionPane.ERROR_MESSAGE);
     }
-    
+
     public void handleThemeChange() {
-        // Theme feature removed from UI; nothing to do here.
+        // Theme feature removed; kept for API compatibility.
     }
-    
+
     public void handleAboutRequest() {
-        String aboutText = messages.getString("application.title") + "\nVersion " + com.carboncalc.App.VERSION + "\n© 2025 UPM";
+        String template = messages.getString("about.text");
+        String aboutText = MessageFormat.format(template, messages.getString("application.title"), App.VERSION);
         JOptionPane.showMessageDialog(view,
-            aboutText,
-            messages.getString("dialog.about.title"),
-            JOptionPane.INFORMATION_MESSAGE);
+                aboutText,
+                messages.getString("dialog.about.title"),
+                JOptionPane.INFORMATION_MESSAGE);
     }
-    
+
     public void handleSave() {
         // TODO: Save all settings
         JOptionPane.showMessageDialog(view,
-            messages.getString("message.settings.saved"),
-            messages.getString("message.title.success"),
-            JOptionPane.INFORMATION_MESSAGE);
+                messages.getString("message.settings.saved"),
+                messages.getString("message.title.success"),
+                JOptionPane.INFORMATION_MESSAGE);
     }
 }

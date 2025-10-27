@@ -18,7 +18,7 @@ import com.carboncalc.service.ElectricityFactorServiceCsv;
 import com.carboncalc.model.factors.ElectricityGeneralFactors;
 import com.carboncalc.service.CupsServiceCsv;
 import com.carboncalc.model.CupsCenterMapping;
-import com.carboncalc.service.EmissionFactorServiceCsv;
+import com.carboncalc.service.ElectricityGeneralFactorServiceCsv;
 import com.carboncalc.model.factors.EmissionFactor;
 import com.carboncalc.model.ElectricityMapping;
 import com.carboncalc.util.enums.DetailedHeader;
@@ -211,7 +211,7 @@ public class ElectricityExcelExporter {
     private static Map<String, Double> loadMarketerToFactor(int year) {
         Map<String, Double> marketerToFactor = new HashMap<>();
         try {
-            EmissionFactorServiceCsv efsvc = new EmissionFactorServiceCsv();
+            ElectricityGeneralFactorServiceCsv efsvc = new ElectricityGeneralFactorServiceCsv();
             List<? extends EmissionFactor> efs = efsvc.loadEmissionFactors("electricity", year);
             for (EmissionFactor ef : efs) {
                 String entity = ef.getEntity() == null ? "" : ef.getEntity();

@@ -29,15 +29,16 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
     /**
      * Load electricity general factors and trading companies for a year.
      * <p>
-     * Returns an {@link ElectricityGeneralFactors} instance populated from
-     * {@code emission_factors_electricity_general.csv} (general values) and
-     * {@code emission_factors_electricity.csv} (trading companies). Missing
+      * Returns an {@link ElectricityGeneralFactors} instance populated from
+      * {@code electricity_general_factors.csv} (general values) and
+      * {@code electricity_factors.csv} (trading companies). Missing
      * files are treated as empty data.
      * </p>
      */
     public ElectricityGeneralFactors loadFactors(int year) throws IOException {
-        Path generalPath = BASE_PATH.resolve(String.valueOf(year)).resolve("emission_factors_electricity_general.csv");
-        Path companiesPath = BASE_PATH.resolve(String.valueOf(year)).resolve("emission_factors_electricity.csv");
+        Path yearDir = BASE_PATH.resolve(String.valueOf(year));
+        Path generalPath = yearDir.resolve("electricity_general_factors.csv");
+        Path companiesPath = yearDir.resolve("electricity_factors.csv");
 
         ElectricityGeneralFactors factors = new ElectricityGeneralFactors();
 
@@ -91,9 +92,9 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
      * Writes two CSV files (general + companies) using atomic replace semantics.
      */
     public void saveFactors(ElectricityGeneralFactors factors, int year) throws IOException {
-        Path yearDir = BASE_PATH.resolve(String.valueOf(year));
-        Path generalFile = yearDir.resolve("emission_factors_electricity_general.csv");
-        Path companiesFile = yearDir.resolve("emission_factors_electricity.csv");
+    Path yearDir = BASE_PATH.resolve(String.valueOf(year));
+    Path generalFile = yearDir.resolve("electricity_general_factors.csv");
+    Path companiesFile = yearDir.resolve("electricity_factors.csv");
 
         // Ensure directory exists
         Files.createDirectories(yearDir);

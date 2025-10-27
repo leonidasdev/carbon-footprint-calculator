@@ -7,7 +7,7 @@ import java.util.*;
 import java.time.Year;
 
 /**
- * CSV-backed implementation of {@link EmissionFactorService}.
+ * CSV-backed implementation of {@link ElectricityGeneralfactorService}.
  *
  * Stores per-year CSV files under {@code data/emission_factors/{year}/}.
  * The implementation uses simple line-based CSV parsing/writing to avoid
@@ -15,11 +15,11 @@ import java.time.Year;
  * intentionally conservative: parsing tolerates blank lines and malformed
  * rows and preserves existing files when performing upserts.
  */
-public class EmissionFactorServiceCsv implements EmissionFactorService {
+public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFactorService {
     private static final String BASE_PATH = "data/emission_factors";
     private Integer defaultYear;
 
-    public EmissionFactorServiceCsv() {
+    public ElectricityGeneralFactorServiceCsv() {
         this.defaultYear = Year.now().getValue();
         createYearDirectory(defaultYear);
     }
@@ -29,7 +29,13 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
         String yearPath = String.format("%s/%d", BASE_PATH, factor.getYear());
         createYearDirectory(factor.getYear());
 
-        String fileName = String.format("emission_factors_%s.csv", factor.getType().toLowerCase());
+        // Use the new electricity-specific filename for electricity factors
+        String fileName;
+        if ("ELECTRICITY".equalsIgnoreCase(factor.getType())) {
+            fileName = "electricity_factors.csv";
+        } else {
+            fileName = String.format("emission_factors_%s.csv", factor.getType().toLowerCase());
+        }
         Path filePath = Paths.get(yearPath, fileName);
         try {
             // Prepare header and read existing rows (if any)
@@ -90,8 +96,13 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
 
     @Override
     public List<? extends EmissionFactor> loadEmissionFactors(String type, int year) {
-        String filePath = String.format("%s/%d/emission_factors_%s.csv", BASE_PATH, year, type.toLowerCase());
-        Path p = Paths.get(filePath);
+        Path p;
+        if ("ELECTRICITY".equalsIgnoreCase(type)) {
+            p = Paths.get(String.format("%s/%d/electricity_factors.csv", BASE_PATH, year));
+        } else {
+            String filePath = String.format("%s/%d/emission_factors_%s.csv", BASE_PATH, year, type.toLowerCase());
+            p = Paths.get(filePath);
+        }
         List<EmissionFactor> result = new ArrayList<>();
         if (!Files.exists(p))
             return result;
@@ -246,8 +257,15 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
                         if (Files.isDirectory(path)) {
                             try {
                                 int year = Integer.parseInt(path.getFileName().toString());
-                                Path factorFile = path.resolve("emission_factors_" + type.toLowerCase() + ".csv");
-                                if (Files.exists(factorFile)) {
+                                boolean exists = false;
+                                if ("ELECTRICITY".equalsIgnoreCase(type)) {
+                                    Path newFile = path.resolve("electricity_factors.csv");
+                                    exists = Files.exists(newFile);
+                                } else {
+                                    Path factorFile = path.resolve("emission_factors_" + type.toLowerCase() + ".csv");
+                                    exists = Files.exists(factorFile);
+                                }
+                                if (exists) {
                                     years.add(year);
                                 }
                             } catch (NumberFormatException ignored) {
@@ -291,7 +309,12 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
 
             // Persist filtered list to CSV
             java.nio.file.Path base = java.nio.file.Paths.get(BASE_PATH, String.valueOf(year));
-            String fileName = String.format("emission_factors_%s.csv", type.toLowerCase());
+            String fileName;
+            if ("ELECTRICITY".equalsIgnoreCase(type)) {
+                fileName = "electricity_factors.csv";
+            } else {
+                fileName = String.format("emission_factors_%s.csv", type.toLowerCase());
+            }
             java.nio.file.Path filePath = base.resolve(fileName);
 
             java.util.List<String> out = new java.util.ArrayList<>();

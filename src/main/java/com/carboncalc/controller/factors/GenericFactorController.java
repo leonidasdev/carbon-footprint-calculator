@@ -2,7 +2,7 @@ package com.carboncalc.controller.factors;
 
 import com.carboncalc.view.EmissionFactorsPanel;
 import com.carboncalc.view.factors.GenericFactorPanel;
-import com.carboncalc.service.EmissionFactorService;
+import com.carboncalc.service.ElectricityGeneralFactorService;
 import com.carboncalc.model.factors.EmissionFactor;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -15,7 +15,7 @@ import java.util.ResourceBundle;
  *
  * Responsibilities:
  * - Load emission factors for the configured energy type and year using
- * {@link EmissionFactorService} and populate the shared factors table in
+ * {@link ElectricityGeneralFactorService} and populate the shared factors table in
  * {@link EmissionFactorsPanel}.
  * - Provide a simple, well-documented integration point for specialized
  * subcontrollers that require row-level editing or additional persistence
@@ -32,12 +32,12 @@ import java.util.ResourceBundle;
  */
 public class GenericFactorController implements FactorSubController {
     private final ResourceBundle messages;
-    private final EmissionFactorService emissionFactorService;
+    private final ElectricityGeneralFactorService emissionFactorService;
     private EmissionFactorsPanel view;
     private GenericFactorPanel panel;
     private final String factorType;
 
-    public GenericFactorController(ResourceBundle messages, EmissionFactorService emissionFactorService,
+    public GenericFactorController(ResourceBundle messages, ElectricityGeneralFactorService emissionFactorService,
             String factorType) {
         this.messages = messages;
         this.emissionFactorService = emissionFactorService;

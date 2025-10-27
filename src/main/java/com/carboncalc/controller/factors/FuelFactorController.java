@@ -3,7 +3,7 @@ package com.carboncalc.controller.factors;
 import com.carboncalc.model.factors.FuelEmissionFactor;
 import com.carboncalc.model.factors.EmissionFactor;
 import com.carboncalc.model.enums.EnergyType;
-import com.carboncalc.service.EmissionFactorService;
+import com.carboncalc.service.ElectricityGeneralFactorService;
 import com.carboncalc.service.FuelFactorService;
 import com.carboncalc.util.ValidationUtils;
 import com.carboncalc.util.UIUtils;
@@ -38,11 +38,11 @@ import java.util.ResourceBundle;
 public class FuelFactorController extends GenericFactorController {
     private FuelFactorPanel panel;
     private final ResourceBundle messages;
-    private final EmissionFactorService emissionFactorService;
+    private final ElectricityGeneralFactorService emissionFactorService;
     private final FuelFactorService fuelService;
     private EmissionFactorsPanel parentView;
 
-    public FuelFactorController(ResourceBundle messages, EmissionFactorService emissionFactorService,
+    public FuelFactorController(ResourceBundle messages, ElectricityGeneralFactorService emissionFactorService,
             FuelFactorService fuelService) {
         super(messages, emissionFactorService, EnergyType.FUEL.name());
         this.messages = messages;

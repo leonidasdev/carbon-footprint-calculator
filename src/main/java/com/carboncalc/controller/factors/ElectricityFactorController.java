@@ -46,6 +46,8 @@ public class ElectricityFactorController implements FactorSubController {
     // When true, document listeners should not mark the controller dirty (used
     // during programmatic loads)
     private volatile boolean suppressDocumentListeners = false;
+    // When true, table model listeners should not mark the controller dirty
+    private volatile boolean suppressTableModelListeners = false;
     private volatile int activeYear = Year.now().getValue();
 
     public ElectricityFactorController(ResourceBundle messages,
@@ -151,9 +153,11 @@ public class ElectricityFactorController implements FactorSubController {
         // (previously had debug logging here)
         if (panel == null)
             return;
-        // Temporarily disable document listeners while populating fields
-        // programmatically so changes are not treated as user edits.
-        suppressDocumentListeners = true;
+    // Temporarily disable document and table model listeners while
+    // populating fields programmatically so changes are not treated as
+    // user edits (avoids marking controller dirty when we refresh UI).
+    suppressDocumentListeners = true;
+    suppressTableModelListeners = true;
         try {
             if (factors != null) {
                 panel.getMixSinGdoField().setText(String.format("%.4f", factors.getMixSinGdo()));
@@ -206,8 +210,9 @@ public class ElectricityFactorController implements FactorSubController {
                 }
             }
         } finally {
-            // Re-enable document listeners regardless of any error while populating.
+            // Re-enable document and table model listeners regardless of any error while populating.
             suppressDocumentListeners = false;
+            suppressTableModelListeners = false;
 
             // Run final UI refresh on the EDT to ensure table/layout are up to date.
             SwingUtilities.invokeLater(() -> {
@@ -314,6 +319,7 @@ public class ElectricityFactorController implements FactorSubController {
     // Trading companies helpers (add/edit/delete) moved here for electricity
     public void handleAddTradingCompany() {
         try {
+            System.out.println("[DEBUG] handleAddTradingCompany invoked");
             String rawName = panel.getCompanyNameField().getText();
             String name = rawName == null ? "" : rawName.trim();
             if (name.isEmpty()) {
@@ -372,9 +378,13 @@ public class ElectricityFactorController implements FactorSubController {
             }
 
             electricityGeneralFactorService.saveFactors(factors, yearToSave);
+            System.out.println("[DEBUG] electricityGeneralFactorService.saveFactors succeeded for year=" + yearToSave);
+            // Mark controller as not dirty after successful save
+            dirty = false;
 
             // Refresh UI from saved file to ensure canonical ordering/format
             ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
+            System.out.println("[DEBUG] Refreshed factors loaded for year=" + yearToSave + ", companies=" + (refreshed.getTradingCompanies() != null ? refreshed.getTradingCompanies().size() : 0));
             // Schedule the UI update after pending EDT tasks so that this
             // refresh wins over other spinner-change driven reloads.
             SwingUtilities.invokeLater(() -> SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed)));
@@ -389,10 +399,12 @@ public class ElectricityFactorController implements FactorSubController {
             JOptionPane.showMessageDialog(view, messages.getString("error.invalid.input"),
                     messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         } catch (IOException ioe) {
+            System.out.println("[DEBUG] IOException in handleAddTradingCompany: " + ioe.getMessage());
             ioe.printStackTrace();
             JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors"),
                     messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
+            System.out.println("[DEBUG] Exception in handleAddTradingCompany: " + ex.getMessage());
             ex.printStackTrace();
             JOptionPane.showMessageDialog(view, messages.getString("error.invalid.emission.factor"),
                     messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
@@ -400,6 +412,7 @@ public class ElectricityFactorController implements FactorSubController {
     }
 
     public void handleEditTradingCompany() {
+        System.out.println("[DEBUG] handleEditTradingCompany invoked");
         int selectedRow = panel.getTradingCompaniesTable().getSelectedRow();
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
@@ -460,9 +473,14 @@ public class ElectricityFactorController implements FactorSubController {
                         parsed, (String) gdoBox.getSelectedItem()));
             }
             electricityGeneralFactorService.saveFactors(factors, yearToSave);
+            System.out.println("[DEBUG] electricityGeneralFactorService.saveFactors succeeded for year=" + yearToSave);
+            // Mark controller as not dirty after successful save from edit
+            dirty = false;
             ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
+            System.out.println("[DEBUG] Refreshed factors loaded for year=" + yearToSave + ", companies=" + (refreshed.getTradingCompanies() != null ? refreshed.getTradingCompanies().size() : 0));
             updateGeneralFactors(refreshed);
         } catch (IOException ioe) {
+            System.out.println("[DEBUG] IOException in handleEditTradingCompany: " + ioe.getMessage());
             ioe.printStackTrace();
             JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors"),
                     messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
@@ -470,6 +488,7 @@ public class ElectricityFactorController implements FactorSubController {
     }
 
     public void handleDeleteTradingCompany() {
+        System.out.println("[DEBUG] handleDeleteTradingCompany invoked");
         int selectedRow = panel.getTradingCompaniesTable().getSelectedRow();
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
@@ -499,11 +518,16 @@ public class ElectricityFactorController implements FactorSubController {
             }
             if (removed) {
                 electricityGeneralFactorService.saveFactors(factors, yearToSave);
-                ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
-                // Ensure the update runs after any pending EDT tasks (nested invokeLater)
-                SwingUtilities.invokeLater(() -> SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed)));
+                    System.out.println("[DEBUG] electricityGeneralFactorService.saveFactors succeeded for year=" + yearToSave);
+                    // Mark controller as not dirty after successful delete/save
+                    dirty = false;
+                    ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
+                    System.out.println("[DEBUG] Refreshed factors loaded for year=" + yearToSave + ", companies=" + (refreshed.getTradingCompanies() != null ? refreshed.getTradingCompanies().size() : 0));
+                    // Ensure the update runs after any pending EDT tasks (nested invokeLater)
+                    SwingUtilities.invokeLater(() -> SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed)));
             }
         } catch (IOException ioe) {
+                System.out.println("[DEBUG] IOException in handleDeleteTradingCompany: " + ioe.getMessage());
             ioe.printStackTrace();
             JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors"),
                     messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
@@ -519,6 +543,9 @@ public class ElectricityFactorController implements FactorSubController {
     public boolean save(int year) throws IOException {
         ElectricityGeneralFactors factors = buildElectricityGeneralFactorsFromView(year);
         electricityGeneralFactorService.saveFactors(factors, year);
+        System.out.println("[DEBUG] save(year) completed for year=" + year);
+        // After a programmatic save, reset dirty flag
+        dirty = false;
         return true;
     }
 
@@ -567,10 +594,16 @@ public class ElectricityFactorController implements FactorSubController {
                 DefaultTableModel tm = (DefaultTableModel) trading.getModel();
                 // Mark dirty on table modifications, but do not trigger autosave
                 // because add/delete company uses explicit save and has its own
-                // persistence behavior.
+                // persistence behavior. When the controller repopulates the
+                // model programmatically we temporarily suppress this listener
+                // via `suppressTableModelListeners` so the controller does not
+                // become dirty from its own refresh actions.
                 tm.addTableModelListener(e -> {
-                    dirty = true;
-                    /* no autosaveTimer.restart() */ });
+                    if (!suppressTableModelListeners) {
+                        dirty = true;
+                    }
+                    /* no autosaveTimer.restart() */
+                });
             }
 
             // Save button triggers explicit save

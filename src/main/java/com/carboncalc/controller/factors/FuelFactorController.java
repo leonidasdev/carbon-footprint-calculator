@@ -174,7 +174,7 @@ public class FuelFactorController extends GenericFactorController {
                 panel.getEditButton().addActionListener(ev -> {
                     int sel = panel.getFactorsTable().getSelectedRow();
                     if (sel < 0) {
-                        JOptionPane.showMessageDialog(panel, messages.getString("error.select.row"),
+                        JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
                                 messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
                         return;
                     }
@@ -258,7 +258,7 @@ public class FuelFactorController extends GenericFactorController {
                 panel.getDeleteButton().addActionListener(ev -> {
                     int sel = panel.getFactorsTable().getSelectedRow();
                     if (sel < 0) {
-                        JOptionPane.showMessageDialog(panel, messages.getString("error.select.row"),
+                        JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
                                 messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
                         return;
                     }

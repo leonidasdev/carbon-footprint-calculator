@@ -56,7 +56,12 @@ public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
 
             List<String> out = new ArrayList<>();
             out.add("refrigerantType,pca");
-            out.addAll(byKey.values());
+            // Ensure canonical ordering: sort refrigerant types alphabetically (case-insensitive)
+            List<String> keys = new ArrayList<>(byKey.keySet());
+            keys.sort(String.CASE_INSENSITIVE_ORDER);
+            for (String k : keys) {
+                out.add(byKey.get(k));
+            }
             Files.createDirectories(filePath.getParent());
             Files.write(filePath, out);
         } catch (IOException e) {

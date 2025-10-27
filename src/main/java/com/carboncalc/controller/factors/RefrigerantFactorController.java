@@ -96,6 +96,8 @@ public class RefrigerantFactorController extends GenericFactorController {
                     RefrigerantEmissionFactor entry = new RefrigerantEmissionFactor(rType, saveYear, pca, rType);
                     try {
                         refrigerantService.saveRefrigerantFactor(entry);
+                        // reload to apply canonical ordering from service
+                        onActivate(saveYear);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -125,7 +127,7 @@ public class RefrigerantFactorController extends GenericFactorController {
                 panel.getEditButton().addActionListener(ev -> {
                     int sel = panel.getFactorsTable().getSelectedRow();
                     if (sel < 0) {
-                        JOptionPane.showMessageDialog(panel, messages.getString("error.select.row"),
+                        JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
                                 messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
                         return;
                     }
@@ -179,6 +181,8 @@ public class RefrigerantFactorController extends GenericFactorController {
                                 val, typeField.getText().trim());
                         try {
                             refrigerantService.saveRefrigerantFactor(entry);
+                            // reload entries for the selected year so canonical ordering is applied
+                            onActivate(saveYear);
                             try {
                                 String key = typeField.getText().trim().toUpperCase(Locale.ROOT);
                                 JComboBox<String> combo = panel.getRefrigerantTypeSelector();
@@ -207,7 +211,7 @@ public class RefrigerantFactorController extends GenericFactorController {
                 panel.getDeleteButton().addActionListener(ev -> {
                     int sel = panel.getFactorsTable().getSelectedRow();
                     if (sel < 0) {
-                        JOptionPane.showMessageDialog(panel, messages.getString("error.select.row"),
+                        JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
                                 messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
                         return;
                     }
@@ -240,7 +244,8 @@ public class RefrigerantFactorController extends GenericFactorController {
 
                     try {
                         refrigerantService.deleteRefrigerantFactor(saveYear, rType);
-                        model.removeRow(sel);
+                        // reload entries to reflect deletion and canonical ordering
+                        onActivate(saveYear);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         JOptionPane.showMessageDialog(panel, messages.getString("error.delete.failed"),

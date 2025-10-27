@@ -62,7 +62,12 @@ public class GasFactorServiceCsv implements GasFactorService {
 
             List<String> out = new ArrayList<>();
             out.add("gasType,marketFactor,locationFactor");
-            out.addAll(byGasType.values());
+            // Ensure canonical ordering: sort gas types alphabetically (case-insensitive)
+            List<String> gasKeys = new ArrayList<>(byGasType.keySet());
+            gasKeys.sort(String.CASE_INSENSITIVE_ORDER);
+            for (String k : gasKeys) {
+                out.add(byGasType.get(k));
+            }
             Files.createDirectories(filePath.getParent());
             Files.write(filePath, out);
         } catch (IOException e) {

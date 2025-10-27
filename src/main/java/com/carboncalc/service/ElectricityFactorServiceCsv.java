@@ -108,7 +108,15 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
 
         List<String> companyLines = new ArrayList<>();
         companyLines.add("comercializadora,factor_emision,tipo_gdo");
-        for (ElectricityGeneralFactors.TradingCompany company : factors.getTradingCompanies()) {
+        // Ensure canonical ordering: sort trading companies by company name (case-insensitive)
+        List<ElectricityGeneralFactors.TradingCompany> companies = new ArrayList<>(factors.getTradingCompanies());
+        companies.sort((a, b) -> {
+            String na = a == null || a.getName() == null ? "" : a.getName();
+            String nb = b == null || b.getName() == null ? "" : b.getName();
+            return String.CASE_INSENSITIVE_ORDER.compare(na, nb);
+        });
+
+        for (ElectricityGeneralFactors.TradingCompany company : companies) {
             String rawName = company.getName() == null ? "" : company.getName();
             String escapedName = rawName.replace("\"", "\"\"");
             String quotedName = "\"" + escapedName + "\"";

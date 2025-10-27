@@ -66,7 +66,38 @@ public class FuelFactorServiceCsv implements FuelFactorService {
 
             List<String> out = new ArrayList<>();
             out.add("fuelType,vehicleType,emissionFactor");
-            out.addAll(byKey.values());
+            // Ensure canonical ordering: sort by fuelType then vehicleType (case-insensitive)
+            List<Map.Entry<String, String>> entries = new ArrayList<>(byKey.entrySet());
+            entries.sort((e1, e2) -> {
+                String k1 = e1.getKey() == null ? "" : e1.getKey();
+                String k2 = e2.getKey() == null ? "" : e2.getKey();
+                // normalize: key format produced by normalizeKey => either "FUEL" or "FUEL (VEHICLE)"
+                String fuel1 = k1;
+                String vehicle1 = "";
+                int p1 = k1.indexOf('(');
+                if (p1 >= 0) {
+                    fuel1 = k1.substring(0, p1).trim();
+                    int end = k1.indexOf(')', p1);
+                    if (end > p1)
+                        vehicle1 = k1.substring(p1 + 1, end).trim();
+                }
+                String fuel2 = k2;
+                String vehicle2 = "";
+                int p2 = k2.indexOf('(');
+                if (p2 >= 0) {
+                    fuel2 = k2.substring(0, p2).trim();
+                    int end2 = k2.indexOf(')', p2);
+                    if (end2 > p2)
+                        vehicle2 = k2.substring(p2 + 1, end2).trim();
+                }
+                int cmp = String.CASE_INSENSITIVE_ORDER.compare(fuel1, fuel2);
+                if (cmp != 0)
+                    return cmp;
+                return String.CASE_INSENSITIVE_ORDER.compare(vehicle1, vehicle2);
+            });
+            for (Map.Entry<String, String> ent : entries) {
+                out.add(ent.getValue());
+            }
             Files.createDirectories(filePath.getParent());
             Files.write(filePath, out);
         } catch (IOException e) {

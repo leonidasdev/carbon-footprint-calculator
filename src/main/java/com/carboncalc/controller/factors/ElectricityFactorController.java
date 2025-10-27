@@ -401,8 +401,11 @@ public class ElectricityFactorController implements FactorSubController {
 
     public void handleEditTradingCompany() {
         int selectedRow = panel.getTradingCompaniesTable().getSelectedRow();
-        if (selectedRow == -1)
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
+                    messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
             return;
+        }
         DefaultTableModel model = (DefaultTableModel) panel.getTradingCompaniesTable().getModel();
         String name = (String) model.getValueAt(selectedRow, 0);
         String factorStr = String.valueOf(model.getValueAt(selectedRow, 1));
@@ -468,8 +471,11 @@ public class ElectricityFactorController implements FactorSubController {
 
     public void handleDeleteTradingCompany() {
         int selectedRow = panel.getTradingCompaniesTable().getSelectedRow();
-        if (selectedRow == -1)
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
+                    messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
             return;
+        }
         int response = JOptionPane.showConfirmDialog(view, messages.getString("message.confirm.delete.company"),
                 messages.getString("dialog.delete.title"), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (response != JOptionPane.YES_OPTION)

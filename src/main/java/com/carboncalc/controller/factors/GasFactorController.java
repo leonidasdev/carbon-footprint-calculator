@@ -95,6 +95,9 @@ public class GasFactorController extends GenericFactorController {
                     GasFactorEntry entry = new GasFactorEntry(gasType, gasType, saveYear, factor, "kgCO2e/kWh");
                     try {
                         gasService.saveGasFactor(entry);
+                        // reload entries for the selected year so canonical ordering from the
+                        // service is reflected in the UI
+                        onActivate(saveYear);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -123,7 +126,7 @@ public class GasFactorController extends GenericFactorController {
                 panel.getTradingEditButton().addActionListener(ev -> {
                     int sel = panel.getTradingCompaniesTable().getSelectedRow();
                     if (sel < 0) {
-                        JOptionPane.showMessageDialog(panel, messages.getString("error.select.row"),
+                        JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
                                 messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
                         return;
                     }
@@ -177,6 +180,8 @@ public class GasFactorController extends GenericFactorController {
                                 saveYear, factor, "kgCO2e/kWh");
                         try {
                             gasService.saveGasFactor(entry);
+                            // reload entries for the selected year so canonical ordering is applied
+                            onActivate(saveYear);
                             // sync combo
                             try {
                                 String key = gasField.getText().trim().toUpperCase(Locale.ROOT);
@@ -206,7 +211,7 @@ public class GasFactorController extends GenericFactorController {
                 panel.getTradingDeleteButton().addActionListener(ev -> {
                     int sel = panel.getTradingCompaniesTable().getSelectedRow();
                     if (sel < 0) {
-                        JOptionPane.showMessageDialog(panel, messages.getString("error.select.row"),
+                        JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
                                 messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
                         return;
                     }
@@ -240,7 +245,8 @@ public class GasFactorController extends GenericFactorController {
                     try {
                         // delete by entity (gas type)
                         gasService.deleteGasFactor(saveYear, gasType);
-                        model.removeRow(sel);
+                        // reload to show canonical ordering and updated dataset
+                        onActivate(saveYear);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         JOptionPane.showMessageDialog(panel, messages.getString("error.delete.failed"),

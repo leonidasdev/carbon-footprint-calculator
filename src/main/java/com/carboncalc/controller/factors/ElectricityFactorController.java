@@ -319,7 +319,6 @@ public class ElectricityFactorController implements FactorSubController {
     // Trading companies helpers (add/edit/delete) moved here for electricity
     public void handleAddTradingCompany() {
         try {
-            System.out.println("[DEBUG] handleAddTradingCompany invoked");
             String rawName = panel.getCompanyNameField().getText();
             String name = rawName == null ? "" : rawName.trim();
             if (name.isEmpty()) {
@@ -378,13 +377,11 @@ public class ElectricityFactorController implements FactorSubController {
             }
 
             electricityGeneralFactorService.saveFactors(factors, yearToSave);
-            System.out.println("[DEBUG] electricityGeneralFactorService.saveFactors succeeded for year=" + yearToSave);
             // Mark controller as not dirty after successful save
             dirty = false;
 
             // Refresh UI from saved file to ensure canonical ordering/format
             ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
-            System.out.println("[DEBUG] Refreshed factors loaded for year=" + yearToSave + ", companies=" + (refreshed.getTradingCompanies() != null ? refreshed.getTradingCompanies().size() : 0));
             // Schedule the UI update after pending EDT tasks so that this
             // refresh wins over other spinner-change driven reloads.
             SwingUtilities.invokeLater(() -> SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed)));
@@ -395,24 +392,18 @@ public class ElectricityFactorController implements FactorSubController {
             panel.getGdoTypeComboBox().setSelectedIndex(0);
 
         } catch (IllegalArgumentException iae) {
-            iae.printStackTrace();
             JOptionPane.showMessageDialog(view, messages.getString("error.invalid.input"),
                     messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         } catch (IOException ioe) {
-            System.out.println("[DEBUG] IOException in handleAddTradingCompany: " + ioe.getMessage());
-            ioe.printStackTrace();
             JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors"),
                     messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
-            System.out.println("[DEBUG] Exception in handleAddTradingCompany: " + ex.getMessage());
-            ex.printStackTrace();
             JOptionPane.showMessageDialog(view, messages.getString("error.invalid.emission.factor"),
                     messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
         }
     }
 
     public void handleEditTradingCompany() {
-        System.out.println("[DEBUG] handleEditTradingCompany invoked");
         int selectedRow = panel.getTradingCompaniesTable().getSelectedRow();
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
@@ -473,14 +464,11 @@ public class ElectricityFactorController implements FactorSubController {
                         parsed, (String) gdoBox.getSelectedItem()));
             }
             electricityGeneralFactorService.saveFactors(factors, yearToSave);
-            System.out.println("[DEBUG] electricityGeneralFactorService.saveFactors succeeded for year=" + yearToSave);
             // Mark controller as not dirty after successful save from edit
             dirty = false;
             ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
-            System.out.println("[DEBUG] Refreshed factors loaded for year=" + yearToSave + ", companies=" + (refreshed.getTradingCompanies() != null ? refreshed.getTradingCompanies().size() : 0));
             updateGeneralFactors(refreshed);
         } catch (IOException ioe) {
-            System.out.println("[DEBUG] IOException in handleEditTradingCompany: " + ioe.getMessage());
             ioe.printStackTrace();
             JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors"),
                     messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
@@ -488,7 +476,6 @@ public class ElectricityFactorController implements FactorSubController {
     }
 
     public void handleDeleteTradingCompany() {
-        System.out.println("[DEBUG] handleDeleteTradingCompany invoked");
         int selectedRow = panel.getTradingCompaniesTable().getSelectedRow();
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(panel, messages.getString("error.no.selection"),
@@ -518,16 +505,13 @@ public class ElectricityFactorController implements FactorSubController {
             }
             if (removed) {
                 electricityGeneralFactorService.saveFactors(factors, yearToSave);
-                    System.out.println("[DEBUG] electricityGeneralFactorService.saveFactors succeeded for year=" + yearToSave);
-                    // Mark controller as not dirty after successful delete/save
-                    dirty = false;
-                    ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
-                    System.out.println("[DEBUG] Refreshed factors loaded for year=" + yearToSave + ", companies=" + (refreshed.getTradingCompanies() != null ? refreshed.getTradingCompanies().size() : 0));
-                    // Ensure the update runs after any pending EDT tasks (nested invokeLater)
-                    SwingUtilities.invokeLater(() -> SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed)));
+                // Mark controller as not dirty after successful delete/save
+                dirty = false;
+                ElectricityGeneralFactors refreshed = electricityGeneralFactorService.loadFactors(yearToSave);
+                // Ensure the update runs after any pending EDT tasks (nested invokeLater)
+                SwingUtilities.invokeLater(() -> SwingUtilities.invokeLater(() -> updateGeneralFactors(refreshed)));
             }
         } catch (IOException ioe) {
-                System.out.println("[DEBUG] IOException in handleDeleteTradingCompany: " + ioe.getMessage());
             ioe.printStackTrace();
             JOptionPane.showMessageDialog(view, messages.getString("error.save.general.factors"),
                     messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
@@ -543,7 +527,6 @@ public class ElectricityFactorController implements FactorSubController {
     public boolean save(int year) throws IOException {
         ElectricityGeneralFactors factors = buildElectricityGeneralFactorsFromView(year);
         electricityGeneralFactorService.saveFactors(factors, year);
-        System.out.println("[DEBUG] save(year) completed for year=" + year);
         // After a programmatic save, reset dirty flag
         dirty = false;
         return true;

@@ -234,7 +234,7 @@ public class EmissionFactorsController {
     }
 
     public void handleYearSelection(int year) {
-        System.out.println("[DEBUG] handleYearSelection called with year=" + year + ", currentYear=" + this.currentYear + ", suppressSpinnerSideEffects=" + suppressSpinnerSideEffects);
+        // handleYearSelection invoked
         // Handle year selection: reconcile editor text vs spinner value and
         // ask the active subcontroller whether it's safe to change year.
         String spinnerText = "";
@@ -269,10 +269,7 @@ public class EmissionFactorsController {
         } catch (Exception ignored) {
         }
 
-        try {
-            System.out.println("[DEBUG] active subcontroller=" + (active != null ? active.getClass().getSimpleName() : "null") + ", hasUnsaved=" + (active != null ? active.hasUnsavedChanges() : "n/a"));
-        } catch (Exception ignored) {
-        }
+        // active subcontroller and unsaved state checked below
 
         // trace year change handling (no console debug output)
 
@@ -285,7 +282,6 @@ public class EmissionFactorsController {
 
             if (resp == JOptionPane.CANCEL_OPTION || resp == JOptionPane.CLOSED_OPTION) {
                 // Revert spinner to previous year and abort
-                System.out.println("[DEBUG] User cancelled year change; reverting spinner to " + this.currentYear);
                 try {
                     if (view != null && view.getYearSpinner() != null)
                         view.getYearSpinner().setValue(this.currentYear);
@@ -296,13 +292,10 @@ public class EmissionFactorsController {
 
                 if (resp == JOptionPane.YES_OPTION) {
                 // User chose to save changes before switching year
-                System.out.println("[DEBUG] User opted to save before changing year (currentYear=" + this.currentYear + ")");
                 try {
                     active.save(this.currentYear);
-                    System.out.println("[DEBUG] active.save(...) succeeded for year=" + this.currentYear);
                 } catch (Exception ioe) {
                     ioe.printStackTrace();
-                    System.out.println("[DEBUG] active.save(...) failed: " + ioe.getClass().getSimpleName() + ": " + ioe.getMessage());
                     JOptionPane.showMessageDialog(view,
                             messages.getString("error.save.general.factors"),
                             messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
@@ -322,10 +315,9 @@ public class EmissionFactorsController {
         this.currentYear = year;
         // persist the selected year (guard against programmatic initialization)
         if (!suppressSpinnerSideEffects) {
-            System.out.println("[DEBUG] Persisting selected year=" + year);
             persistCurrentYear(year);
         } else {
-            System.out.println("[DEBUG] suppressSpinnerSideEffects is true; skipping persist for year=" + year);
+            // skipping persist due to initialization suppression
         }
 
         // Show the current card so subpanels are visible before reloading
@@ -662,11 +654,9 @@ public class EmissionFactorsController {
                 Files.createDirectories(dir);
             }
             Files.writeString(CURRENT_YEAR_FILE, String.valueOf(year));
-            System.out.println("[DEBUG] persistCurrentYear wrote file: " + CURRENT_YEAR_FILE.toString() + " = " + year);
         } catch (Exception e) {
             // non-fatal; log to stderr for debugging
             System.err.println("Failed to persist current year: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 

@@ -1,7 +1,7 @@
 package com.carboncalc.controller;
 
 import com.carboncalc.model.factors.*;
-import com.carboncalc.service.ElectricityGeneralFactorService;
+import com.carboncalc.service.EmissionFactorService;
 // Services are injected via constructor; concrete implementations are provided by the application startup.
 import com.carboncalc.view.EmissionFactorsPanel;
 import com.carboncalc.view.factors.ElectricityFactorPanel;
@@ -59,7 +59,7 @@ public class EmissionFactorsController {
     private EmissionFactorsPanel view;
     private Workbook workbook;
     private File currentFile;
-    private final ElectricityGeneralFactorService emissionFactorService;
+    private final EmissionFactorService emissionFactorService;
     private final ElectricityFactorService electricityGeneralFactorService;
     private final Map<String, FactorSubController> subcontrollers = new HashMap<>();
     // Track the last year for which each subcontroller was activated to avoid
@@ -78,7 +78,7 @@ public class EmissionFactorsController {
      * application should provide concrete implementations (CSV-backed here).
      */
     public EmissionFactorsController(ResourceBundle messages,
-            ElectricityGeneralFactorService emissionFactorService,
+            EmissionFactorService emissionFactorService,
             ElectricityFactorService electricityGeneralFactorService,
             Function<String, FactorSubController> subcontrollerFactory) {
         this.messages = messages;

@@ -15,11 +15,11 @@ import java.time.Year;
  * intentionally conservative: parsing tolerates blank lines and malformed
  * rows and preserves existing files when performing upserts.
  */
-public class ElectricityGeneralFactorServiceCsv implements ElectricityGeneralFactorService {
+public class EmissionFactorServiceCsv implements EmissionFactorService {
     private static final String BASE_PATH = "data/emission_factors";
     private Integer defaultYear;
 
-    public ElectricityGeneralFactorServiceCsv() {
+    public EmissionFactorServiceCsv() {
         this.defaultYear = Year.now().getValue();
         createYearDirectory(defaultYear);
     }

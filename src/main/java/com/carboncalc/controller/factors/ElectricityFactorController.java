@@ -1,6 +1,6 @@
 package com.carboncalc.controller.factors;
 
-import com.carboncalc.service.ElectricityGeneralFactorService;
+import com.carboncalc.service.EmissionFactorService;
 import com.carboncalc.service.ElectricityFactorService;
 import com.carboncalc.view.EmissionFactorsPanel;
 import com.carboncalc.view.factors.ElectricityFactorPanel;
@@ -39,7 +39,7 @@ import javax.swing.event.DocumentEvent;
 public class ElectricityFactorController implements FactorSubController {
     private final ResourceBundle messages;
     private final ElectricityFactorService electricityGeneralFactorService;
-    private final ElectricityGeneralFactorService emissionFactorService;
+    private final EmissionFactorService emissionFactorService;
     private EmissionFactorsPanel view;
     private final ElectricityFactorPanel panel;
     private volatile boolean dirty = false;
@@ -51,7 +51,7 @@ public class ElectricityFactorController implements FactorSubController {
     private volatile int activeYear = Year.now().getValue();
 
     public ElectricityFactorController(ResourceBundle messages,
-            ElectricityGeneralFactorService emissionFactorService,
+            EmissionFactorService emissionFactorService,
             ElectricityFactorService electricityGeneralFactorService) {
         this.messages = messages;
         this.emissionFactorService = emissionFactorService;

@@ -11,8 +11,8 @@ import com.carboncalc.util.UIUtils;
 import java.awt.*;
 import java.util.ResourceBundle;
 import com.carboncalc.model.enums.EnergyType;
-import com.carboncalc.service.ElectricityGeneralFactorService;
-import com.carboncalc.service.ElectricityGeneralFactorServiceCsv;
+import com.carboncalc.service.EmissionFactorService;
+import com.carboncalc.service.EmissionFactorServiceCsv;
 import com.carboncalc.service.ElectricityFactorService;
 import com.carboncalc.service.ElectricityFactorServiceCsv;
 import com.carboncalc.service.GasFactorService;
@@ -193,7 +193,7 @@ public class MainWindow extends JFrame {
 
     private JPanel createEmissionFactorsPanel() {
         // Create concrete implementations here and inject into the controller.
-        ElectricityGeneralFactorService efService = new ElectricityGeneralFactorServiceCsv();
+        EmissionFactorService efService = new EmissionFactorServiceCsv();
         ElectricityFactorService egfService = new ElectricityFactorServiceCsv();
         GasFactorService gasFactorService = new GasFactorServiceCsv();
         com.carboncalc.service.FuelFactorService fuelFactorService = new com.carboncalc.service.FuelFactorServiceCsv();

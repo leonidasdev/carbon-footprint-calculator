@@ -2,7 +2,7 @@ package com.carboncalc.controller.factors;
 
 import com.carboncalc.model.factors.RefrigerantEmissionFactor;
 import com.carboncalc.model.enums.EnergyType;
-import com.carboncalc.service.ElectricityGeneralFactorService;
+import com.carboncalc.service.EmissionFactorService;
 import com.carboncalc.service.RefrigerantFactorService;
 import com.carboncalc.util.ValidationUtils;
 import com.carboncalc.util.UIUtils;
@@ -35,7 +35,7 @@ public class RefrigerantFactorController extends GenericFactorController {
     private final RefrigerantFactorService refrigerantService;
     private EmissionFactorsPanel parentView;
 
-    public RefrigerantFactorController(ResourceBundle messages, ElectricityGeneralFactorService emissionFactorService,
+    public RefrigerantFactorController(ResourceBundle messages, EmissionFactorService emissionFactorService,
             RefrigerantFactorService refrigerantService) {
         super(messages, emissionFactorService, EnergyType.REFRIGERANT.name());
         this.messages = messages;

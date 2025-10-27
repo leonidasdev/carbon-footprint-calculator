@@ -13,7 +13,7 @@ import java.util.Optional;
  * current default) or use other storage mechanisms.
  * </p>
  */
-public interface ElectricityGeneralFactorService {
+public interface EmissionFactorService {
     /**
      * Persist or upsert a single emission factor. Implementations should
      * write changes immediately to the backing store.

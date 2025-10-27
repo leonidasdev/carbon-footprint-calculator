@@ -32,7 +32,7 @@ public interface CupsService {
      * Append a full CUPS-center mapping entry and persist. If the underlying
      * CSV does not exist it will be created with a header row.
      */
-    void appendCupsCenter(String cups, String marketer, String centerName, String acronym,
+    void appendCupsCenter(String cups, String marketer, String centerName, String acronym, String campus,
             String energyType, String street, String postalCode,
             String city, String province) throws IOException;
 

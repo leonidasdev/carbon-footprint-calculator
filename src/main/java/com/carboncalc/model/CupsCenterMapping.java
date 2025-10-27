@@ -4,12 +4,17 @@ package com.carboncalc.model;
  * Mapping object for a CUPS center row used during import and manual
  * configuration flows.
  *
+ * <p>
  * This POJO holds the CUPS identifier and associated center metadata used
- * by the Cups UI and import preview. The natural ordering implemented by
- * {@link #compareTo(CupsCenterMapping)} is a case-insensitive ordering on
- * the center display name to allow consistent sorting in UI tables.
- * Equality prefers database id comparison when available and falls back to
- * matching by (cups, centerName) pair.
+ * by the Cups UI and import preview. It includes fields for acronym and the
+ * newly added {@code campus} value which is stored alongside energy and
+ * address fields.
+ *
+ * <p>
+ * The natural ordering implemented by {@link #compareTo(CupsCenterMapping)}
+ * is a case-insensitive ordering on the center display name to allow
+ * consistent sorting in UI tables. Equality prefers database id comparison
+ * when available and falls back to matching by the (cups, centerName) pair.
  */
 public class CupsCenterMapping implements Comparable<CupsCenterMapping> {
     private Long id;
@@ -17,6 +22,7 @@ public class CupsCenterMapping implements Comparable<CupsCenterMapping> {
     private String centerName;
     private String marketer;
     private String acronym;
+    private String campus;
     private String energyType;
     private String street;
     private String postalCode;
@@ -38,6 +44,21 @@ public class CupsCenterMapping implements Comparable<CupsCenterMapping> {
         this.marketer = marketer;
         this.centerName = centerName;
         this.acronym = acronym;
+        this.energyType = energyType;
+        this.street = street;
+        this.postalCode = postalCode;
+        this.city = city;
+        this.province = province;
+    }
+
+    public CupsCenterMapping(String cups, String marketer, String centerName, String acronym, String campus,
+            String energyType, String street, String postalCode,
+            String city, String province) {
+        this.cups = cups;
+        this.marketer = marketer;
+        this.centerName = centerName;
+        this.acronym = acronym;
+        this.campus = campus;
         this.energyType = energyType;
         this.street = street;
         this.postalCode = postalCode;
@@ -76,6 +97,14 @@ public class CupsCenterMapping implements Comparable<CupsCenterMapping> {
 
     public void setAcronym(String acronym) {
         this.acronym = acronym;
+    }
+
+    public String getCampus() {
+        return campus;
+    }
+
+    public void setCampus(String campus) {
+        this.campus = campus;
     }
 
     public String getEnergyType() {

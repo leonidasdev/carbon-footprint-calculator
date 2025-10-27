@@ -3,15 +3,23 @@ package com.carboncalc.model;
 /**
  * Simple data holder representing a CUPS center row.
  *
- * This class is a plain POJO used by the Cups configuration UI and import
+ * <p>
+ * This class is a plain POJO used by the CUPS configuration UI and import
  * flow. It intentionally keeps no validation logic; controllers and services
- * *are* responsible for validating and normalizing values prior to persistence.
+ * are responsible for validating and normalizing values prior to persistence.
+ *
+ * <p>
+ * Fields stored include: cups, marketer, centerName, centerAcronym, campus,
+ * energyType, and address fields. The {@code campus} field was added to
+ * allow an explicit campus value to be stored and displayed in the UI and
+ * persisted in the CSV.
  */
 public class CenterData {
     private String cups;
     private String marketer;
     private String centerName;
     private String centerAcronym;
+    private String campus;
     private String energyType;
     private String street;
     private String postalCode;
@@ -22,7 +30,7 @@ public class CenterData {
     }
 
     /**
-     * Full-value constructor.
+     * Full-value constructor (legacy ordering without campus).
      *
      * @param cups          CUPS identifier
      * @param marketer      marketer name or identifier
@@ -35,12 +43,40 @@ public class CenterData {
      * @param city          city name
      * @param province      province name
      */
+    /**
+     * Extended constructor that includes the Campus field.
+     *
+     * @param cups          CUPS identifier
+     * @param marketer      marketer name or identifier
+     * @param centerName    display name for the center
+     * @param centerAcronym short acronym for the center
+     * @param campus        campus name (optional)
+     * @param energyType    energy type identifier
+     * @param street        street/address
+     * @param postalCode    postal code
+     * @param city          city name
+     * @param province      province name
+     */
     public CenterData(String cups, String marketer, String centerName, String centerAcronym, String energyType,
             String street, String postalCode, String city, String province) {
         this.cups = cups;
         this.marketer = marketer;
         this.centerName = centerName;
         this.centerAcronym = centerAcronym;
+        this.energyType = energyType;
+        this.street = street;
+        this.postalCode = postalCode;
+        this.city = city;
+        this.province = province;
+    }
+
+    public CenterData(String cups, String marketer, String centerName, String centerAcronym, String campus,
+            String energyType, String street, String postalCode, String city, String province) {
+        this.cups = cups;
+        this.marketer = marketer;
+        this.centerName = centerName;
+        this.centerAcronym = centerAcronym;
+        this.campus = campus;
         this.energyType = energyType;
         this.street = street;
         this.postalCode = postalCode;
@@ -79,6 +115,14 @@ public class CenterData {
 
     public void setCenterAcronym(String centerAcronym) {
         this.centerAcronym = centerAcronym;
+    }
+
+    public String getCampus() {
+        return campus;
+    }
+
+    public void setCampus(String campus) {
+        this.campus = campus;
     }
 
     public String getEnergyType() {

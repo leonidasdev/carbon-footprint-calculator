@@ -30,11 +30,11 @@ import javax.swing.event.DocumentEvent;
  *
  * Responsibilities:
  * - Own the electricity-specific subpanel (trading companies + general factors)
- *   and persist data via {@link ElectricityFactorService}.
+ * and persist data via {@link ElectricityFactorService}.
  * - Populate the electricity subpanel's controls (including the trading
- *   companies table) for a given year when activated. The controller
- *   populates the panel immediately (on the EDT) to avoid races with
- *   card layout visibility changes.
+ * companies table) for a given year when activated. The controller
+ * populates the panel immediately (on the EDT) to avoid races with
+ * card layout visibility changes.
  */
 public class ElectricityFactorController implements FactorSubController {
     private final ResourceBundle messages;
@@ -153,11 +153,11 @@ public class ElectricityFactorController implements FactorSubController {
         // (previously had debug logging here)
         if (panel == null)
             return;
-    // Temporarily disable document and table model listeners while
-    // populating fields programmatically so changes are not treated as
-    // user edits (avoids marking controller dirty when we refresh UI).
-    suppressDocumentListeners = true;
-    suppressTableModelListeners = true;
+        // Temporarily disable document and table model listeners while
+        // populating fields programmatically so changes are not treated as
+        // user edits (avoids marking controller dirty when we refresh UI).
+        suppressDocumentListeners = true;
+        suppressTableModelListeners = true;
         try {
             if (factors != null) {
                 panel.getMixSinGdoField().setText(String.format("%.4f", factors.getMixSinGdo()));
@@ -210,7 +210,8 @@ public class ElectricityFactorController implements FactorSubController {
                 }
             }
         } finally {
-            // Re-enable document and table model listeners regardless of any error while populating.
+            // Re-enable document and table model listeners regardless of any error while
+            // populating.
             suppressDocumentListeners = false;
             suppressTableModelListeners = false;
 

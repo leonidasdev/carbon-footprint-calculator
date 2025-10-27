@@ -41,6 +41,7 @@ public class CupsConfigPanel extends BaseModulePanel {
     private JTextField centerNameField;
     private JTextField marketerField;
     private JTextField centerAcronymField;
+    private JTextField campusField;
     private JComboBox<String> energyTypeCombo;
     private JTextField streetField;
     private JTextField postalCodeField;
@@ -157,6 +158,13 @@ public class CupsConfigPanel extends BaseModulePanel {
 
         l.gridx = 0;
         l.gridy = 4;
+        left.add(new JLabel(messages.getString("label.campus") + ":"), l);
+        l.gridx = 1;
+        campusField = UIUtils.createCompactTextField(120, 25);
+        left.add(campusField, l);
+
+        l.gridx = 0;
+        l.gridy = 5;
         left.add(new JLabel(messages.getString("label.energy.type") + ":"), l);
         l.gridx = 1;
         List<String> energyOptions = new ArrayList<>();
@@ -405,17 +413,21 @@ public class CupsConfigPanel extends BaseModulePanel {
          * (Edit / Delete / Save). Uses localized column headers.
          */
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.centers.list")));
+        // Title for the centers table panel is localized; use a descriptive key
+        panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.cups.centers.mapping")));
         panel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         // Create table with custom model
         // Create table with custom model. Column headers are localized via resource
         // bundle.
+        // Include a hidden ID column at index 0 to preserve mapping identity
         String[] tableColumns = new String[] {
+                "id",
                 messages.getString("label.cups"),
                 messages.getString("label.marketer"),
                 messages.getString("label.center"),
                 messages.getString("label.acronym"),
+                messages.getString("label.campus"),
                 messages.getString("label.energy"),
                 messages.getString("label.street"),
                 messages.getString("label.postal"),
@@ -434,6 +446,17 @@ public class CupsConfigPanel extends BaseModulePanel {
         centersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         centersTable.getTableHeader().setReorderingAllowed(false);
         UIUtils.styleTable(centersTable);
+
+        // Hide the ID column: keep it in the model but make it invisible in the UI
+        try {
+            javax.swing.table.TableColumn idCol = centersTable.getColumnModel().getColumn(0);
+            idCol.setMinWidth(0);
+            idCol.setMaxWidth(0);
+            idCol.setPreferredWidth(0);
+            idCol.setWidth(0);
+            idCol.setResizable(false);
+        } catch (Exception ignored) {
+        }
 
         // Create scroll pane for table
         centersScrollPane = new JScrollPane(centersTable);
@@ -490,6 +513,7 @@ public class CupsConfigPanel extends BaseModulePanel {
                 marketerField.getText(),
                 centerNameField.getText(),
                 centerAcronymField.getText(),
+                campusField.getText(),
                 (String) energyTypeCombo.getSelectedItem(),
                 streetField.getText(),
                 postalCodeField.getText(),
@@ -561,6 +585,10 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     public JTextField getCenterAcronymField() {
         return centerAcronymField;
+    }
+
+    public JTextField getCampusField() {
+        return campusField;
     }
 
     public JComboBox<String> getEnergyTypeCombo() {

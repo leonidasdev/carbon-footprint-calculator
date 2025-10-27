@@ -22,10 +22,14 @@ import java.util.List;
 /**
  * CSV-backed implementation of {@link CupsService}.
  *
+ * <p>
  * Stores CUPS and CUPS-center mapping data under the project-local
  * data directory. This implementation focuses on robustness: it uses a
  * lenient parser for legacy CSV variations and preserves backwards
- * compatibility with older files.
+ * compatibility with older files. The cups CSV now contains an additional
+ * "campus" column (between acronym and energyType); the lenient reader
+ * will tolerate older files missing that column and will set campus to an
+ * empty string in that case.
  */
 public class CupsServiceCsv implements CupsService {
     private static final String DATA_DIR = "data";
@@ -141,6 +145,14 @@ public class CupsServiceCsv implements CupsService {
         if (!Files.exists(filePath))
             return List.of();
 
+        // Best-effort parser: reads raw CSV rows and maps by column index.
+        // This parser tolerates the following real-world variations:
+        // - optional header row (first cell equals "id")
+        // - missing trailing columns (older files without the newly added "campus"
+        // column)
+        // - blank lines
+        // It returns an empty list when the file does not exist or contains
+        // nothing parseable.
         List<CupsCenterMapping> result = new java.util.ArrayList<>();
         try (java.io.Reader reader = Files.newBufferedReader(filePath);
                 com.opencsv.CSVReader csv = new com.opencsv.CSVReader(reader)) {
@@ -173,14 +185,15 @@ public class CupsServiceCsv implements CupsService {
                 String marketer = row.length > 2 ? row[2] : "";
                 String centerName = row.length > 3 ? row[3] : "";
                 String acronym = row.length > 4 ? row[4] : "";
-                String energyType = row.length > 5 ? row[5] : "";
-                String street = row.length > 6 ? row[6] : "";
-                String postalCode = row.length > 7 ? row[7] : "";
-                String city = row.length > 8 ? row[8] : "";
-                String province = row.length > 9 ? row[9] : "";
+                String campus = row.length > 5 ? row[5] : "";
+                String energyType = row.length > 6 ? row[6] : "";
+                String street = row.length > 7 ? row[7] : "";
+                String postalCode = row.length > 8 ? row[8] : "";
+                String city = row.length > 9 ? row[9] : "";
+                String province = row.length > 10 ? row[10] : "";
 
-                CupsCenterMapping m = new CupsCenterMapping(cups, marketer, centerName, acronym, energyType, street,
-                        postalCode, city, province);
+                CupsCenterMapping m = new CupsCenterMapping(cups, marketer, centerName, acronym, campus,
+                        energyType, street, postalCode, city, province);
                 try {
                     if (idStr != null && !idStr.trim().isEmpty())
                         m.setId(Long.parseLong(idStr.trim()));
@@ -205,6 +218,16 @@ public class CupsServiceCsv implements CupsService {
             Files.createDirectories(filePath.getParent());
         }
 
+        // Normalize and persist the full mapping list.
+        // Behavior:
+        // - Sorts the mappings by centerName so file ordering is stable.
+        // - Reassigns sequential numeric IDs starting at 1. IDs are used by the
+        // UI edit flow to find and replace existing entries atomically.
+        // - Writes a header row followed by all mappings. The CSV columns are
+        // (in order): id, cups, marketer, centerName, acronym, campus,
+        // energyType, street, postalCode, city, province.
+        // Note: callers should pass a fully-populated list; this method will
+        // overwrite the existing file atomically when complete.
         // Sort by centerName and reassign IDs
         Collections.sort(mappings);
         long id = 1;
@@ -221,7 +244,8 @@ public class CupsServiceCsv implements CupsService {
                         CSVWriter.DEFAULT_LINE_END)) {
 
             // Header (do not force quotes)
-            String[] header = new String[] { "id", "cups", "marketer", "centerName", "acronym", "energyType", "street",
+            String[] header = new String[] { "id", "cups", "marketer", "centerName", "acronym", "campus", "energyType",
+                    "street",
                     "postalCode", "city", "province" };
             csvWriter.writeNext(header, false);
 
@@ -232,6 +256,7 @@ public class CupsServiceCsv implements CupsService {
                         m.getMarketer(),
                         m.getCenterName(),
                         m.getAcronym(),
+                        m.getCampus(),
                         m.getEnergyType(),
                         m.getStreet(),
                         m.getPostalCode(),
@@ -278,13 +303,20 @@ public class CupsServiceCsv implements CupsService {
      * if it does not exist.
      */
     @Override
-    public void appendCupsCenter(String cups, String marketer, String centerName, String acronym,
+    public void appendCupsCenter(String cups, String marketer, String centerName, String acronym, String campus,
             String energyType, String street, String postalCode,
             String city, String province) throws IOException {
+        // Append a new mapping to the set if it's not already present.
+        // Implementation detail: the method loads the full set of existing
+        // mappings, checks for presence using CupsCenterMapping.equals (which
+        // considers id or cups+centerName), and if absent adds the new mapping,
+        // re-sorts and reassigns IDs, then writes the entire file. This keeps the
+        // on-disk file consistent and avoids partial appends that might break
+        // the bean-backed loader.
         // Load existing mappings (bean-backed) so we can sort and assign IDs
         List<CupsCenterMapping> existing = loadCupsData();
 
-        CupsCenterMapping newMapping = new CupsCenterMapping(cups, marketer, centerName, acronym,
+        CupsCenterMapping newMapping = new CupsCenterMapping(cups, marketer, centerName, acronym, campus,
                 energyType, street, postalCode, city, province);
 
         // Only add if not already present (equals checks cups+centerName or id)
@@ -319,6 +351,8 @@ public class CupsServiceCsv implements CupsService {
         String targetCups = cups != null ? cups.trim() : "";
         String targetCenter = centerName != null ? centerName.trim() : "";
 
+        // Remove any mapping that matches the provided cups+centerName
+        // case-insensitively. After removal, reassign sequential IDs and save.
         boolean removed = existing.removeIf(m -> {
             String mc = m.getCups() != null ? m.getCups().trim() : "";
             String mn = m.getCenterName() != null ? m.getCenterName().trim() : "";

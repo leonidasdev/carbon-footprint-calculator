@@ -22,8 +22,20 @@ import java.util.*;
 import java.text.MessageFormat;
 
 /**
- * Controller for the Fuel import panel. Mirrors the refrigerant import
- * controller but targets fuel-specific mapping and minimal export.
+ * Controller responsible for orchestrating the Fuel import flow.
+ *
+ * <p>The controller performs the following responsibilities:
+ * <ul>
+ * <li>Show a file chooser and load the selected Teams Forms Excel file.</li>
+ * <li>Enumerate sheets and populate mapping dropdowns with header values.</li>
+ * <li>Provide a preview of the source sheet and validate the user's
+ * mapping selections.</li>
+ * <li>Delegate export tasks to {@link com.carboncalc.util.excel.FuelExcelExporter}.</li>
+ * </ul>
+ *
+ * <p>Long-running operations (large exports) are performed synchronously
+ * for simplicity; if needed these should be moved off the EDT using a
+ * {@code SwingWorker} to avoid blocking the UI thread.
  */
 public class FuelController {
     private final ResourceBundle messages;
@@ -78,6 +90,11 @@ public class FuelController {
         }
     }
 
+    /**
+     * Prompt the user to select a Teams Forms Excel file and load it in
+     * memory. On success the view sheet selector and preview will be
+     * populated.
+     */
     public void handleTeamsFormsFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
@@ -122,6 +139,10 @@ public class FuelController {
         }
     }
 
+    /**
+     * Invoked when the user selects a sheet in the Teams workbook. This
+     * method populates the mapping combos and refreshes the preview.
+     */
     public void handleTeamsSheetSelection() {
         if (teamsWorkbook == null)
             return;
@@ -136,6 +157,10 @@ public class FuelController {
         updatePreviewTable(sheet);
     }
 
+    /**
+     * Inspect the provided sheet for a header row and use the header
+     * values to populate the mapping dropdowns in the view.
+     */
     private void updateTeamsColumnSelectors(Sheet sheet) {
         DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
@@ -188,6 +213,11 @@ public class FuelController {
         }
     }
 
+    /**
+     * Build a small, read-only table model that contains a sample of the
+     * source sheet (header + first ~100 rows) and install it into the
+     * preview table.
+     */
     private void updatePreviewTable(Sheet sheet) {
         DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
@@ -302,10 +332,18 @@ public class FuelController {
         }
     }
 
+    /**
+     * Hook executed when mapping selections change. The panel enables or
+     * disables the Apply button; additional validation may be added here.
+     */
     public void handleColumnSelection() {
-        // no-op for now; view enables apply button
+        // no-op for now; the view controls Apply button state
     }
 
+    /**
+     * Validate that a Teams workbook is loaded, a sheet is selected and
+     * that the user has provided a complete mapping.
+     */
     private boolean validateInputs() {
         if (teamsWorkbook == null || view.getTeamsSheetSelector().getSelectedItem() == null) {
             JOptionPane.showMessageDialog(view, messages.getString("error.no.data"), messages.getString("error.title"),
@@ -323,6 +361,12 @@ public class FuelController {
         return true;
     }
 
+    /**
+     * Parse the selected sheet using the user's mapping and count the
+     * number of valid rows. The method then prompts the user for a
+     * destination file and delegates the creation of the output Excel
+     * workbook to {@link com.carboncalc.util.excel.FuelExcelExporter}.
+     */
     public void handleImport() {
         if (!validateInputs())
             return;
@@ -435,8 +479,8 @@ public class FuelController {
     }
 
     /**
-     * Compatibility entry used by the panels following the Apply & Save Excel
-     * pattern. Delegate to {@link #handleImport()}.
+     * Compatibility entry used by panels that follow the "Apply & Save
+     * Excel" pattern. Delegates to {@link #handleImport()}.
      */
     public void handleApplyAndSaveExcel() {
         handleImport();

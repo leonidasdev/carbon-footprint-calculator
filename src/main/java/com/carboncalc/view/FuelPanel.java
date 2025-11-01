@@ -12,7 +12,15 @@ import java.text.DecimalFormat;
 import java.util.ResourceBundle;
 
 /**
- * View panel for fuel imports (Teams Forms mapping + preview + result).
+ * UI panel for importing fuel invoice data from Teams Forms (Excel) files.
+ *
+ * <p>
+ * This panel follows the same layout and interaction pattern used for
+ * other modules (electricity, gas, refrigerants): a file management box
+ * on the left, a mapping area on the right that lets the user map
+ * spreadsheet columns to logical fields, a preview of the selected
+ * sheet and a small result panel with a year selector and an export
+ * button.
  */
 public class FuelPanel extends BaseModulePanel {
     private final FuelController controller;
@@ -147,7 +155,8 @@ public class FuelPanel extends BaseModulePanel {
         UIUtils.styleTable(previewTable);
 
         previewScrollPane = new JScrollPane(previewTable);
-        previewScrollPane.setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH * 2, UIUtils.PREVIEW_SCROLL_HEIGHT));
+        previewScrollPane
+                .setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH * 2, UIUtils.PREVIEW_SCROLL_HEIGHT));
         previewPanel.add(previewScrollPane, BorderLayout.CENTER);
 
         JPanel resultPanel = new JPanel(new BorderLayout());
@@ -160,7 +169,8 @@ public class FuelPanel extends BaseModulePanel {
         resultTableScrollPane = new JScrollPane(resultPreviewTable);
         resultTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         resultTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        resultTableScrollPane.setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH, UIUtils.PREVIEW_SCROLL_HEIGHT));
+        resultTableScrollPane
+                .setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH, UIUtils.PREVIEW_SCROLL_HEIGHT));
         resultPanel.add(resultTableScrollPane, BorderLayout.CENTER);
 
         JPanel resultTopPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
@@ -190,8 +200,9 @@ public class FuelPanel extends BaseModulePanel {
         resultTopPanel.add(sheetLabel);
 
         resultSheetSelector = UIComponents.createSheetSelector(UIUtils.RESULT_SHEET_WIDTH);
-        resultSheetSelector.setModel(new DefaultComboBoxModel<>(new String[] { messages.getString("result.sheet.extended"),
-                messages.getString("result.sheet.per_center"), messages.getString("result.sheet.total") }));
+        resultSheetSelector
+                .setModel(new DefaultComboBoxModel<>(new String[] { messages.getString("result.sheet.extended"),
+                        messages.getString("result.sheet.per_center"), messages.getString("result.sheet.total") }));
         resultSheetSelector.setToolTipText(messages.getString("result.sheet.tooltip"));
         resultTopPanel.add(resultSheetSelector);
 
@@ -218,6 +229,10 @@ public class FuelPanel extends BaseModulePanel {
         setBackground(UIUtils.CONTENT_BACKGROUND);
     }
 
+    /**
+     * Helper to add a labeled mapping combo to the mapping grid and wire
+     * a listener that notifies the controller whenever mappings change.
+     */
     private void addColumnMapping(JPanel panel, GridBagConstraints gbc, String labelKey, JComboBox<String> comboBox) {
         panel.add(new JLabel(messages.getString(labelKey)), gbc);
         gbc.gridx = 1;
@@ -231,6 +246,11 @@ public class FuelPanel extends BaseModulePanel {
         });
     }
 
+    /**
+     * Load persisted current year from disk; fallback to system year on
+     * any failure. This mirrors the behavior used by other panels so the
+     * user's year selection is shared across modules.
+     */
     private int loadCurrentYearFromFile() {
         try {
             java.nio.file.Path p = java.nio.file.Paths.get("data", "year", "current_year.txt");
@@ -248,6 +268,11 @@ public class FuelPanel extends BaseModulePanel {
         return LocalDate.now().getYear();
     }
 
+    /**
+     * Update the file label in the file management box. If the name is
+     * long it will be truncated with an ellipsis but the full name will
+     * be available as a tooltip.
+     */
     public void setTeamsFileName(String fullName) {
         setLabelTextWithEllipsis(teamsFileLabel, fullName, 20);
     }
@@ -269,15 +294,21 @@ public class FuelPanel extends BaseModulePanel {
         label.setToolTipText(fullName);
     }
 
+    /** Return the sheet selector for the loaded Teams workbook. */
     public JComboBox<String> getTeamsSheetSelector() {
         return teamsSheetSelector;
     }
 
+    /**
+     * Return the preview table widget where a small sample of the
+     * provider sheet is shown.
+     */
     public JTable getPreviewTable() {
         return previewTable;
     }
 
-    // Mapping getters
+    // Mapping getters (exposed to the controller so it can populate the
+    // mapping combos when a sheet is loaded)
     public JComboBox<String> getCentroSelector() {
         return centroSelector;
     }
@@ -314,6 +345,11 @@ public class FuelPanel extends BaseModulePanel {
         return resultSheetSelector;
     }
 
+    /**
+     * Convert the selected index of a mapping combo into the zero-based
+     * column index used by the exporter. A selection of the empty first
+     * item returns -1.
+     */
     private int getSelectedIndex(JComboBox<String> comboBox) {
         if (comboBox == null)
             return -1;
@@ -323,6 +359,11 @@ public class FuelPanel extends BaseModulePanel {
         return sel - 1;
     }
 
+    /**
+     * Build a {@link com.carboncalc.model.FuelMapping} reflecting the
+     * current user selection in the mapping combos. Unmapped fields are
+     * represented as {@code -1}.
+     */
     public FuelMapping getSelectedColumns() {
         return new FuelMapping(getSelectedIndex(centroSelector), getSelectedIndex(responsableSelector),
                 getSelectedIndex(invoiceNumberSelector), getSelectedIndex(providerSelector),
@@ -330,11 +371,16 @@ public class FuelPanel extends BaseModulePanel {
                 getSelectedIndex(vehicleTypeSelector), getSelectedIndex(amountSelector));
     }
 
+    /** Install a preview table model and apply project table styling. */
     public void updatePreviewModel(javax.swing.table.TableModel model) {
         previewTable.setModel(model);
         UIUtils.setupPreviewTable(previewTable);
     }
 
+    /**
+     * Enable/disable the Apply button depending on whether the mapping
+     * is complete.
+     */
     private void updateApplyAndSaveButtonState() {
         FuelMapping mapping = getSelectedColumns();
         if (applyAndSaveExcelButton != null)

@@ -1,42 +1,44 @@
 package com.carboncalc.util.excel;
 
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import java.io.FileOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
 
 import com.carboncalc.model.FuelMapping;
 
 /**
- * Minimal exporter for Fuel import results. Creates an Excel workbook with
- * a detailed sheet and a total sheet. This is intentionally simple and can
- * be extended to compute price-per-litre based metrics later.
+ * Minimal Excel exporter used by the Fuel import flow.
+ *
+ * <p>
+ * The current implementation produces two simple sheets: a detailed
+ * "Extendido" sheet with column headers and a small "Total" sheet. The
+ * exporter is intentionally lightweight at this stage; the full
+ * computation using per-fuel price-per-litre factors will be added when
+ * the fuel factor model is updated.
  */
 public class FuelExcelExporter {
 
+    /**
+     * Create a new Excel workbook at {@code filePath} containing the
+     * template sheets and headers. If a provider path is supplied the
+     * method will still produce the same output; reading the provider is
+     * left for the extended exporter implementation.
+     */
     public static void exportFuelData(String filePath, String providerPath, String providerSheet,
             FuelMapping mapping, int year, String sheetMode) throws IOException {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
-            if (providerPath != null && providerSheet != null) {
-                Sheet detailed = workbook.createSheet("Extendido");
-                createDetailedHeader(detailed);
-                // Minimal: copy header only and leave data to be added later
+            Sheet detailed = workbook.createSheet("Extendido");
+            createDetailedHeader(detailed);
 
-                Sheet total = workbook.createSheet("Total");
-                createTotalHeader(total);
-            } else {
-                Sheet detailed = workbook.createSheet("Extendido");
-                createDetailedHeader(detailed);
-                Sheet total = workbook.createSheet("Total");
-                createTotalHeader(total);
-            }
+            Sheet total = workbook.createSheet("Total");
+            createTotalHeader(total);
 
             try (FileOutputStream fos = new FileOutputStream(filePath)) {
                 workbook.write(fos);

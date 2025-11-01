@@ -1,8 +1,15 @@
 package com.carboncalc.model;
 
 /**
- * DTO holding column mapping indices for Fuel Teams Forms imports.
- * Indices use -1 to denote an unselected mapping.
+ * FuelMapping is a small data transfer object that captures which columns
+ * in a Teams Forms (Excel) sheet correspond to the logical fields used
+ * when importing fuel invoices.
+ *
+ * <p>
+ * The mapping stores zero-based column indices; a value of {@code -1}
+ * means the user did not select a column for that field. The
+ * {@link #isComplete()} helper returns true when all required fields are
+ * selected.
  */
 public class FuelMapping {
     private final int centroIndex;
@@ -60,6 +67,8 @@ public class FuelMapping {
 
     /**
      * Return true when all required fields have a selected column index.
+     * Required fields for fuel import are: centro, responsable, invoice
+     * number, provider, invoice date, fuel type, vehicle type and amount.
      */
     public boolean isComplete() {
         return centroIndex >= 0 && responsableIndex >= 0 && invoiceIndex >= 0 && providerIndex >= 0

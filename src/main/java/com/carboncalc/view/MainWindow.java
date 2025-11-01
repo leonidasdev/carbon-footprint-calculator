@@ -130,9 +130,9 @@ public class MainWindow extends JFrame {
         // Initialize all module panels
         contentPanel.add(createElectricityPanel(), EnergyType.ELECTRICITY.id());
         contentPanel.add(createGasPanel(), EnergyType.GAS.id());
-        // Add placeholder panels for unimplemented modules
-        contentPanel.add(createPlaceholderPanel("module.fuel"), EnergyType.FUEL.id());
-        contentPanel.add(createPlaceholderPanel("module.refrigerants"), EnergyType.REFRIGERANT.id());
+    // Add modules (use real panels when implemented)
+    contentPanel.add(createFuelPanel(), EnergyType.FUEL.id());
+        contentPanel.add(createRefrigerantPanel(), EnergyType.REFRIGERANT.id());
         contentPanel.add(createPlaceholderPanel("module.general"), "general");
         contentPanel.add(createCupsConfigPanel(), "cups");
         contentPanel.add(createEmissionFactorsPanel(), "factors");
@@ -187,6 +187,22 @@ public class MainWindow extends JFrame {
     private JPanel createGasPanel() {
         GasController panelController = new GasController(messages);
         GasPanel panel = new GasPanel(panelController, messages);
+        panelController.setView(panel);
+        return panel;
+    }
+
+    private JPanel createRefrigerantPanel() {
+        // Create controller and view for refrigerant module
+        com.carboncalc.controller.RefrigerantController panelController = new com.carboncalc.controller.RefrigerantController(
+                messages);
+        RefrigerantPanel panel = new RefrigerantPanel(panelController, messages);
+        panelController.setView(panel);
+        return panel;
+    }
+
+    private JPanel createFuelPanel() {
+        com.carboncalc.controller.FuelController panelController = new com.carboncalc.controller.FuelController(messages);
+        com.carboncalc.view.FuelPanel panel = new com.carboncalc.view.FuelPanel(panelController, messages);
         panelController.setView(panel);
         return panel;
     }

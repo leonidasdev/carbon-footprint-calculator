@@ -140,20 +140,20 @@ public class CupsConfigController {
         for (CupsCenterMapping m : mappings) {
             // Convert stored energy token (e.g. ELECTRICITY) to localized display label if
             // possible
-        String displayEnergy = localizedLabelFor(m.getEnergyType());
-        model.addRow(new Object[] {
-            m.getId(),
-            m.getCups(),
-            m.getMarketer(),
-            m.getCenterName(),
-            m.getAcronym(),
-            m.getCampus(),
-            displayEnergy,
-            m.getStreet(),
-            m.getPostalCode(),
-            m.getCity(),
-            m.getProvince()
-        });
+            String displayEnergy = localizedLabelFor(m.getEnergyType());
+            model.addRow(new Object[] {
+                    m.getId(),
+                    m.getCups(),
+                    m.getMarketer(),
+                    m.getCenterName(),
+                    m.getAcronym(),
+                    m.getCampus(),
+                    displayEnergy,
+                    m.getStreet(),
+                    m.getPostalCode(),
+                    m.getCity(),
+                    m.getProvince()
+            });
         }
     }
 
@@ -307,17 +307,17 @@ public class CupsConfigController {
         String energyToSave = resolved != null ? resolved.name() : selectedEnergyLabel;
 
         try {
-        csvService.appendCupsCenter(
-            normalizedCups,
-            centerData.getMarketer(),
-            centerData.getCenterName(),
-            acronym,
-            centerData.getCampus(),
-            energyToSave,
-            centerData.getStreet(),
-            centerData.getPostalCode(),
-            centerData.getCity(),
-            centerData.getProvince());
+            csvService.appendCupsCenter(
+                    normalizedCups,
+                    centerData.getMarketer(),
+                    centerData.getCenterName(),
+                    acronym,
+                    centerData.getCampus(),
+                    energyToSave,
+                    centerData.getStreet(),
+                    centerData.getPostalCode(),
+                    centerData.getCity(),
+                    centerData.getProvince());
             // Reload table from saved CSV so it's sorted and IDs are assigned
             List<CupsCenterMapping> mappings = csvService.loadCupsData();
             DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
@@ -362,20 +362,22 @@ public class CupsConfigController {
         Long originalId = null;
         try {
             Object idObj = model.getValueAt(selectedRow, 0);
-            if (idObj instanceof Number) originalId = ((Number) idObj).longValue();
-            else if (idObj instanceof String) originalId = Long.parseLong((String) idObj);
+            if (idObj instanceof Number)
+                originalId = ((Number) idObj).longValue();
+            else if (idObj instanceof String)
+                originalId = Long.parseLong((String) idObj);
         } catch (Exception ignored) {
         }
         String originalCups = (String) model.getValueAt(selectedRow, 1);
         String originalMarketer = (String) model.getValueAt(selectedRow, 2);
         String originalCenterName = (String) model.getValueAt(selectedRow, 3);
-    String originalAcronym = (String) model.getValueAt(selectedRow, 4);
-    String originalCampus = (String) model.getValueAt(selectedRow, 5);
-    String originalEnergy = (String) model.getValueAt(selectedRow, 6);
-    String originalStreet = (String) model.getValueAt(selectedRow, 7);
-    String originalPostal = (String) model.getValueAt(selectedRow, 8);
-    String originalCity = (String) model.getValueAt(selectedRow, 9);
-    String originalProvince = (String) model.getValueAt(selectedRow, 10);
+        String originalAcronym = (String) model.getValueAt(selectedRow, 4);
+        String originalCampus = (String) model.getValueAt(selectedRow, 5);
+        String originalEnergy = (String) model.getValueAt(selectedRow, 6);
+        String originalStreet = (String) model.getValueAt(selectedRow, 7);
+        String originalPostal = (String) model.getValueAt(selectedRow, 8);
+        String originalCity = (String) model.getValueAt(selectedRow, 9);
+        String originalProvince = (String) model.getValueAt(selectedRow, 10);
 
         // Build an edit form similar to other modules so user can accept or cancel
         JTextField cupsField = UIUtils.createCompactTextField(160, 25);
@@ -392,11 +394,11 @@ public class CupsConfigController {
             energyCombo.setSelectedItem(display != null ? display : messages.getString("energy.type.electricity"));
         } catch (Exception ignored) {
         }
-    JTextField campusField = UIUtils.createCompactTextField(140, 25);
-    campusField.setText(originalCampus);
+        JTextField campusField = UIUtils.createCompactTextField(140, 25);
+        campusField.setText(originalCampus);
 
-    JTextField streetField = UIUtils.createCompactTextField(200, 25);
-    streetField.setText(originalStreet);
+        JTextField streetField = UIUtils.createCompactTextField(200, 25);
+        streetField.setText(originalStreet);
         JTextField postalField = UIUtils.createCompactTextField(100, 25);
         postalField.setText(originalPostal);
         JTextField cityField = UIUtils.createCompactTextField(140, 25);
@@ -410,48 +412,87 @@ public class CupsConfigController {
         gbc.insets = new Insets(6, 6, 6, 6);
 
         int row = 0;
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel(messages.getString("label.cups") + ":"), gbc);
-        gbc.gridx = 1; form.add(cupsField, gbc); row++;
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel(messages.getString("label.marketer") + ":"), gbc);
-        gbc.gridx = 1; form.add(marketerField, gbc); row++;
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel(messages.getString("label.center.name") + ":"), gbc);
-        gbc.gridx = 1; form.add(centerNameField, gbc); row++;
-    gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel(messages.getString("label.center.acronym") + ":"), gbc);
-    gbc.gridx = 1; form.add(acronymField, gbc); row++;
-    gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel(messages.getString("label.campus") + ":"), gbc);
-    gbc.gridx = 1; form.add(campusField, gbc); row++;
-    gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel(messages.getString("label.energy.type") + ":"), gbc);
-    gbc.gridx = 1; form.add(energyCombo, gbc); row++;
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel(messages.getString("label.street") + ":"), gbc);
-        gbc.gridx = 1; form.add(streetField, gbc); row++;
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel(messages.getString("label.postal.code") + ":"), gbc);
-        gbc.gridx = 1; form.add(postalField, gbc); row++;
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel(messages.getString("label.city") + ":"), gbc);
-        gbc.gridx = 1; form.add(cityField, gbc); row++;
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel(messages.getString("label.province") + ":"), gbc);
-        gbc.gridx = 1; form.add(provinceField, gbc);
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        form.add(new JLabel(messages.getString("label.cups") + ":"), gbc);
+        gbc.gridx = 1;
+        form.add(cupsField, gbc);
+        row++;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        form.add(new JLabel(messages.getString("label.marketer") + ":"), gbc);
+        gbc.gridx = 1;
+        form.add(marketerField, gbc);
+        row++;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        form.add(new JLabel(messages.getString("label.center.name") + ":"), gbc);
+        gbc.gridx = 1;
+        form.add(centerNameField, gbc);
+        row++;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        form.add(new JLabel(messages.getString("label.center.acronym") + ":"), gbc);
+        gbc.gridx = 1;
+        form.add(acronymField, gbc);
+        row++;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        form.add(new JLabel(messages.getString("label.campus") + ":"), gbc);
+        gbc.gridx = 1;
+        form.add(campusField, gbc);
+        row++;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        form.add(new JLabel(messages.getString("label.energy.type") + ":"), gbc);
+        gbc.gridx = 1;
+        form.add(energyCombo, gbc);
+        row++;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        form.add(new JLabel(messages.getString("label.street") + ":"), gbc);
+        gbc.gridx = 1;
+        form.add(streetField, gbc);
+        row++;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        form.add(new JLabel(messages.getString("label.postal.code") + ":"), gbc);
+        gbc.gridx = 1;
+        form.add(postalField, gbc);
+        row++;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        form.add(new JLabel(messages.getString("label.city") + ":"), gbc);
+        gbc.gridx = 1;
+        form.add(cityField, gbc);
+        row++;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        form.add(new JLabel(messages.getString("label.province") + ":"), gbc);
+        gbc.gridx = 1;
+        form.add(provinceField, gbc);
 
-    // Use the generic 'edit' label from the resource bundle for the dialog title
-    String dialogTitle = messages.getString("button.edit");
-    int ok = JOptionPane.showConfirmDialog(view, form, dialogTitle, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        // Use the generic 'edit' label from the resource bundle for the dialog title
+        String dialogTitle = messages.getString("button.edit");
+        int ok = JOptionPane.showConfirmDialog(view, form, dialogTitle, JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
         if (ok != JOptionPane.OK_OPTION) {
             // User cancelled; do nothing
             return;
         }
 
         // Build new values and persist: validate first
-    CenterData newData = new CenterData(
-        cupsField.getText(),
-        marketerField.getText(),
-        centerNameField.getText(),
-        acronymField.getText(),
-        campusField.getText(),
-        (String) energyCombo.getSelectedItem(),
-        streetField.getText(),
-        postalField.getText(),
-        cityField.getText(),
-        provinceField.getText()
-    );
+        CenterData newData = new CenterData(
+                cupsField.getText(),
+                marketerField.getText(),
+                centerNameField.getText(),
+                acronymField.getText(),
+                campusField.getText(),
+                (String) energyCombo.getSelectedItem(),
+                streetField.getText(),
+                postalField.getText(),
+                cityField.getText(),
+                provinceField.getText());
 
         if (!validateCenterData(newData)) {
             JOptionPane.showMessageDialog(view,
@@ -468,7 +509,8 @@ public class CupsConfigController {
 
             String normalizedCups = ValidationUtils.normalizeCups(newData.getCups());
             String newAcronym = newData.getCenterAcronym();
-            if (newAcronym != null) newAcronym = newAcronym.toUpperCase();
+            if (newAcronym != null)
+                newAcronym = newAcronym.toUpperCase();
             EnergyType resolved = resolveEnergyType(newData.getEnergyType());
             String energyToSave = resolved != null ? resolved.name() : newData.getEnergyType();
 
@@ -480,9 +522,9 @@ public class CupsConfigController {
                         m.setCups(normalizedCups);
                         m.setMarketer(newData.getMarketer());
                         m.setCenterName(newData.getCenterName());
-                            m.setAcronym(newAcronym);
-                            m.setCampus(newData.getCampus());
-                            m.setEnergyType(energyToSave);
+                        m.setAcronym(newAcronym);
+                        m.setCampus(newData.getCampus());
+                        m.setEnergyType(energyToSave);
                         m.setStreet(newData.getStreet());
                         m.setPostalCode(newData.getPostalCode());
                         m.setCity(newData.getCity());
@@ -516,7 +558,8 @@ public class CupsConfigController {
                 // user intended to edit — this would create duplicates. Reload the
                 // table and inform the user instead.
                 JOptionPane.showMessageDialog(view,
-                        messages.getString("error.edit.notfound") != null ? messages.getString("error.edit.notfound") : "Original entry not found; edit aborted.",
+                        messages.getString("error.edit.notfound") != null ? messages.getString("error.edit.notfound")
+                                : "Original entry not found; edit aborted.",
                         messages.getString("error.title"),
                         JOptionPane.WARNING_MESSAGE);
                 // Reload to ensure UI reflects persisted state
@@ -547,19 +590,19 @@ public class CupsConfigController {
             List<CupsCenterMapping> refreshed = csvService.loadCupsData();
             model.setRowCount(0);
             for (CupsCenterMapping m : refreshed) {
-        model.addRow(new Object[] {
-            m.getId(),
-            m.getCups(),
-            m.getMarketer(),
-            m.getCenterName(),
-            m.getAcronym(),
-            m.getCampus(),
-            m.getEnergyType(),
-            m.getStreet(),
-            m.getPostalCode(),
-            m.getCity(),
-            m.getProvince()
-        });
+                model.addRow(new Object[] {
+                        m.getId(),
+                        m.getCups(),
+                        m.getMarketer(),
+                        m.getCenterName(),
+                        m.getAcronym(),
+                        m.getCampus(),
+                        m.getEnergyType(),
+                        m.getStreet(),
+                        m.getPostalCode(),
+                        m.getCity(),
+                        m.getProvince()
+                });
             }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(view,
@@ -598,18 +641,18 @@ public class CupsConfigController {
                 List<CupsCenterMapping> mappings = csvService.loadCupsData();
                 model.setRowCount(0);
                 for (CupsCenterMapping m : mappings) {
-            model.addRow(new Object[] {
-                m.getId(),
-                m.getCups(),
-                m.getMarketer(),
-                m.getCenterName(),
-                m.getAcronym(),
-                m.getEnergyType(),
-                m.getStreet(),
-                m.getPostalCode(),
-                m.getCity(),
-                m.getProvince()
-            });
+                    model.addRow(new Object[] {
+                            m.getId(),
+                            m.getCups(),
+                            m.getMarketer(),
+                            m.getCenterName(),
+                            m.getAcronym(),
+                            m.getEnergyType(),
+                            m.getStreet(),
+                            m.getPostalCode(),
+                            m.getCity(),
+                            m.getProvince()
+                    });
                 }
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(view,
@@ -660,20 +703,20 @@ public class CupsConfigController {
         List<CenterData> centers = new ArrayList<>();
         DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();
 
-    for (int i = 0; i < model.getRowCount(); i++) {
-        centers.add(new CenterData(
-            (String) model.getValueAt(i, 1), // CUPS (col 0 is id)
-            (String) model.getValueAt(i, 2), // Marketer
-            (String) model.getValueAt(i, 3), // Center Name
-            (String) model.getValueAt(i, 4), // Center Acronym
-            (String) model.getValueAt(i, 5), // Campus
-            (String) model.getValueAt(i, 6), // Energy Type
-            (String) model.getValueAt(i, 7), // Street
-            (String) model.getValueAt(i, 8), // Postal Code
-            (String) model.getValueAt(i, 9), // City
-            (String) model.getValueAt(i, 10) // Province
-        ));
-    }
+        for (int i = 0; i < model.getRowCount(); i++) {
+            centers.add(new CenterData(
+                    (String) model.getValueAt(i, 1), // CUPS (col 0 is id)
+                    (String) model.getValueAt(i, 2), // Marketer
+                    (String) model.getValueAt(i, 3), // Center Name
+                    (String) model.getValueAt(i, 4), // Center Acronym
+                    (String) model.getValueAt(i, 5), // Campus
+                    (String) model.getValueAt(i, 6), // Energy Type
+                    (String) model.getValueAt(i, 7), // Street
+                    (String) model.getValueAt(i, 8), // Postal Code
+                    (String) model.getValueAt(i, 9), // City
+                    (String) model.getValueAt(i, 10) // Province
+            ));
+        }
 
         return centers;
     }

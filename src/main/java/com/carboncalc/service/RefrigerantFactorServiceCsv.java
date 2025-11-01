@@ -2,8 +2,15 @@ package com.carboncalc.service;
 
 import com.carboncalc.model.factors.RefrigerantEmissionFactor;
 import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.time.Year;
 
 /**
@@ -11,8 +18,9 @@ import java.time.Year;
  *
  * <p>
  * Persists per-year CSV files under {@code data/emission_factors/{year}}.
- * The CSV format uses a simple header {@code refrigerantType,pca} and the
- * implementation provides stable upsert semantics by refrigerant type.
+ * The CSV format uses a simple header {@code refrigerantType,pca}. The
+ * implementation offers basic upsert semantics and preserves a stable
+ * alphabetical ordering of refrigerant types in the file.
  */
 public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
     private static final String BASE_PATH = "data/emission_factors";
@@ -24,13 +32,19 @@ public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
     }
 
     @Override
+    /**
+     * Save or update a refrigerant PCA factor for the entry's year. If the
+     * specified year is absent or zero the controller's default year is used.
+     * The CSV file will be created if missing.
+     */
     public void saveRefrigerantFactor(RefrigerantEmissionFactor entry) {
         int year = entry.getYear() <= 0 ? defaultYear : entry.getYear();
         Path filePath = Paths.get(BASE_PATH, String.valueOf(year), "refrigerant_factors.csv");
         try {
             List<String> lines = new ArrayList<>();
-            if (Files.exists(filePath))
+            if (Files.exists(filePath)) {
                 lines = Files.readAllLines(filePath);
+            }
 
             Map<String, String> byKey = new LinkedHashMap<>();
             if (!lines.isEmpty()) {
@@ -56,7 +70,8 @@ public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
 
             List<String> out = new ArrayList<>();
             out.add("refrigerantType,pca");
-            // Ensure canonical ordering: sort refrigerant types alphabetically (case-insensitive)
+            // Ensure canonical ordering: sort refrigerant types alphabetically
+            // (case-insensitive)
             List<String> keys = new ArrayList<>(byKey.keySet());
             keys.sort(String.CASE_INSENSITIVE_ORDER);
             for (String k : keys) {
@@ -70,6 +85,10 @@ public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
     }
 
     @Override
+    /**
+     * Load refrigerant PCA factors for the given year. Returns an empty list
+     * when the CSV file is missing or cannot be parsed.
+     */
     public List<RefrigerantEmissionFactor> loadRefrigerantFactors(int year) {
         Path p = Paths.get(BASE_PATH, String.valueOf(year), "refrigerant_factors.csv");
         List<RefrigerantEmissionFactor> out = new ArrayList<>();
@@ -106,6 +125,10 @@ public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
     }
 
     @Override
+    /**
+     * Delete the refrigerant factor entry matching {@code entity} in the
+     * specified year (case-insensitive). Does nothing if the file is missing.
+     */
     public void deleteRefrigerantFactor(int year, String entity) {
         Path p = Paths.get(BASE_PATH, String.valueOf(year), "refrigerant_factors.csv");
         if (!Files.exists(p))
@@ -132,11 +155,18 @@ public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
     }
 
     @Override
+    /**
+     * Return the current default year used by this service instance.
+     */
     public Optional<Integer> getDefaultYear() {
         return Optional.ofNullable(defaultYear);
     }
 
     @Override
+    /**
+     * Set the default year used by this service instance and ensure the
+     * per-year directory exists.
+     */
     public void setDefaultYear(int year) {
         this.defaultYear = year;
         createYearDirectory(year);

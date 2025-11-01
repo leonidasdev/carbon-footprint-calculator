@@ -7,6 +7,7 @@ import com.carboncalc.model.enums.EnergyType;
 import com.carboncalc.service.CupsService;
 import com.carboncalc.service.CupsServiceCsv;
 import com.carboncalc.util.UIUtils;
+import com.carboncalc.util.EnergyTypeUtils;
 import com.carboncalc.util.excel.ElectricityExcelExporter;
 
 import javax.swing.*;
@@ -115,9 +116,10 @@ public class ElectricityController {
     private void loadStoredCups() {
         try {
             List<Cups> cupsData = csvDataService.loadCups();
-            // Filter for electricity-type CUPS
+            // Filter for electricity-type CUPS. Accept either canonical tokens
+            // (ELECTRICITY / electricity) or localized labels (e.g. "Electricidad").
             cupsData.stream()
-                    .filter(cup -> EnergyType.ELECTRICITY.name().equalsIgnoreCase(cup.getEnergyType()))
+                    .filter(cup -> EnergyTypeUtils.matches(cup.getEnergyType(), EnergyType.ELECTRICITY))
                     .forEach(cup -> view.addCupsToList(cup.getCups(), cup.getEmissionEntity()));
         } catch (IOException e) {
             e.printStackTrace();

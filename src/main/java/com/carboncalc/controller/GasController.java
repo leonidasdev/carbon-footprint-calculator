@@ -33,6 +33,7 @@ import com.carboncalc.service.CupsServiceCsv;
 import com.carboncalc.service.GasFactorServiceCsv;
 import com.carboncalc.util.UIUtils;
 import com.carboncalc.util.excel.GasExcelExporter;
+import com.carboncalc.util.EnergyTypeUtils;
 
 /**
  * Controller for the Gas import/export UI.
@@ -80,7 +81,7 @@ public class GasController {
         try {
             List<Cups> cupsData = csvDataService.loadCups();
             cupsData.stream()
-                    .filter(cup -> EnergyType.GAS.name().equalsIgnoreCase(cup.getEnergyType()))
+                    .filter(cup -> EnergyTypeUtils.matches(cup.getEnergyType(), EnergyType.GAS))
                     .forEach(cup -> view.addCupsToList(cup.getCups(), cup.getEmissionEntity()));
         } catch (IOException e) {
             e.printStackTrace();

@@ -46,9 +46,13 @@ public class CupsConfigController {
     private final CupsService csvService = new CupsServiceCsv();
     // Map localized label (lowercase) -> EnergyType for quick resolution
     private final Map<String, EnergyType> energyLabelToEnum = new HashMap<>();
+    // Spanish bundle used to persist canonical Spanish labels regardless of UI
+    // locale
+    private final ResourceBundle spanishMessages;
 
     public CupsConfigController(ResourceBundle messages) {
         this.messages = messages;
+        this.spanishMessages = ResourceBundle.getBundle("Messages", new Locale("es"));
         // Build mapping from localized display label to canonical EnergyType
         for (EnergyType et : EnergyType.values()) {
             String key = "energy.type." + et.id();
@@ -207,36 +211,425 @@ public class CupsConfigController {
             columns.add(cell.toString());
         }
 
-        updateComboBox(view.getCupsColumnSelector(), columns);
-        // If marketer selector exists, populate it as well
+        // Populate all mapping selectors so they are selectable
+        try {
+            updateComboBox(view.getCupsColumnSelector(), columns);
+        } catch (Exception ignored) {
+        }
         try {
             JComboBox<String> marketerSelector = view.getMarketerColumnSelector();
             if (marketerSelector != null)
                 updateComboBox(marketerSelector, columns);
         } catch (Exception ignored) {
         }
-        updateComboBox(view.getCenterNameColumnSelector(), columns);
+        try {
+            updateComboBox(view.getCenterNameColumnSelector(), columns);
+        } catch (Exception ignored) {
+        }
+        try {
+            updateComboBox(view.getCenterAcronymColumnSelector(), columns);
+        } catch (Exception ignored) {
+        }
+        try {
+            updateComboBox(view.getEnergyTypeColumnSelector(), columns);
+        } catch (Exception ignored) {
+        }
+        try {
+            updateComboBox(view.getStreetColumnSelector(), columns);
+        } catch (Exception ignored) {
+        }
+        try {
+            updateComboBox(view.getPostalCodeColumnSelector(), columns);
+        } catch (Exception ignored) {
+        }
+        try {
+            updateComboBox(view.getCityColumnSelector(), columns);
+        } catch (Exception ignored) {
+        }
+        try {
+            updateComboBox(view.getProvinceColumnSelector(), columns);
+        } catch (Exception ignored) {
+        }
     }
 
     private void updateComboBox(JComboBox<String> comboBox, Vector<String> items) {
+        // Insert an explicit empty choice at index 0 so the user can leave the
+        // mapping blank. This prevents the first sheet column from being
+        // automatically selected and gives an explicit "none" choice.
         comboBox.removeAllItems();
+        comboBox.addItem(""); // blank entry meaning 'no mapping'
         for (String item : items) {
             comboBox.addItem(item);
         }
+        // Ensure the blank entry remains selected by default
+        comboBox.setSelectedIndex(0);
     }
 
     public void handleSheetSelection() {
         updateColumnSelectors();
         updatePreview();
+        updateMappedPreview();
     }
 
     public void handleColumnSelection() {
-        // Optional: Add any validation or preview update logic when columns are
-        // selected
+        // When any column mapping changes, refresh the mapped results preview
+        updateMappedPreview();
     }
 
     public void handlePreviewRequest() {
         updatePreview();
+    }
+
+    /**
+     * Placeholder for the import action triggered from the Results Preview box.
+     * Implementation will be added in subsequent steps. For now show an info
+     * dialog so the UI wiring can be validated.
+     */
+    public void handleImportRequest() {
+        // Import mapped rows from the currently selected sheet into the cups CSV.
+        if (currentWorkbook == null || view == null) {
+            JOptionPane.showMessageDialog(view, messages.getString("error.no.data"),
+                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            Sheet sheet = currentWorkbook.getSheetAt(view.getSheetSelector().getSelectedIndex());
+            if (sheet == null) {
+                JOptionPane.showMessageDialog(view, messages.getString("error.no.data"),
+                        messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Resolve mapping indices (accounting for leading blank option)
+            int cupsIdx = -1;
+            if (view.getCupsColumnSelector() != null) {
+                int sel = view.getCupsColumnSelector().getSelectedIndex();
+                cupsIdx = sel <= 0 ? -1 : sel - 1;
+            }
+            int marketerIdx = -1;
+            if (view.getMarketerColumnSelector() != null) {
+                int sel = view.getMarketerColumnSelector().getSelectedIndex();
+                marketerIdx = sel <= 0 ? -1 : sel - 1;
+            }
+            int centerNameIdx = -1;
+            if (view.getCenterNameColumnSelector() != null) {
+                int sel = view.getCenterNameColumnSelector().getSelectedIndex();
+                centerNameIdx = sel <= 0 ? -1 : sel - 1;
+            }
+            int acronymIdx = -1;
+            if (view.getCenterAcronymColumnSelector() != null) {
+                int sel = view.getCenterAcronymColumnSelector().getSelectedIndex();
+                acronymIdx = sel <= 0 ? -1 : sel - 1;
+            }
+            int campusIdx = -1; // not mapped in UI currently
+            int energyIdx = -1;
+            if (view.getEnergyTypeColumnSelector() != null) {
+                int sel = view.getEnergyTypeColumnSelector().getSelectedIndex();
+                energyIdx = sel <= 0 ? -1 : sel - 1;
+            }
+            int streetIdx = -1;
+            if (view.getStreetColumnSelector() != null) {
+                int sel = view.getStreetColumnSelector().getSelectedIndex();
+                streetIdx = sel <= 0 ? -1 : sel - 1;
+            }
+            int postalIdx = -1;
+            if (view.getPostalCodeColumnSelector() != null) {
+                int sel = view.getPostalCodeColumnSelector().getSelectedIndex();
+                postalIdx = sel <= 0 ? -1 : sel - 1;
+            }
+            int cityIdx = -1;
+            if (view.getCityColumnSelector() != null) {
+                int sel = view.getCityColumnSelector().getSelectedIndex();
+                cityIdx = sel <= 0 ? -1 : sel - 1;
+            }
+            int provinceIdx = -1;
+            if (view.getProvinceColumnSelector() != null) {
+                int sel = view.getProvinceColumnSelector().getSelectedIndex();
+                provinceIdx = sel <= 0 ? -1 : sel - 1;
+            }
+
+            // We'll collect new mappings and merge with existing ones before saving
+            List<CupsCenterMapping> existing = csvService.loadCupsData();
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            for (CupsCenterMapping m : existing) {
+                String key = (m.getCups() == null ? "" : m.getCups().trim().toLowerCase()) + "|"
+                        + (m.getCenterName() == null ? "" : m.getCenterName().trim().toLowerCase());
+                seen.add(key);
+            }
+
+            int maxRows = sheet.getLastRowNum();
+            int imported = 0;
+            int skippedMissing = 0;
+            int skippedDuplicate = 0;
+
+            List<CupsCenterMapping> merged = new ArrayList<>(existing);
+
+            for (int r = 1; r <= maxRows; r++) {
+                Row row = sheet.getRow(r);
+                if (row == null)
+                    continue;
+
+                String cups = safeCellString(row, cupsIdx).trim();
+                String marketer = safeCellString(row, marketerIdx).trim();
+                String centerName = safeCellString(row, centerNameIdx).trim();
+                String acronym = safeCellString(row, acronymIdx).trim();
+                String campus = safeCellString(row, campusIdx).trim();
+                String energy = safeCellString(row, energyIdx).trim();
+                // Normalize common energy labels (case-insensitive) to the
+                // localized canonical labels so stored values are consistent.
+                energy = normalizeEnergyLabel(energy);
+                String street = safeCellString(row, streetIdx).trim();
+                String postal = safeCellString(row, postalIdx).trim();
+                String city = safeCellString(row, cityIdx).trim();
+                String province = safeCellString(row, provinceIdx).trim();
+
+                // Require CUPS and Center Name to import a mapping
+                if (cups.isEmpty() || centerName.isEmpty()) {
+                    skippedMissing++;
+                    continue;
+                }
+
+                String key = cups.toLowerCase() + "|" + centerName.toLowerCase();
+                if (seen.contains(key)) {
+                    skippedDuplicate++;
+                    continue;
+                }
+
+                CupsCenterMapping m = new CupsCenterMapping(cups, marketer, centerName, acronym, campus, energy,
+                        street, postal, city, province);
+                merged.add(m);
+                seen.add(key);
+                imported++;
+            }
+
+            // Persist merged list (service will sort by centerName and assign IDs)
+            csvService.saveCupsData(merged);
+
+            // Reload centers table to reflect new data
+            loadCentersTable();
+
+            // Show summary to user
+            String summary = String.format("Imported: %d\nSkipped (duplicates): %d\nSkipped (missing fields): %d",
+                    imported, skippedDuplicate, skippedMissing);
+            JOptionPane.showMessageDialog(view, summary, messages.getString("message.title.success"),
+                    JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+            JOptionPane.showMessageDialog(view, messages.getString("error.save.failed"),
+                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Build and populate the mapped results preview table based on the current
+     * sheet and the selected column mappings. Shows a 'Status' column indicating
+     * missing required fields for quick validation by the user.
+     */
+    private void updateMappedPreview() {
+        if (currentWorkbook == null || view == null)
+            return;
+
+        try {
+            Sheet sheet = currentWorkbook.getSheetAt(view.getSheetSelector().getSelectedIndex());
+            Row headerRow = sheet.getRow(0);
+            if (headerRow == null)
+                return;
+
+            // Build target columns (same order as centers table, excluding hidden id)
+            String[] cols = new String[] { messages.getString("label.cups"),
+                    messages.getString("label.marketer"),
+                    messages.getString("label.center"),
+                    messages.getString("label.acronym"),
+                    messages.getString("label.campus"),
+                    messages.getString("label.energy"),
+                    messages.getString("label.street"),
+                    messages.getString("label.postal"),
+                    messages.getString("label.city"),
+                    messages.getString("label.province"),
+                    "Status" };
+
+            DefaultTableModel model = new DefaultTableModel(cols, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+
+            // Determine mapping indices from selectors. If a selector has no
+            // selection, index will be -1 and produce empty values.
+            // The combo boxes include a leading blank entry (index 0) representing
+            // "no mapping". Convert the selectedIndex into the actual sheet
+            // column index: if selectedIndex <= 0 then map to -1 (none), else
+            // use selectedIndex-1 to account for the blank placeholder.
+            int cupsIdx = -1;
+            if (view.getCupsColumnSelector() != null) {
+                int sel = view.getCupsColumnSelector().getSelectedIndex();
+                cupsIdx = sel <= 0 ? -1 : sel - 1;
+            }
+
+            int marketerIdx = -1;
+            if (view.getMarketerColumnSelector() != null) {
+                int sel = view.getMarketerColumnSelector().getSelectedIndex();
+                marketerIdx = sel <= 0 ? -1 : sel - 1;
+            }
+
+            int centerNameIdx = -1;
+            if (view.getCenterNameColumnSelector() != null) {
+                int sel = view.getCenterNameColumnSelector().getSelectedIndex();
+                centerNameIdx = sel <= 0 ? -1 : sel - 1;
+            }
+
+            int acronymIdx = -1;
+            if (view.getCenterAcronymColumnSelector() != null) {
+                int sel = view.getCenterAcronymColumnSelector().getSelectedIndex();
+                acronymIdx = sel <= 0 ? -1 : sel - 1;
+            }
+
+            int campusIdx = -1; // not exposed as selector currently
+
+            int energyIdx = -1;
+            if (view.getEnergyTypeColumnSelector() != null) {
+                int sel = view.getEnergyTypeColumnSelector().getSelectedIndex();
+                energyIdx = sel <= 0 ? -1 : sel - 1;
+            }
+
+            int streetIdx = -1;
+            if (view.getStreetColumnSelector() != null) {
+                int sel = view.getStreetColumnSelector().getSelectedIndex();
+                streetIdx = sel <= 0 ? -1 : sel - 1;
+            }
+
+            int postalIdx = -1;
+            if (view.getPostalCodeColumnSelector() != null) {
+                int sel = view.getPostalCodeColumnSelector().getSelectedIndex();
+                postalIdx = sel <= 0 ? -1 : sel - 1;
+            }
+
+            int cityIdx = -1;
+            if (view.getCityColumnSelector() != null) {
+                int sel = view.getCityColumnSelector().getSelectedIndex();
+                cityIdx = sel <= 0 ? -1 : sel - 1;
+            }
+
+            int provinceIdx = -1;
+            if (view.getProvinceColumnSelector() != null) {
+                int sel = view.getProvinceColumnSelector().getSelectedIndex();
+                provinceIdx = sel <= 0 ? -1 : sel - 1;
+            }
+
+            int maxRows = Math.min(sheet.getLastRowNum(), 200); // keep preview reasonable
+            for (int r = 1; r <= maxRows; r++) {
+                Row row = sheet.getRow(r);
+                if (row == null)
+                    continue;
+
+                String cups = safeCellString(row, cupsIdx);
+                String marketer = safeCellString(row, marketerIdx);
+                String centerName = safeCellString(row, centerNameIdx);
+                String acronym = safeCellString(row, acronymIdx);
+                String campus = safeCellString(row, campusIdx);
+                String energy = safeCellString(row, energyIdx);
+                String street = safeCellString(row, streetIdx);
+                String postal = safeCellString(row, postalIdx);
+                String city = safeCellString(row, cityIdx);
+                String province = safeCellString(row, provinceIdx);
+
+                // Validate required fields: CUPS and Center Name
+                String status = "OK";
+                if (cups == null || cups.trim().isEmpty())
+                    status = "MISSING CUPS";
+                else if (centerName == null || centerName.trim().isEmpty())
+                    status = "MISSING CENTER NAME";
+
+                model.addRow(new Object[] { cups, marketer, centerName, acronym, campus, energy, street, postal, city,
+                        province, status });
+            }
+
+            view.getResultsPreviewTable().setModel(model);
+            UIUtils.setupPreviewTable(view.getResultsPreviewTable());
+        } catch (Exception e) {
+            // keep UI stable on errors and show a friendly dialog
+            e.printStackTrace(System.err);
+            JOptionPane.showMessageDialog(view, messages.getString("error.file.read"),
+                    messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String safeCellString(Row row, int colIndex) {
+        if (colIndex < 0)
+            return "";
+        try {
+            Cell c = row.getCell(colIndex);
+            return c != null ? c.toString() : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Normalize common energy labels found in imported spreadsheets into the
+     * application's canonical localized labels. Handles Spanish and English
+     * tokens for electricity, gas and water (case-insensitive).
+     */
+    private String normalizeEnergyLabel(String raw) {
+        if (raw == null)
+            return raw;
+        String s = raw.trim().toLowerCase(Locale.ROOT);
+        if (s.isEmpty())
+            return "";
+
+        try {
+            // Persist Spanish canonical label regardless of current UI locale
+            if (s.contains("agua") || s.contains("water")) {
+                return spanishMessages.getString("energy.type.water");
+            }
+
+            if (s.contains("electri") || s.contains("electricidad") || s.contains("electricity")) {
+                return spanishMessages.getString("energy.type.electricity");
+            }
+
+            if (s.contains("gas")) {
+                return spanishMessages.getString("energy.type.gas");
+            }
+        } catch (Exception ignored) {
+            // If Spanish bundle is missing keys, fall back to current locale messages
+            if (s.contains("agua") || s.contains("water")) {
+                try {
+                    return messages.getString("energy.type.water");
+                } catch (Exception e) {
+                    return capitalize(raw);
+                }
+            }
+            if (s.contains("electri") || s.contains("electricidad") || s.contains("electricity")) {
+                try {
+                    return messages.getString("energy.type.electricity");
+                } catch (Exception e) {
+                    return capitalize(raw);
+                }
+            }
+            if (s.contains("gas")) {
+                try {
+                    return messages.getString("energy.type.gas");
+                } catch (Exception e) {
+                    return capitalize(raw);
+                }
+            }
+        }
+
+        // Fallback: return capitalized original token
+        return capitalize(raw);
+    }
+
+    private String capitalize(String in) {
+        if (in == null || in.isEmpty())
+            return in;
+        String t = in.trim();
+        if (t.length() == 1)
+            return t.toUpperCase(Locale.ROOT);
+        return t.substring(0, 1).toUpperCase(Locale.ROOT) + t.substring(1);
     }
 
     private void updatePreview() {

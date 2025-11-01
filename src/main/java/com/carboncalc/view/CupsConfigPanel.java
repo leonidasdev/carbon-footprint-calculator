@@ -52,8 +52,14 @@ public class CupsConfigPanel extends BaseModulePanel {
     // File Management Components
     private JButton addFileButton;
     private JComboBox<String> sheetSelector;
-    private JButton previewButton;
-    private JButton importButton;
+    // preview table shows the selected sheet contents (file preview)
+    private JTable previewTable;
+    private JScrollPane previewScrollPane;
+
+    // Results preview and import (moved to the right side)
+    private JTable resultsPreviewTable;
+    private JScrollPane resultsPreviewScrollPane;
+    private JButton resultsImportButton;
 
     // Column Mapping Components
     private JComboBox<String> cupsColumnSelector;
@@ -71,7 +77,6 @@ public class CupsConfigPanel extends BaseModulePanel {
     // Data Display Components
     private JTable centersTable;
     private JScrollPane centersScrollPane;
-    private JTable previewTable;
 
     // Energy types and table column names are loaded from the resource bundle
     // at runtime to keep the UI fully localizable.
@@ -168,10 +173,21 @@ public class CupsConfigPanel extends BaseModulePanel {
         left.add(new JLabel(messages.getString("label.energy.type") + ":"), l);
         l.gridx = 1;
         List<String> energyOptions = new ArrayList<>();
-        for (EnergyType et : EnergyType.values()) {
+        // For CUPS/centers we allow Electricity and Natural Gas. Also include
+        // a temporary "Water" option to support Excel imports that reference
+        // water; this is intentionally not part of the EnergyType enum and is
+        // only used for the CUPS energy selector.
+        for (EnergyType et : new EnergyType[] { EnergyType.ELECTRICITY, EnergyType.GAS }) {
             String key = "energy.type." + et.id();
             String label = messages.containsKey(key) ? messages.getString(key) : et.name();
             energyOptions.add(label);
+        }
+        // Add a localized "Water" option (not part of EnergyType enum)
+        try {
+            String waterLabel = messages.getString("energy.type.water");
+            if (waterLabel != null && !waterLabel.trim().isEmpty())
+                energyOptions.add(waterLabel);
+        } catch (Exception ignored) {
         }
         energyTypeCombo = UIUtils.createCompactComboBox(new DefaultComboBoxModel<String>(
                 energyOptions.toArray(new String[0])), 150, 25);
@@ -267,10 +283,29 @@ public class CupsConfigPanel extends BaseModulePanel {
         // Make the top area compact so preview below gets more space
         topPanel.setPreferredSize(new Dimension(0, UIUtils.MANUAL_INPUT_HEIGHT));
 
-        // File Management Section (keep compact)
+        // File Management Section (keep compact) and file preview under it
         JPanel fileMgmt = createFileManagementPanel();
         fileMgmt.setPreferredSize(new Dimension(0, UIUtils.FILE_MGMT_HEIGHT));
-        topPanel.add(fileMgmt);
+
+        // File preview: show selected sheet content (first N rows)
+        previewTable = new JTable(new DefaultTableModel());
+        UIUtils.styleTable(previewTable);
+        // Allow horizontal scrolling for wide sheets
+        previewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        previewScrollPane = new JScrollPane(previewTable);
+        previewScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        previewScrollPane.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_SCROLL_HEIGHT));
+
+        JPanel leftColumn = new JPanel(new BorderLayout(5, 5));
+        leftColumn.setBackground(UIUtils.CONTENT_BACKGROUND);
+        leftColumn.add(fileMgmt, BorderLayout.NORTH);
+        // Wrap preview scroll in a titled/light border for clarity
+        JPanel previewBox = new JPanel(new BorderLayout());
+        previewBox.setBackground(UIUtils.CONTENT_BACKGROUND);
+        previewBox.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.cups.center.file.preview")));
+        previewBox.add(previewScrollPane, BorderLayout.CENTER);
+        leftColumn.add(previewBox, BorderLayout.CENTER);
+        topPanel.add(leftColumn);
 
         // Column Mapping Section: wrap in a scroll pane with a controlled height
         JPanel colMap = createColumnMappingPanel();
@@ -279,7 +314,37 @@ public class CupsConfigPanel extends BaseModulePanel {
         colScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         colScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         colScroll.setPreferredSize(new Dimension(0, UIUtils.COLUMN_SCROLL_HEIGHT));
-        topPanel.add(colScroll);
+
+        // Results preview: placed under the mapping area on the right
+        resultsPreviewTable = new JTable(new DefaultTableModel());
+        UIUtils.styleTable(resultsPreviewTable);
+        // Allow horizontal scrolling for mapped results preview
+        resultsPreviewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        resultsPreviewScrollPane = new JScrollPane(resultsPreviewTable);
+        resultsPreviewScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        resultsPreviewScrollPane.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_SCROLL_HEIGHT));
+
+        JPanel resultsBox = new JPanel(new BorderLayout());
+        resultsBox.setBackground(UIUtils.CONTENT_BACKGROUND);
+        resultsBox.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.result")));
+        resultsBox.add(resultsPreviewScrollPane, BorderLayout.CENTER);
+
+        JPanel importBtnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        importBtnRow.setBackground(UIUtils.CONTENT_BACKGROUND);
+        resultsImportButton = new JButton(messages.getString("button.import"));
+        UIUtils.styleButton(resultsImportButton);
+        resultsImportButton.addActionListener(e -> {
+            if (controller != null)
+                controller.handleImportRequest();
+        });
+        importBtnRow.add(resultsImportButton);
+        resultsBox.add(importBtnRow, BorderLayout.SOUTH);
+
+        JPanel rightColumn = new JPanel(new BorderLayout(5, 5));
+        rightColumn.setBackground(UIUtils.CONTENT_BACKGROUND);
+        rightColumn.add(colScroll, BorderLayout.NORTH);
+        rightColumn.add(resultsBox, BorderLayout.CENTER);
+        topPanel.add(rightColumn);
 
         panel.add(topPanel, BorderLayout.CENTER);
         return panel;
@@ -292,7 +357,7 @@ public class CupsConfigPanel extends BaseModulePanel {
          */
         JPanel panel = new JPanel(new GridBagLayout());
         // Put the column mapping controls inside a boxed group for CUPS Data Mapping
-        panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.cups.data.mapping")));
+        panel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.cups.center.data.mapping")));
         panel.setBackground(UIUtils.CONTENT_BACKGROUND);
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -371,25 +436,10 @@ public class CupsConfigPanel extends BaseModulePanel {
 
         panel.add(controlsPanel, BorderLayout.NORTH);
 
-        // Button Panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-
-        importButton = new JButton(messages.getString("button.import"));
-        importButton.addActionListener(e -> {
-            if (controller != null)
-                controller.handleExportRequest();
-        });
-        buttonPanel.add(importButton);
-
-        previewButton = new JButton(messages.getString("button.preview"));
-        previewButton.addActionListener(e -> {
-            if (controller != null)
-                controller.handlePreviewRequest();
-        });
-        buttonPanel.add(previewButton);
-
-        panel.add(buttonPanel, BorderLayout.SOUTH);
+        // NOTE: preview/import buttons moved to the Results Preview box on the
+        // right side of the mapping area. The file management panel now only
+        // contains file/sheet selection controls; the selected sheet is shown
+        // in the preview table beneath the file management box.
 
         return panel;
     }
@@ -405,6 +455,10 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     public JTable getPreviewTable() {
         return previewTable;
+    }
+
+    public JTable getResultsPreviewTable() {
+        return resultsPreviewTable;
     }
 
     private JPanel createCentersTablePanel() {
@@ -567,7 +621,7 @@ public class CupsConfigPanel extends BaseModulePanel {
     }
 
     public JButton getImportButton() {
-        return importButton;
+        return resultsImportButton;
     }
 
     // Manual input field getters

@@ -74,24 +74,37 @@ public class GasExcelExporter {
     private static final String[] DETAILED_HEADERS;
     static {
         DetailedHeader[] dh = DetailedHeader.values();
-        // Create a new array with three extra slots: GAS_TYPE and two factor columns
-        // appended at the end
-        DETAILED_HEADERS = new String[dh.length + 3];
-        int idx = 0;
+        // For gas we want to adjust the emissions/factor columns:
+        // - Rename EMISIONES_MARKET -> "Emisiones tCO2"
+        // - Remove EMISIONES_LOCATION
+        // - Place "Tipo de gas" after the (single) Emisiones column
+        // - Keep a single factor column renamed to "Factor de emision (kgCO2e/kWh)"
+        java.util.List<String> tmp = new java.util.ArrayList<>();
         for (DetailedHeader h : dh) {
-            DETAILED_HEADERS[idx++] = h.label();
+            if (h == DetailedHeader.EMISIONES_MARKET) {
+                tmp.add("Emisiones tCO2");
+                // skip adding EMISIONES_LOCATION when it comes
+            } else if (h == DetailedHeader.EMISIONES_LOCATION) {
+                // skip location-based emissions for gas (Scope 1)
+                continue;
+            } else {
+                tmp.add(h.label());
+            }
         }
-        // append Gas Type and Market/Location factor columns as the right-most columns
-        // (Spanish)
-        DETAILED_HEADERS[idx++] = "Tipo de gas";
-        DETAILED_HEADERS[idx++] = "Factor de emision market based (kgCO2e/kWh)";
-        DETAILED_HEADERS[idx] = "Factor de emision location based (kgCO2e/kWh)";
+        // Insert Tipo de gas right after the Emisiones column
+        int emisIndex = tmp.indexOf("Emisiones tCO2");
+        if (emisIndex < 0)
+            emisIndex = tmp.size();
+        tmp.add(emisIndex + 1, "Tipo de gas");
+        // Append single factor column (market renamed)
+        tmp.add("Factor de emision (kgCO2e/kWh)");
+
+        DETAILED_HEADERS = tmp.toArray(new String[0]);
     }
 
     private static final String[] TOTAL_HEADERS = {
             "Total Consumo kWh",
-            "Total Emisiones tCO2 Market Based",
-            "Total Emisiones tCO2 Location Based"
+            "Total Emisiones tCO2"
     };
 
     public static void exportGasData(String filePath) throws IOException {
@@ -259,17 +272,14 @@ public class GasExcelExporter {
             // emission entity not used for gas-type based calculation
             // Lookup factor using the normalized gas type; default to 0.0 when not found
             double factor = 0.0;
-            double locationFactor = 0.0;
             if (!gasTypeNormalized.isEmpty()) {
                 if (gasTypeToFactor.containsKey(gasTypeNormalized)) {
                     GasFactorEntry gfe = gasTypeToFactor.get(gasTypeNormalized);
                     factor = gfe.getMarketFactor();
-                    locationFactor = gfe.getLocationFactor();
                 } else {
                     diagnostics.add(String.format("Row %d: gas type '%s' not found for year %d; using factor=0.0", i,
                             gasTypeNormalized, reportingYear));
                     factor = 0.0;
-                    locationFactor = 0.0;
                 }
             }
             // Split consumption among centers sharing the same CUPS (if applicable)
@@ -281,17 +291,16 @@ public class GasExcelExporter {
             double porcentajeAplicableAno = consumo > 0 ? ((consumoAplicable / consumo) * 100.0) : 0.0;
 
             // Compute emissions per center (market and location) using consumoPorCentro
-            double emisionesMarketT = (consumoPorCentro * factor) / 1000.0;
-            double emisionesLocationT = (consumoPorCentro * locationFactor) / 1000.0;
+            double emisionesT = (consumoPorCentro * factor) / 1000.0;
 
             double[] agg = perCenterAgg.get(centerName);
             if (agg == null) {
-                agg = new double[3];
+                // now only store consumo and single emisiones (market/scope1)
+                agg = new double[2];
                 perCenterAgg.put(centerName, agg);
             }
             agg[0] += consumoPorCentro;
-            agg[1] += emisionesMarketT;
-            agg[2] += emisionesLocationT;
+            agg[1] += emisionesT;
 
             // Prepare some cell styles (date, percentage, emissions number formats)
             Workbook wb = target.getWorkbook();
@@ -390,49 +399,31 @@ public class GasExcelExporter {
                 consumoPorCentroCell.setCellValue(consumoPorCentro);
             }
 
-            // emissions (market, location) with formatting
-            // We'll write two formula columns that reference the corresponding factor
-            // column
-            // After these two emissions cells we'll write: Tipo de gas, MarketFactor,
-            // LocationFactor
-            int marketFactorColIndex = col + 3; // market factor will be written 3 cells ahead
-            int locationFactorColIndex = col + 4; // location factor will be 4 cells ahead
+            // emissions (single, scope 1) with formatting
+            // We'll write one formula column that references the corresponding factor
+            // column. The factor column is the last column in the detailed headers.
+            int factorColIndex = DETAILED_HEADERS.length - 1;
 
-            Cell marketCell = out.createCell(col++);
+            Cell emissionsCell = out.createCell(col++);
             try {
                 int excelRow = out.getRowNum() + 1;
-                String marketFormula = buildMultiplyFormula(consumoAplicCentroColIndex, marketFactorColIndex, excelRow);
-                marketCell.setCellFormula(marketFormula);
-                marketCell.setCellStyle(emissionsStyle);
-            } catch (Exception e) {
-                marketCell.setCellValue(emisionesMarketT);
-                marketCell.setCellStyle(emissionsStyle);
-            }
-
-            Cell locationCell = out.createCell(col++);
-            try {
-                int excelRow = out.getRowNum() + 1;
-                String locationFormula = buildMultiplyFormula(consumoAplicCentroColIndex, locationFactorColIndex,
+                String emissionsFormula = buildMultiplyFormula(consumoAplicCentroColIndex, factorColIndex,
                         excelRow);
-                locationCell.setCellFormula(locationFormula);
-                locationCell.setCellStyle(emissionsStyle);
+                emissionsCell.setCellFormula(emissionsFormula);
+                emissionsCell.setCellStyle(emissionsStyle);
             } catch (Exception e) {
-                locationCell.setCellValue(emisionesLocationT);
-                locationCell.setCellStyle(emissionsStyle);
+                emissionsCell.setCellValue(emisionesT);
+                emissionsCell.setCellStyle(emissionsStyle);
             }
 
-            // Finally, append the normalized gas type (uppercased) and the two emission
-            // factor columns used (market, location)
+            // Append the normalized gas type and the single factor value
             out.createCell(col++).setCellValue(gasTypeNormalized == null ? "" : gasTypeNormalized);
             double marketFactorValue = 0.0;
-            double locationFactorValue = 0.0;
             if (gasTypeToFactor != null && gasTypeToFactor.containsKey(gasTypeNormalized)) {
                 GasFactorEntry gfe = gasTypeToFactor.get(gasTypeNormalized);
                 marketFactorValue = gfe.getMarketFactor();
-                locationFactorValue = gfe.getLocationFactor();
             }
             out.createCell(col++).setCellValue(marketFactorValue);
-            out.createCell(col++).setCellValue(locationFactorValue);
         }
         // summary
         diagnostics.add(String.format("Processed %d centers in aggregates", perCenterAgg.size()));
@@ -456,10 +447,9 @@ public class GasExcelExporter {
         Row header = sheet.createRow(0);
         header.createCell(0).setCellValue("Centro");
         header.createCell(1).setCellValue("Consumo kWh");
-        header.createCell(2).setCellValue("Emisiones tCO2 market based");
-        header.createCell(3).setCellValue("Emisiones tCO2 location based");
+        header.createCell(2).setCellValue("Emisiones tCO2");
         if (headerStyle != null) {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 3; i++)
                 header.getCell(i).setCellStyle(headerStyle);
         }
 
@@ -470,10 +460,9 @@ public class GasExcelExporter {
             double[] v = e.getValue();
             row.createCell(1).setCellValue(v[0]);
             row.createCell(2).setCellValue(v[1]);
-            row.createCell(3).setCellValue(v[2]);
         }
         // Autosize
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 3; i++)
             sheet.autoSizeColumn(i);
     }
 
@@ -492,30 +481,26 @@ public class GasExcelExporter {
         // Header
         Row header = sheet.createRow(0);
         header.createCell(0).setCellValue("Total Consumo kWh");
-        header.createCell(1).setCellValue("Total Emisiones tCO2 Market Based");
-        header.createCell(2).setCellValue("Total Emisiones tCO2 Location Based");
+        header.createCell(1).setCellValue("Total Emisiones tCO2");
         if (headerStyle != null) {
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 2; i++)
                 header.getCell(i).setCellStyle(headerStyle);
         }
 
         double totalConsumo = 0.0;
-        double totalMarket = 0.0;
-        double totalLocation = 0.0;
+        double totalEmisiones = 0.0;
         for (double[] v : aggregates.values()) {
-            if (v == null || v.length < 3)
+            if (v == null || v.length < 2)
                 continue;
             totalConsumo += v[0];
-            totalMarket += v[1];
-            totalLocation += v[2];
+            totalEmisiones += v[1];
         }
 
         Row row = sheet.createRow(1);
         row.createCell(0).setCellValue(totalConsumo);
-        row.createCell(1).setCellValue(totalMarket);
-        row.createCell(2).setCellValue(totalLocation);
+        row.createCell(1).setCellValue(totalEmisiones);
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 2; i++)
             sheet.autoSizeColumn(i);
     }
 

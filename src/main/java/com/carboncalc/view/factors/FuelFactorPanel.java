@@ -48,6 +48,8 @@ public class FuelFactorPanel extends JPanel {
 
     /** Text field for the emission factor value (kg CO2e / litre). */
     private JTextField emissionFactorField;
+    /** Text field for the price per litre (e.g. EUR/L). */
+    private JTextField pricePerLitreField;
 
     /** Controls to add/edit/delete rows from the table. */
     private JButton addFactorButton;
@@ -63,7 +65,8 @@ public class FuelFactorPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(UIUtils.CONTENT_BACKGROUND);
 
-        // Manual input arranged in three rows: Fuel Type, Vehicle Type, Emission Factor
+        // Manual input arranged in four rows: Fuel Type, Vehicle Type, Emission Factor,
+        // Price per litre
         JPanel leftLabels = new JPanel();
         leftLabels.setLayout(new BoxLayout(leftLabels, BoxLayout.Y_AXIS));
         leftLabels.setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -72,6 +75,8 @@ public class FuelFactorPanel extends JPanel {
         leftLabels.add(new JLabel(messages.getString("label.vehicle.type") + ":"));
         leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
         leftLabels.add(new JLabel(messages.getString("label.emission.factor") + ":"));
+        leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
+        leftLabels.add(new JLabel(messages.getString("label.price.per.litre") + ":"));
 
         JPanel middleFields = new JPanel();
         middleFields.setLayout(new BoxLayout(middleFields, BoxLayout.Y_AXIS));
@@ -87,10 +92,13 @@ public class FuelFactorPanel extends JPanel {
         middleFields.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
         emissionFactorField = UIUtils.createCompactTextField(UIUtils.MAPPING_COMBO_WIDTH, UIUtils.MAPPING_COMBO_HEIGHT);
         middleFields.add(emissionFactorField);
+        middleFields.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
+        pricePerLitreField = UIUtils.createCompactTextField(UIUtils.MAPPING_COMBO_WIDTH, UIUtils.MAPPING_COMBO_HEIGHT);
+        middleFields.add(pricePerLitreField);
 
         JPanel rightColumn = new JPanel(new BorderLayout());
         rightColumn.setBackground(UIUtils.CONTENT_BACKGROUND);
-        JPanel rightTop = new JPanel(new GridLayout(3, 1, 0, 8));
+        JPanel rightTop = new JPanel(new GridLayout(4, 1, 0, 8));
         rightTop.setBackground(UIUtils.CONTENT_BACKGROUND);
         // Spacer aligns the unit label vertically with the field
         JLabel spacer = new JLabel(" ");
@@ -103,7 +111,10 @@ public class FuelFactorPanel extends JPanel {
         rightTop.add(new JLabel(" "));
         JLabel unitLabel = UIUtils.createUnitLabel(messages, "unit.kg_co2e_l");
         unitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        JLabel priceUnitLabel = UIUtils.createUnitLabel(messages, "unit.eur_l");
+        priceUnitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         rightTop.add(unitLabel);
+        rightTop.add(priceUnitLabel);
         rightColumn.add(rightTop, BorderLayout.NORTH);
 
         JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -142,6 +153,7 @@ public class FuelFactorPanel extends JPanel {
         inputGrid.add(vehicleTypeSelector, ig);
 
         // Row 2: Emission Factor + unit
+        // Row 2: Emission Factor + unit
         ig.gridx = 0;
         ig.gridy = 2;
         ig.weightx = 0;
@@ -156,15 +168,31 @@ public class FuelFactorPanel extends JPanel {
         ig.anchor = GridBagConstraints.LINE_END;
         inputGrid.add(unitLabel, ig);
 
-        // Row 3: spacer + add button
+        // Row 3: Price per litre + unit
         ig.gridx = 0;
         ig.gridy = 3;
+        ig.weightx = 0;
+        ig.anchor = GridBagConstraints.LINE_START;
+        inputGrid.add(new JLabel(messages.getString("label.price.per.litre") + ":"), ig);
+        ig.gridx = 1;
+        ig.gridy = 3;
+        ig.weightx = 1.0;
+        inputGrid.add(pricePerLitreField, ig);
+        ig.gridx = 2;
+        ig.gridy = 3;
+        ig.weightx = 0;
+        ig.anchor = GridBagConstraints.LINE_END;
+        inputGrid.add(priceUnitLabel, ig);
+
+        // Row 4: spacer + add button
+        ig.gridx = 0;
+        ig.gridy = 4;
         ig.weightx = 1.0;
         ig.weighty = 1.0;
         ig.fill = GridBagConstraints.BOTH;
         inputGrid.add(Box.createGlue(), ig);
         ig.gridx = 2;
-        ig.gridy = 3;
+        ig.gridy = 4;
         ig.weightx = 0;
         ig.weighty = 0;
         ig.fill = GridBagConstraints.NONE;
@@ -174,11 +202,12 @@ public class FuelFactorPanel extends JPanel {
         // Use a larger manual input box so fields are not cropped on small displays
         JPanel manualInputBox = UIComponents.createManualInputBox(messages, "tab.manual.input",
                 inputGrid, addButtonPanel, UIUtils.FACTOR_MANUAL_INPUT_WIDTH,
-                UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_FUEL, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_FUEL);
+                UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_FUEL_LARGE, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_FUEL_LARGE);
 
-        // Factors table (fuel type, vehicle type, emission factor)
+        // Factors table (fuel type, vehicle type, emission factor, price)
         String[] columnNames = { messages.getString("table.header.fuel.type"),
-                messages.getString("table.header.vehicle.type"), messages.getString("table.header.factor") };
+                messages.getString("table.header.vehicle.type"), messages.getString("table.header.factor"),
+                messages.getString("table.header.price") };
         DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -234,6 +263,10 @@ public class FuelFactorPanel extends JPanel {
 
     public JTextField getEmissionFactorField() {
         return emissionFactorField;
+    }
+
+    public JTextField getPricePerLitreField() {
+        return pricePerLitreField;
     }
 
     public JButton getAddFactorButton() {

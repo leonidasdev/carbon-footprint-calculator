@@ -45,10 +45,12 @@ public class FuelFactorServiceCsv implements FuelFactorService {
                 }
             }
 
-            // Determine fuelType and vehicleType to write. Prefer explicit vehicleType from the model
+            // Determine fuelType and vehicleType to write. Prefer explicit vehicleType from
+            // the model
             String fuelType = entry.getFuelType() == null ? "" : entry.getFuelType().trim();
             String vehicle = entry.getVehicleType() == null ? "" : entry.getVehicleType().trim();
-            // Fallback: if vehicleType empty, attempt to extract from entity between parentheses
+            // Fallback: if vehicleType empty, attempt to extract from entity between
+            // parentheses
             if ((vehicle == null || vehicle.isEmpty()) && entry.getEntity() != null) {
                 String entity = entry.getEntity();
                 int idx = entity.indexOf('(');
@@ -59,19 +61,22 @@ public class FuelFactorServiceCsv implements FuelFactorService {
             }
 
             String row = String.join(",", quoteCsv(fuelType), quoteCsv(vehicle),
-                    String.format(Locale.ROOT, "%.6f", entry.getBaseFactor()));
+                    String.format(Locale.ROOT, "%.6f", entry.getBaseFactor()),
+                    String.format(Locale.ROOT, "%.6f", entry.getPricePerLitre()));
 
             String key = normalizeKey(fuelType, vehicle);
             byKey.put(key, row);
 
             List<String> out = new ArrayList<>();
-            out.add("fuelType,vehicleType,emissionFactor");
-            // Ensure canonical ordering: sort by fuelType then vehicleType (case-insensitive)
+            out.add("fuelType,vehicleType,emissionFactor,pricePerLitre");
+            // Ensure canonical ordering: sort by fuelType then vehicleType
+            // (case-insensitive)
             List<Map.Entry<String, String>> entries = new ArrayList<>(byKey.entrySet());
             entries.sort((e1, e2) -> {
                 String k1 = e1.getKey() == null ? "" : e1.getKey();
                 String k2 = e2.getKey() == null ? "" : e2.getKey();
-                // normalize: key format produced by normalizeKey => either "FUEL" or "FUEL (VEHICLE)"
+                // normalize: key format produced by normalizeKey => either "FUEL" or "FUEL
+                // (VEHICLE)"
                 String fuel1 = k1;
                 String vehicle1 = "";
                 int p1 = k1.indexOf('(');
@@ -120,13 +125,20 @@ public class FuelFactorServiceCsv implements FuelFactorService {
                 if (ln == null || ln.isBlank())
                     continue;
                 List<String> parts = parseCsvLine(ln);
-                if (parts.size() >= 2) {
+                if (parts.size() >= 3) {
                     String fuelType = parts.get(0);
                     String vehicle = parts.size() > 1 ? parts.get(1) : "";
                     double factor = 0.0;
+                    double price = 0.0;
                     try {
-                        factor = Double.parseDouble(parts.get(parts.size() - 1));
+                        factor = Double.parseDouble(parts.get(2));
                     } catch (Exception ignored) {
+                    }
+                    if (parts.size() >= 4) {
+                        try {
+                            price = Double.parseDouble(parts.get(3));
+                        } catch (Exception ignored) {
+                        }
                     }
 
                     String entity = fuelType;
@@ -134,6 +146,7 @@ public class FuelFactorServiceCsv implements FuelFactorService {
                         entity = fuelType + " (" + vehicle + ")";
 
                     FuelEmissionFactor f = new FuelEmissionFactor(entity, year, factor, fuelType, vehicle);
+                    f.setPricePerLitre(price);
                     out.add(f);
                 }
             }
@@ -151,7 +164,7 @@ public class FuelFactorServiceCsv implements FuelFactorService {
         try {
             List<String> lines = Files.readAllLines(p);
             List<String> out = new ArrayList<>();
-            out.add("fuelType,vehicleType,emissionFactor");
+            out.add("fuelType,vehicleType,emissionFactor,pricePerLitre");
             String target = entity == null ? "" : entity.trim().toUpperCase(Locale.ROOT);
             for (int i = 1; i < lines.size(); i++) {
                 String ln = lines.get(i);

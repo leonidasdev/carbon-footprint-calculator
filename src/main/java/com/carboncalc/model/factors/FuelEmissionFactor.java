@@ -16,6 +16,7 @@ public class FuelEmissionFactor implements EmissionFactor {
     private String vehicleType; // e.g., Car, Van, Truck
     private double density; // kg/L
     private double energyContent; // kWh/L
+    private double pricePerLitre; // currency units per litre (e.g. EUR/L)
 
     /**
      * Default constructor used by mapping frameworks.
@@ -26,17 +27,29 @@ public class FuelEmissionFactor implements EmissionFactor {
     /**
      * Create a fuel emission factor with essential fields.
      *
-     * @param entity     entity identifier (e.g., supplier or tariff)
-     * @param year       applicable year
-     * @param baseFactor baseline kgCO2 per litre
-     * @param fuelType   descriptive fuel type (Diesel, Gasoline, ...)
-     * @param vehicleType vehicle classification (Car, Truck, ...). May be null/empty.
+     * @param entity      entity identifier (e.g., supplier or tariff)
+     * @param year        applicable year
+     * @param baseFactor  baseline kgCO2 per litre
+     * @param fuelType    descriptive fuel type (Diesel, Gasoline, ...)
+     * @param vehicleType vehicle classification (Car, Truck, ...). May be
+     *                    null/empty.
      */
     public FuelEmissionFactor(String entity, int year, double baseFactor, String fuelType) {
         this.entity = entity;
         this.year = year;
         this.baseFactor = baseFactor;
         this.fuelType = fuelType;
+    }
+
+    /**
+     * Extended constructor including price per litre.
+     */
+    public FuelEmissionFactor(String entity, int year, double baseFactor, String fuelType, double pricePerLitre) {
+        this.entity = entity;
+        this.year = year;
+        this.baseFactor = baseFactor;
+        this.fuelType = fuelType;
+        this.pricePerLitre = pricePerLitre;
     }
 
     /**
@@ -118,5 +131,19 @@ public class FuelEmissionFactor implements EmissionFactor {
 
     public void setEnergyContent(double energyContent) {
         this.energyContent = energyContent;
+    }
+
+    /**
+     * Get the configured price per litre for this fuel factor (e.g. EUR/L).
+     */
+    public double getPricePerLitre() {
+        return pricePerLitre;
+    }
+
+    /**
+     * Set the price per litre for this fuel factor.
+     */
+    public void setPricePerLitre(double pricePerLitre) {
+        this.pricePerLitre = pricePerLitre;
     }
 }

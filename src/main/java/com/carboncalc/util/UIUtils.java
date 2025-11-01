@@ -63,8 +63,13 @@ public class UIUtils {
     public static final int FACTOR_MANUAL_INPUT_HEIGHT = 180;
     public static final int FACTOR_MANUAL_INPUT_HEIGHT_LARGE = 240;
     public static final int FACTOR_MANUAL_INPUT_HEIGHT_SMALL = 150;
-    /** Manual input box height used specifically by the fuel factor panel (30px taller than gas small variant) */
+    /**
+     * Manual input box height used specifically by the fuel factor panel (30px
+     * taller than gas small variant)
+     */
     public static final int FACTOR_MANUAL_INPUT_HEIGHT_FUEL = FACTOR_MANUAL_INPUT_HEIGHT_SMALL + 30;
+    /** Larger variant used when extra vertical space is required (20px more) */
+    public static final int FACTOR_MANUAL_INPUT_HEIGHT_FUEL_LARGE = FACTOR_MANUAL_INPUT_HEIGHT_FUEL + 40;
     public static final int FACTOR_SCROLL_HEIGHT = 180;
     // Common minimum widths used by manual input boxes across factor panels
     public static final int MANUAL_INPUT_MIN_WIDTH = 300;

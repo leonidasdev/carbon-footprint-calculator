@@ -69,6 +69,7 @@ public class FuelFactorController extends GenericFactorController {
                     Object veh = panel.getVehicleTypeSelector().getEditor().getItem();
                     String vehicleType = veh == null ? "" : veh.toString().trim();
                     String factorText = panel.getEmissionFactorField().getText().trim();
+                    String priceText = panel.getPricePerLitreField().getText().trim();
 
                     if (fuelType.isEmpty()) {
                         JOptionPane.showMessageDialog(panel, messages.getString("error.gas.type.required"),
@@ -76,8 +77,14 @@ public class FuelFactorController extends GenericFactorController {
                         return;
                     }
                     Double factor = ValidationUtils.tryParseDouble(factorText);
+                    Double price = ValidationUtils.tryParseDouble(priceText);
                     if (factor == null || !ValidationUtils.isValidNonNegativeFactor(factor)) {
                         JOptionPane.showMessageDialog(panel, messages.getString("error.invalid.emission.factor"),
+                                messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    if (price == null || !ValidationUtils.isValidNonNegativeFactor(price)) {
+                        JOptionPane.showMessageDialog(panel, messages.getString("error.invalid.price"),
                                 messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
                         return;
                     }
@@ -123,6 +130,7 @@ public class FuelFactorController extends GenericFactorController {
 
                     FuelEmissionFactor entry = new FuelEmissionFactor(entity, saveYear, factor, fuelForEntry,
                             vehicleForEntry);
+                    entry.setPricePerLitre(price);
                     try {
                         // Persist using fuel-specific service for per-row storage
                         fuelService.saveFuelFactor(entry);
@@ -168,6 +176,7 @@ public class FuelFactorController extends GenericFactorController {
                     } catch (Exception ignored) {
                     }
                     panel.getEmissionFactorField().setText("");
+                    panel.getPricePerLitreField().setText("");
                 });
 
                 // Edit selected row
@@ -189,26 +198,44 @@ public class FuelFactorController extends GenericFactorController {
                     vehicleField.setText(currentVehicle);
                     JTextField factorField = UIUtils.createCompactTextField(120, 25);
                     factorField.setText(currentFactor);
-                    JPanel form = new JPanel(new GridLayout(3, 2, 5, 5));
+                    JTextField priceField = UIUtils.createCompactTextField(120, 25);
+                    try {
+                        Object pv = model.getValueAt(sel, 3);
+                        priceField.setText(pv == null ? "" : pv.toString());
+                    } catch (Exception ignored) {
+                    }
+                    JPanel form = new JPanel(new GridLayout(4, 2, 5, 5));
                     form.add(new JLabel(messages.getString("label.fuel.type") + ":"));
                     form.add(fuelField);
                     form.add(new JLabel(messages.getString("label.vehicle.type") + ":"));
                     form.add(vehicleField);
                     form.add(new JLabel(messages.getString("label.emission.factor") + ":"));
                     form.add(factorField);
+                    form.add(new JLabel(messages.getString("label.price.per.litre") + ":"));
+                    form.add(priceField);
 
                     int ok = JOptionPane.showConfirmDialog(panel, form, messages.getString("button.edit.company"),
                             JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
                     if (ok == JOptionPane.OK_OPTION) {
                         Double factor = ValidationUtils.tryParseDouble(factorField.getText().trim());
+                        Double price = ValidationUtils.tryParseDouble(priceField.getText().trim());
                         if (factor == null || !ValidationUtils.isValidNonNegativeFactor(factor)) {
                             JOptionPane.showMessageDialog(panel, messages.getString("error.invalid.emission.factor"),
+                                    messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
+                            return;
+                        }
+                        if (price == null || !ValidationUtils.isValidNonNegativeFactor(price)) {
+                            JOptionPane.showMessageDialog(panel, messages.getString("error.invalid.price"),
                                     messages.getString("error.title"), JOptionPane.WARNING_MESSAGE);
                             return;
                         }
                         model.setValueAt(fuelField.getText().trim(), sel, 0);
                         model.setValueAt(vehicleField.getText().trim(), sel, 1);
                         model.setValueAt(String.valueOf(factor), sel, 2);
+                        try {
+                            model.setValueAt(String.valueOf(price), sel, 3);
+                        } catch (Exception ignored) {
+                        }
 
                         int saveYear = Year.now().getValue();
                         if (parentView != null) {
@@ -242,6 +269,7 @@ public class FuelFactorController extends GenericFactorController {
 
                         FuelEmissionFactor entry = new FuelEmissionFactor(entity, saveYear, factor,
                                 fuelForEntry, vehicleForEntry);
+                        entry.setPricePerLitre(price);
                         try {
                             fuelService.saveFuelFactor(entry);
                             // reload for this year to apply ordering in the UI
@@ -385,7 +413,8 @@ public class FuelFactorController extends GenericFactorController {
                             if (!vehiclesMap.containsKey(vehKeyLower))
                                 vehiclesMap.put(vehKeyLower, vehicle.trim());
                         }
-                        model.addRow(new Object[] { fuelType, vehicle, String.valueOf(f.getBaseFactor()) });
+                        model.addRow(new Object[] { fuelType, vehicle, String.valueOf(f.getBaseFactor()),
+                                String.valueOf(f.getPricePerLitre()) });
                     }
                 }
 

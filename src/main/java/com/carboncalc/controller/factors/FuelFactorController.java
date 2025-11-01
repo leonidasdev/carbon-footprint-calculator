@@ -128,9 +128,9 @@ public class FuelFactorController extends GenericFactorController {
                         entity = fuelForEntry;
                     }
 
-                    FuelEmissionFactor entry = new FuelEmissionFactor(entity, saveYear, factor, fuelForEntry,
-                            vehicleForEntry);
-                    entry.setPricePerLitre(price);
+            FuelEmissionFactor entry = new FuelEmissionFactor(entity, saveYear, factor, fuelForEntry,
+                vehicleForEntry);
+            entry.setPricePerLitre(price);
                     try {
                         // Persist using fuel-specific service for per-row storage
                         fuelService.saveFuelFactor(entry);
@@ -413,8 +413,8 @@ public class FuelFactorController extends GenericFactorController {
                             if (!vehiclesMap.containsKey(vehKeyLower))
                                 vehiclesMap.put(vehKeyLower, vehicle.trim());
                         }
-                        model.addRow(new Object[] { fuelType, vehicle, String.valueOf(f.getBaseFactor()),
-                                String.valueOf(f.getPricePerLitre()) });
+            model.addRow(new Object[] { fuelType, vehicle, String.valueOf(f.getBaseFactor()),
+                String.valueOf(f.getPricePerLitre()) });
                     }
                 }
 

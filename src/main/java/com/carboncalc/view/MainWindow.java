@@ -98,13 +98,43 @@ public class MainWindow extends JFrame {
         // Style the navigation panel
         navigationPanel.setBorder(null);
 
-        // Add main title (localized)
-        JLabel titleLabel = new JLabel(messages.getString("application.title"));
-        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 20));
-        titleLabel.setForeground(UIUtils.GENERAL_BACKGROUND);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 10));
-        titleLabel.setHorizontalAlignment(SwingConstants.LEFT);
-        navigationPanel.add(titleLabel);
+        // Add main title split in two lines (localized keys: application.title.line1/line2)
+        JPanel titlePanel = new JPanel();
+        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
+        titlePanel.setOpaque(false);
+        titlePanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
+
+        String line1 = null;
+        String line2 = null;
+        try {
+            line1 = messages.getString("application.title.line1");
+            line2 = messages.getString("application.title.line2");
+        } catch (Exception e) {
+            // Fallback to single-line title if keys not present
+            String full = messages.getString("application.title");
+            int lastSpace = full != null ? full.lastIndexOf(' ') : -1;
+            if (lastSpace > 0) {
+                line1 = full.substring(0, lastSpace);
+                line2 = full.substring(lastSpace + 1);
+            } else {
+                line1 = full;
+                line2 = "";
+            }
+        }
+
+        JLabel titleLine1 = new JLabel(line1);
+        titleLine1.setFont(titleLine1.getFont().deriveFont(Font.BOLD, 18));
+        titleLine1.setForeground(UIUtils.GENERAL_BACKGROUND);
+        titleLine1.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel titleLine2 = new JLabel(line2);
+        titleLine2.setFont(titleLine2.getFont().deriveFont(Font.PLAIN, 14));
+        titleLine2.setForeground(UIUtils.GENERAL_BACKGROUND);
+        titleLine2.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        titlePanel.add(titleLine1);
+        titlePanel.add(titleLine2);
+        navigationPanel.add(titlePanel);
 
         // Reporting modules (use EnergyType ids for consistency)
         addNavigationButton("module.electricity", EnergyType.ELECTRICITY.id());

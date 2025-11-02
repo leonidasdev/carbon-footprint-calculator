@@ -82,6 +82,8 @@ public class UIUtils {
     public static final int NAV_BUTTON_WIDTH = 200;
     public static final int NAV_BUTTON_HEIGHT = 30;
     public static final int YEAR_SPINNER_WIDTH_LARGE = 80;
+    /** Width in pixels for the Date Limit input field */
+    public static final int DATE_LIMIT_FIELD_WIDTH = 75;
 
     public static void styleButton(JButton button) {
         button.setBackground(UPM_BLUE);
@@ -270,6 +272,37 @@ public class UIUtils {
         t.setMinimumSize(new Dimension(80, prefHeight));
         styleTextField(t);
         return t;
+    }
+
+    /**
+     * Create a Date Limit text field with placeholder text and consistent
+     * styling and sizing. The placeholder is read from the provided
+     * ResourceBundle using the key 'label.date.limit.placeholder'.
+     */
+    public static JTextField createDateLimitField(ResourceBundle messages) {
+        JTextField dateLimit = createCompactTextField(DATE_LIMIT_FIELD_WIDTH, YEAR_SPINNER_HEIGHT);
+        String placeholder = messages.getString("label.date.limit.placeholder");
+        dateLimit.setText(placeholder);
+        dateLimit.setForeground(MUTED_TEXT);
+        // focus behavior to clear/restore placeholder
+        dateLimit.addFocusListener(new java.awt.event.FocusAdapter() {
+            private java.awt.Color normalColor = dateLimit.getForeground();
+
+            public void focusGained(java.awt.event.FocusEvent e) {
+                if (dateLimit.getText().equals(placeholder)) {
+                    dateLimit.setText("");
+                    dateLimit.setForeground(normalColor);
+                }
+            }
+
+            public void focusLost(java.awt.event.FocusEvent e) {
+                if (dateLimit.getText() == null || dateLimit.getText().trim().isEmpty()) {
+                    dateLimit.setText(placeholder);
+                    dateLimit.setForeground(MUTED_TEXT);
+                }
+            }
+        });
+        return dateLimit;
     }
 
     public static Component createVerticalSpacer(int height) {

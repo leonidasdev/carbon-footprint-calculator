@@ -37,6 +37,7 @@ public class RefrigerantPanel extends BaseModulePanel {
     private JTable previewTable;
     private JScrollPane previewScrollPane;
     private JSpinner yearSpinner;
+    private JTextField dateLimitField;
     private JButton applyAndSaveExcelButton;
     private JComboBox<String> resultSheetSelector;
     // Result preview (center of result box) - placeholder, populated later by
@@ -137,11 +138,12 @@ public class RefrigerantPanel extends BaseModulePanel {
         quantitySelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
         addColumnMapping(mappingPanel, mg, "refrigerant.mapping.quantity", quantitySelector);
 
-        // Preview area and result box (preview on left, result controls on right)
-        JPanel previewContainer = new JPanel(new GridLayout(1, 2, 10, 0));
-        previewContainer.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        previewContainer.setBackground(UIUtils.CONTENT_BACKGROUND);
-        previewContainer.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_PANEL_HEIGHT));
+    // Preview area and result box (preview on left, result controls on right)
+    // Use GridBagLayout so we can size preview and result with different weights
+    JPanel previewContainer = new JPanel(new GridBagLayout());
+    previewContainer.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+    previewContainer.setBackground(UIUtils.CONTENT_BACKGROUND);
+    previewContainer.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_PANEL_HEIGHT));
 
         // Preview panel (left)
         JPanel previewPanel = new JPanel(new BorderLayout());
@@ -194,6 +196,16 @@ public class RefrigerantPanel extends BaseModulePanel {
         yearSpinner.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(yearSpinner);
 
+        // Date Limit input (placeholder behavior)
+        resultTopPanel.add(Box.createHorizontalStrut(UIUtils.HORIZONTAL_STRUT_SMALL));
+        JLabel dateLimitLabel = new JLabel(messages.getString("label.date.limit"));
+        dateLimitLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
+        resultTopPanel.add(dateLimitLabel);
+
+        dateLimitField = UIUtils.createDateLimitField(messages);
+        dateLimitField.setAlignmentY(Component.CENTER_ALIGNMENT);
+        resultTopPanel.add(dateLimitField);
+
         resultTopPanel.add(Box.createHorizontalStrut(UIUtils.HORIZONTAL_STRUT_SMALL));
         JLabel sheetLabel = new JLabel(messages.getString("label.sheet.short"));
         sheetLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
@@ -220,8 +232,22 @@ public class RefrigerantPanel extends BaseModulePanel {
         resultPanel.add(resultTopPanel, BorderLayout.NORTH);
         resultPanel.add(resultButtonPanel, BorderLayout.SOUTH);
 
-        previewContainer.add(previewPanel);
-        previewContainer.add(resultPanel);
+    GridBagConstraints pc = new GridBagConstraints();
+    pc.fill = GridBagConstraints.BOTH;
+    pc.gridy = 0;
+    pc.weighty = 1.0;
+
+    // Preview panel: roughly 4/9 of the total width (preview ≈ 0.444, result ≈ 0.556)
+    pc.gridx = 0;
+    pc.weightx = 0.444;
+    pc.insets = new Insets(0, 0, 0, 10); // 10px gap to the right
+    previewContainer.add(previewPanel, pc);
+
+    // Result panel: remaining width
+    pc.gridx = 1;
+    pc.weightx = 0.556;
+    pc.insets = new Insets(0, 0, 0, 0);
+    previewContainer.add(resultPanel, pc);
 
         // Compose panels
         main.add(top, BorderLayout.NORTH);
@@ -293,6 +319,18 @@ public class RefrigerantPanel extends BaseModulePanel {
 
     public JTable getPreviewTable() {
         return previewTable;
+    }
+
+    public String getDateLimit() {
+        if (dateLimitField == null)
+            return null;
+        String v = dateLimitField.getText();
+        String ph = messages.getString("label.date.limit.placeholder");
+        if (v == null)
+            return null;
+        if (v.equals(ph) || v.trim().isEmpty())
+            return null;
+        return v.trim();
     }
 
     // Expose mapping combo boxes so controller can populate them

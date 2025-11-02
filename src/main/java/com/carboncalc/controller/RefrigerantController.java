@@ -20,6 +20,9 @@ import java.time.Year;
 import java.util.*;
 import java.text.MessageFormat;
 import java.math.BigDecimal;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 
 /**
  * Controller for the refrigerant import panel.
@@ -49,6 +52,62 @@ public class RefrigerantController {
         this.messages = messages;
         int persisted = loadPersistedYear();
         this.currentYear = persisted > 0 ? persisted : Year.now().getValue();
+    }
+
+    /**
+     * Read a CSV file and produce an in-memory XSSFWorkbook with a single
+     * sheet containing the parsed rows. This is used to provide a unified
+     * preview/mapping flow that expects a Workbook.
+     */
+    private Workbook loadCsvAsWorkbook(File csvFile) throws IOException {
+        XSSFWorkbook wb = new XSSFWorkbook();
+        Sheet sheet = wb.createSheet("Sheet1");
+
+        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+            String line;
+            int rowIdx = 0;
+            while ((line = br.readLine()) != null) {
+                List<String> cells = parseCsvLine(line);
+                Row r = sheet.createRow(rowIdx++);
+                for (int c = 0; c < cells.size(); c++) {
+                    Cell cell = r.createCell(c);
+                    cell.setCellValue(cells.get(c));
+                }
+            }
+        }
+        return wb;
+    }
+
+    /**
+     * Lightweight CSV line parser that handles quoted fields and commas.
+     */
+    private List<String> parseCsvLine(String line) {
+        List<String> out = new ArrayList<>();
+        if (line == null || line.isEmpty()) {
+            out.add("");
+            return out;
+        }
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char ch = line.charAt(i);
+            if (ch == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    // escaped quote
+                    cur.append('"');
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (ch == ',' && !inQuotes) {
+                out.add(cur.toString());
+                cur.setLength(0);
+            } else {
+                cur.append(ch);
+            }
+        }
+        out.add(cur.toString());
+        return out;
     }
 
     public void setView(RefrigerantPanel view) {
@@ -102,8 +161,8 @@ public class RefrigerantController {
     public void handleTeamsFormsFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-        FileNameExtensionFilter filter = new FileNameExtensionFilter(messages.getString("file.filter.excel"), "xlsx",
-                "xls");
+    FileNameExtensionFilter filter = new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx",
+        "xls", "csv");
         fileChooser.setFileFilter(filter);
         fileChooser.setAcceptAllFileFilterUsed(false);
 
@@ -116,8 +175,10 @@ public class RefrigerantController {
                     teamsWorkbook = new XSSFWorkbook(fis);
                 } else if (lname.endsWith(".xls")) {
                     teamsWorkbook = new HSSFWorkbook(fis);
+                } else if (lname.endsWith(".csv")) {
+                    teamsWorkbook = loadCsvAsWorkbook(teamsFile);
                 } else {
-                    throw new IllegalArgumentException("Unsupported Excel format");
+                    throw new IllegalArgumentException("Unsupported file format");
                 }
                 updateTeamsSheetsList();
                 view.setTeamsFileName(teamsFile.getName());

@@ -45,6 +45,7 @@ public class RefrigerantController {
     private RefrigerantPanel view;
     private Workbook teamsWorkbook;
     private File teamsFile;
+    private String teamsLastModifiedHeaderName;
     private int currentYear;
     private static final Path CURRENT_YEAR_FILE = Paths.get("data", "year", "current_year.txt");
 
@@ -181,6 +182,13 @@ public class RefrigerantController {
                     throw new IllegalArgumentException("Unsupported file format");
                 }
                 updateTeamsSheetsList();
+                // Detect a 'Last Modified' header in the provided workbook and store
+                // the header name to be passed to the exporter.
+                try {
+                    this.teamsLastModifiedHeaderName = detectLastModifiedHeader(teamsWorkbook);
+                } catch (Exception ignored) {
+                    this.teamsLastModifiedHeaderName = null;
+                }
                 view.setTeamsFileName(teamsFile.getName());
                 fis.close();
             } catch (Exception e) {
@@ -188,6 +196,50 @@ public class RefrigerantController {
                         messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    /**
+     * Scan workbook sheets for a header cell that likely represents Last Modified.
+     * Returns the header text (original) when found, otherwise null.
+     */
+    private String detectLastModifiedHeader(Workbook wb) {
+        if (wb == null)
+            return null;
+        DataFormatter df = new DataFormatter();
+        for (int s = 0; s < wb.getNumberOfSheets(); s++) {
+            Sheet sh = wb.getSheetAt(s);
+            if (sh == null)
+                continue;
+            FormulaEvaluator eval = wb.getCreationHelper().createFormulaEvaluator();
+            int headerRowIndex = -1;
+            for (int i = sh.getFirstRowNum(); i <= sh.getLastRowNum(); i++) {
+                Row r = sh.getRow(i);
+                if (r == null)
+                    continue;
+                boolean nonEmpty = false;
+                for (Cell c : r) {
+                    if (!getCellString(c, df, eval).isEmpty()) {
+                        nonEmpty = true;
+                        break;
+                    }
+                }
+                if (nonEmpty) {
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+            if (headerRowIndex == -1)
+                continue;
+            Row hdr = sh.getRow(headerRowIndex);
+            for (Cell c : hdr) {
+                String v = getCellString(c, df, eval);
+                String n = v == null ? "" : v.toLowerCase().replaceAll("[_\\s]+", "");
+                if (n.contains("last") && (n.contains("modif") || n.contains("modified"))) {
+                    return v;
+                }
+            }
+        }
+        return null;
     }
 
     private void updateTeamsSheetsList() {
@@ -264,6 +316,19 @@ public class RefrigerantController {
         updateComboBox(view.getInvoiceDateSelector(), columnHeaders);
         updateComboBox(view.getRefrigerantTypeSelector(), columnHeaders);
         updateComboBox(view.getQuantitySelector(), columnHeaders);
+        // Populate completion time selector as well and, if a likely header was
+        // detected earlier, try to pre-select it for convenience.
+        updateComboBox(view.getCompletionTimeSelector(), columnHeaders);
+        if (this.teamsLastModifiedHeaderName != null) {
+            JComboBox<String> c = view.getCompletionTimeSelector();
+            for (int i = 0; i < c.getItemCount(); i++) {
+                String it = c.getItemAt(i);
+                if (it != null && it.equalsIgnoreCase(this.teamsLastModifiedHeaderName)) {
+                    c.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
     }
 
     private void updateComboBox(JComboBox<String> comboBox, List<String> items) {
@@ -533,9 +598,10 @@ public class RefrigerantController {
             }
 
             // Call exporter (reads provider file again internally)
-            RefrigerantExcelExporter.exportRefrigerantData(outputFile.getAbsolutePath(),
-                    teamsFile != null ? teamsFile.getAbsolutePath() : null,
-                    selectedSheet, mapping, this.currentYear, sheetMode);
+        RefrigerantExcelExporter.exportRefrigerantData(outputFile.getAbsolutePath(),
+            teamsFile != null ? teamsFile.getAbsolutePath() : null,
+            selectedSheet, mapping, this.currentYear, sheetMode, view.getDateLimit(),
+            this.teamsLastModifiedHeaderName);
 
             JOptionPane.showMessageDialog(view, messages.getString("excel.save.success"),
                     messages.getString("success.title"), JOptionPane.INFORMATION_MESSAGE);

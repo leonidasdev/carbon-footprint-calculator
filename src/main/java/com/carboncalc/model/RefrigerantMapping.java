@@ -19,9 +19,10 @@ public class RefrigerantMapping {
     private final int invoiceDateIndex;
     private final int refrigerantTypeIndex;
     private final int quantityIndex;
+    private final int completionTimeIndex;
 
     public RefrigerantMapping(int centroIndex, int personIndex, int invoiceIndex, int providerIndex,
-            int invoiceDateIndex, int refrigerantTypeIndex, int quantityIndex) {
+            int invoiceDateIndex, int refrigerantTypeIndex, int quantityIndex, int completionTimeIndex) {
         this.centroIndex = centroIndex;
         this.personIndex = personIndex;
         this.invoiceIndex = invoiceIndex;
@@ -29,6 +30,7 @@ public class RefrigerantMapping {
         this.invoiceDateIndex = invoiceDateIndex;
         this.refrigerantTypeIndex = refrigerantTypeIndex;
         this.quantityIndex = quantityIndex;
+        this.completionTimeIndex = completionTimeIndex;
     }
 
     public int getCentroIndex() {
@@ -59,6 +61,10 @@ public class RefrigerantMapping {
         return quantityIndex;
     }
 
+    public int getCompletionTimeIndex() {
+        return completionTimeIndex;
+    }
+
     /**
      * Returns true when all required mapping indices are present.
      *
@@ -68,7 +74,7 @@ public class RefrigerantMapping {
      * other import panels so the exporter has the data it needs.
      */
     public boolean isComplete() {
-        return centroIndex >= 0 && invoiceIndex >= 0 && providerIndex >= 0 && invoiceDateIndex >= 0
-                && refrigerantTypeIndex >= 0 && quantityIndex >= 0;
+    return centroIndex >= 0 && invoiceIndex >= 0 && providerIndex >= 0 && invoiceDateIndex >= 0
+        && refrigerantTypeIndex >= 0 && quantityIndex >= 0 && completionTimeIndex >= 0;
     }
 }

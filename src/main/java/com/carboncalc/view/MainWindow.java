@@ -24,6 +24,13 @@ import com.carboncalc.controller.factors.FuelFactorController;
 import com.carboncalc.controller.factors.RefrigerantFactorController;
 import com.carboncalc.controller.factors.GenericFactorController;
 import java.util.function.Function;
+import com.carboncalc.controller.RefrigerantController;
+import com.carboncalc.controller.FuelController;
+import com.carboncalc.view.FuelPanel;
+import com.carboncalc.service.FuelFactorService;
+import com.carboncalc.service.FuelFactorServiceCsv;
+import com.carboncalc.service.RefrigerantFactorService;
+import com.carboncalc.service.RefrigerantFactorServiceCsv;
 
 /**
  * Main application window.
@@ -223,27 +230,26 @@ public class MainWindow extends JFrame {
 
     private JPanel createRefrigerantPanel() {
         // Create controller and view for refrigerant module
-        com.carboncalc.controller.RefrigerantController panelController = new com.carboncalc.controller.RefrigerantController(
-                messages);
+        RefrigerantController panelController = new RefrigerantController(messages);
         RefrigerantPanel panel = new RefrigerantPanel(panelController, messages);
         panelController.setView(panel);
         return panel;
     }
 
     private JPanel createFuelPanel() {
-        com.carboncalc.controller.FuelController panelController = new com.carboncalc.controller.FuelController(messages);
-        com.carboncalc.view.FuelPanel panel = new com.carboncalc.view.FuelPanel(panelController, messages);
+        FuelController panelController = new FuelController(messages);
+        FuelPanel panel = new FuelPanel(panelController, messages);
         panelController.setView(panel);
         return panel;
     }
 
     private JPanel createEmissionFactorsPanel() {
         // Create concrete implementations here and inject into the controller.
-        EmissionFactorService efService = new EmissionFactorServiceCsv();
-        ElectricityFactorService egfService = new ElectricityFactorServiceCsv();
-        GasFactorService gasFactorService = new GasFactorServiceCsv();
-        com.carboncalc.service.FuelFactorService fuelFactorService = new com.carboncalc.service.FuelFactorServiceCsv();
-        com.carboncalc.service.RefrigerantFactorService refrigerantFactorService = new com.carboncalc.service.RefrigerantFactorServiceCsv();
+    EmissionFactorService efService = new EmissionFactorServiceCsv();
+    ElectricityFactorService egfService = new ElectricityFactorServiceCsv();
+    GasFactorService gasFactorService = new GasFactorServiceCsv();
+    FuelFactorService fuelFactorService = new FuelFactorServiceCsv();
+    RefrigerantFactorService refrigerantFactorService = new RefrigerantFactorServiceCsv();
 
         // Provide a factory lambda that creates subcontrollers lazily by type
         Function<String, FactorSubController> factory = (type) -> {

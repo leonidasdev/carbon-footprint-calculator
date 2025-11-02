@@ -32,6 +32,7 @@ public class RefrigerantPanel extends BaseModulePanel {
     private JComboBox<String> invoiceDateSelector;
     private JComboBox<String> refrigerantTypeSelector;
     private JComboBox<String> quantitySelector;
+    private JComboBox<String> completionTimeSelector;
 
     // Preview and controls
     private JTable previewTable;
@@ -138,6 +139,10 @@ public class RefrigerantPanel extends BaseModulePanel {
         quantitySelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
         addColumnMapping(mappingPanel, mg, "refrigerant.mapping.quantity", quantitySelector);
 
+        // Place completion time mapping directly below the quantity mapping as requested
+        completionTimeSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
+        addColumnMapping(mappingPanel, mg, "refrigerant.mapping.completionTime", completionTimeSelector);
+
     // Preview area and result box (preview on left, result controls on right)
     // Use GridBagLayout so we can size preview and result with different weights
     JPanel previewContainer = new JPanel(new GridBagLayout());
@@ -205,6 +210,28 @@ public class RefrigerantPanel extends BaseModulePanel {
         dateLimitField = UIUtils.createDateLimitField(messages);
         dateLimitField.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(dateLimitField);
+
+        // When the date limit text changes, update the Apply button enabled state
+        dateLimitField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void changed() {
+                updateApplyAndSaveButtonState();
+            }
+
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                changed();
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                changed();
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                changed();
+            }
+        });
 
         resultTopPanel.add(Box.createHorizontalStrut(UIUtils.HORIZONTAL_STRUT_SMALL));
         JLabel sheetLabel = new JLabel(messages.getString("label.sheet.short"));
@@ -362,6 +389,10 @@ public class RefrigerantPanel extends BaseModulePanel {
         return quantitySelector;
     }
 
+    public JComboBox<String> getCompletionTimeSelector() {
+        return completionTimeSelector;
+    }
+
     // Result sheet selector getter (for controller access if needed)
     /**
      * Return the combo box used to select the result sheet layout for the
@@ -387,10 +418,10 @@ public class RefrigerantPanel extends BaseModulePanel {
      * by {@code -1}.
      */
     public RefrigerantMapping getSelectedColumns() {
-        return new RefrigerantMapping(getSelectedIndex(centroSelector), getSelectedIndex(personSelector),
-                getSelectedIndex(invoiceNumberSelector), getSelectedIndex(providerSelector),
-                getSelectedIndex(invoiceDateSelector), getSelectedIndex(refrigerantTypeSelector),
-                getSelectedIndex(quantitySelector));
+    return new RefrigerantMapping(getSelectedIndex(centroSelector), getSelectedIndex(personSelector),
+        getSelectedIndex(invoiceNumberSelector), getSelectedIndex(providerSelector),
+        getSelectedIndex(invoiceDateSelector), getSelectedIndex(refrigerantTypeSelector),
+        getSelectedIndex(quantitySelector), getSelectedIndex(completionTimeSelector));
     }
 
     /**
@@ -410,8 +441,9 @@ public class RefrigerantPanel extends BaseModulePanel {
 
     private void updateApplyAndSaveButtonState() {
         RefrigerantMapping mapping = getSelectedColumns();
+        boolean enable = mapping.isComplete() && getDateLimit() != null;
         if (applyAndSaveExcelButton != null)
-            applyAndSaveExcelButton.setEnabled(mapping.isComplete());
+            applyAndSaveExcelButton.setEnabled(enable);
     }
 
     @Override

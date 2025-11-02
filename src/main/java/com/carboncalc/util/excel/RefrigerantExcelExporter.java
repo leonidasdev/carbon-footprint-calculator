@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.ArrayList;
 
 import com.carboncalc.service.RefrigerantFactorServiceCsv;
 import com.carboncalc.model.factors.RefrigerantEmissionFactor;
@@ -20,10 +22,18 @@ import com.carboncalc.model.CupsCenterMapping;
 import com.carboncalc.model.RefrigerantMapping;
 
 import java.time.LocalDate;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.text.Normalizer;
+import java.io.File;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.sql.Date;
 
 /**
  * Minimal Excel exporter for refrigerant import results.
@@ -54,12 +64,49 @@ public class RefrigerantExcelExporter {
      * @throws IOException on file write failures
      */
     public static void exportRefrigerantData(String filePath, String providerPath, String providerSheet,
-            RefrigerantMapping mapping, int year, String sheetMode) throws IOException {
+        RefrigerantMapping mapping, int year, String sheetMode, String dateLimit, String lastModifiedHeader)
+        throws IOException {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
             // Always use Spanish messages for exported Excel files regardless of UI locale
-            java.util.ResourceBundle spanish = java.util.ResourceBundle.getBundle("Messages", new Locale("es"));
+            ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
             try {
+                // create a Diagnostics sheet early so we can always append context and
+                // failures there. Keep a reference for later diagnostic writes.
+                Sheet diagnosticsSheet = null;
+                try {
+                    diagnosticsSheet = workbook.createSheet("Diagnostics");
+                } catch (Exception ignored) {
+                    diagnosticsSheet = workbook.getSheet("Diagnostics");
+                    if (diagnosticsSheet == null)
+                        diagnosticsSheet = workbook.createSheet("Diagnostics");
+                }
+                int diagRowIdx = diagnosticsSheet.getLastRowNum() + 1;
+                try {
+                    Row t = diagnosticsSheet.createRow(diagRowIdx++);
+                    t.createCell(0).setCellValue("timestamp");
+                    t.createCell(1).setCellValue(Instant.now().toString());
+                    Row p = diagnosticsSheet.createRow(diagRowIdx++);
+                    p.createCell(0).setCellValue("providerPath");
+                    p.createCell(1).setCellValue(providerPath != null ? providerPath : "null");
+                    Row ps = diagnosticsSheet.createRow(diagRowIdx++);
+                    ps.createCell(0).setCellValue("providerSheetRequested");
+                    ps.createCell(1).setCellValue(providerSheet != null ? providerSheet : "null");
+                    Row dest = diagnosticsSheet.createRow(diagRowIdx++);
+                    dest.createCell(0).setCellValue("destinationPath");
+                    dest.createCell(1).setCellValue(filePath != null ? filePath : "null");
+                    Row y = diagnosticsSheet.createRow(diagRowIdx++);
+                    y.createCell(0).setCellValue("yearParam");
+                    y.createCell(1).setCellValue(year);
+                    Row dl = diagnosticsSheet.createRow(diagRowIdx++);
+                    dl.createCell(0).setCellValue("dateLimitParam");
+                    dl.createCell(1).setCellValue(dateLimit != null ? dateLimit : "null");
+                    Row lmh = diagnosticsSheet.createRow(diagRowIdx++);
+                    lmh.createCell(0).setCellValue("lastModifiedHeaderProvided");
+                    lmh.createCell(1).setCellValue(lastModifiedHeader != null ? lastModifiedHeader : "null");
+                } catch (Exception ignored) {
+                }
+
                 if (providerPath != null && providerSheet != null) {
                 Sheet detailed = workbook.createSheet("Extendido");
                 CellStyle header = createHeaderStyle(workbook);
@@ -76,10 +123,11 @@ public class RefrigerantExcelExporter {
                         }
                     }
 
-                    if (src != null) {
-                        Sheet srcSheet = src.getSheet(providerSheet);
-                        if (srcSheet != null) {
-                            Map<String, double[]> aggregates = writeDetailedRows(detailed, srcSheet, mapping, year);
+                        if (src != null) {
+                            Sheet srcSheet = src.getSheet(providerSheet);
+                            if (srcSheet != null) {
+                    Map<String, double[]> aggregates = writeDetailedRows(detailed, srcSheet, mapping, year,
+                                        dateLimit, lastModifiedHeader);
                             // Ensure aggregates are available; if not, compute them from the written detailed sheet
                             FormulaEvaluator wbEval = workbook.getCreationHelper().createFormulaEvaluator();
                             if (aggregates == null || aggregates.isEmpty()) {
@@ -143,13 +191,16 @@ public class RefrigerantExcelExporter {
                     workbook.write(fos);
                 }
             } catch (Throwable tx) {
-                // Attempt to write diagnostics into the workbook and save it so user can inspect the failure
+                // Attempt to append diagnostics into the workbook and save it so user can inspect the failure
                 try {
-                    Sheet diag = workbook.createSheet("Diagnostics");
-                    int r = 0;
-                    Row m = diag.createRow(r++);
-                    m.createCell(0).setCellValue("exception");
-                    m.createCell(1).setCellValue(tx.toString());
+                    Sheet diag = workbook.getSheet("Diagnostics");
+                    if (diag == null) {
+                        diag = workbook.createSheet("Diagnostics");
+                    }
+                    int r = diag.getLastRowNum() + 1;
+                    Row hdr = diag.createRow(r++);
+                    hdr.createCell(0).setCellValue("exception");
+                    hdr.createCell(1).setCellValue(tx.toString());
                     for (StackTraceElement ste : tx.getStackTrace()) {
                         Row rr = diag.createRow(r++);
                         rr.createCell(0).setCellValue(ste.toString());
@@ -171,11 +222,11 @@ public class RefrigerantExcelExporter {
     }
 
     // Helper: load a CSV file into an in-memory XSSFWorkbook (single sheet)
-    private static Workbook loadCsvAsWorkbookFromPath(String csvPath) throws java.io.IOException {
+    private static Workbook loadCsvAsWorkbookFromPath(String csvPath) throws IOException {
         XSSFWorkbook wb = new XSSFWorkbook();
         Sheet sheet = wb.createSheet("Sheet1");
-        java.io.File f = new java.io.File(csvPath);
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(f))) {
+        File f = new File(csvPath);
+        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
             String line;
             int rowIdx = 0;
             while ((line = br.readLine()) != null) {
@@ -192,7 +243,7 @@ public class RefrigerantExcelExporter {
 
     // Static CSV parser variant for use inside exporter
     private static List<String> parseCsvLineStatic(String line) {
-        List<String> out = new java.util.ArrayList<>();
+    List<String> out = new ArrayList<>();
         if (line == null || line.isEmpty()) {
             out.add("");
             return out;
@@ -222,7 +273,7 @@ public class RefrigerantExcelExporter {
     /**
      * Create the header row for the detailed (Extendido) sheet.
      */
-    private static void createDetailedHeader(Sheet sheet, CellStyle headerStyle, java.util.ResourceBundle spanish) {
+    private static void createDetailedHeader(Sheet sheet, CellStyle headerStyle, ResourceBundle spanish) {
         Row h = sheet.createRow(0);
     // Build labels from Spanish resource bundle for the requested columns
     String[] labels = new String[] {
@@ -236,7 +287,9 @@ public class RefrigerantExcelExporter {
         spanish.getString("refrigerant.mapping.quantity") + " (kg)",
         // emission factor header and emissions header
         spanish.getString("refrigerant.mapping.emissionFactor"),
-        spanish.getString("refrigerant.mapping.emissions") };
+    spanish.getString("refrigerant.mapping.emissions"),
+    // completion time column requested to appear after Emisiones tCO2
+    spanish.getString("refrigerant.mapping.completionTime") };
         for (int i = 0; i < labels.length; i++) {
             Cell c = h.createCell(i);
             c.setCellValue(labels[i]);
@@ -252,7 +305,7 @@ public class RefrigerantExcelExporter {
      * with keys -> [totalQuantity, totalEmissions].
      */
     private static Map<String, double[]> writeDetailedRows(Sheet target, Sheet source, RefrigerantMapping mapping,
-            int year) {
+        int year, String dateLimit, String lastModifiedHeader) {
         DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = source.getWorkbook().getCreationHelper().createFormulaEvaluator();
         Map<String, double[]> perCenterAgg = new HashMap<>();
@@ -285,7 +338,7 @@ public class RefrigerantExcelExporter {
             // ignore
         }
 
-        int headerRowIndex = -1;
+    int headerRowIndex = -1;
         for (int i = source.getFirstRowNum(); i <= source.getLastRowNum(); i++) {
             Row r = source.getRow(i);
             if (r == null)
@@ -317,16 +370,45 @@ public class RefrigerantExcelExporter {
             }
             return perCenterAgg;
         }
+    // Determine reporting year: prefer the 'year' parameter passed by caller
+    // (UI selection), otherwise fallback to the persisted current_year file.
+    int reportingYear = (year > 0) ? year : readCurrentYearFromFile();
+
+    // Track how many rows were skipped due to different reasons for diagnostics
+    int skippedByYear = 0;
+    int skippedByLastModified = 0;
+    int skippedByZeroQty = 0;
+    int processedRowCount = 0;
+
+    // Parse dateLimit (if provided) into an Instant for comparison
+        java.time.Instant dateLimitInstant = null;
+        if (dateLimit != null && !dateLimit.trim().isEmpty()) {
+            try {
+                // Try ISO instant first (e.g. 2025-11-02T21:18:35Z)
+                dateLimitInstant = java.time.Instant.parse(dateLimit.trim());
+            } catch (Exception e) {
+                // Fallback: try to parse as a local date using existing parser and treat as start of day UTC
+                try {
+                    java.time.LocalDate ld = parseDateLenient(dateLimit.trim());
+                    if (ld != null)
+                        dateLimitInstant = ld.atStartOfDay(java.time.ZoneOffset.UTC).toInstant();
+                } catch (Exception ignored) {
+                }
+            }
+        }
 
         int outRow = target.getLastRowNum() + 1;
 
-        // Create diagnostics sheet to help debug mappings and source content
-        Sheet diag = null;
-        try {
-            diag = target.getWorkbook().createSheet("Diagnostics");
-        } catch (Exception ignored) {
+        // Create/get the Diagnostics sheet to append mapping and parsing diagnostics
+        Sheet diag = target.getWorkbook().getSheet("Diagnostics");
+        if (diag == null) {
+            try {
+                diag = target.getWorkbook().createSheet("Diagnostics");
+            } catch (Exception ignored) {
+                diag = target.getWorkbook().getSheet("Diagnostics");
+            }
         }
-        int diagRow = 0;
+        int diagRow = (diag == null) ? 0 : diag.getLastRowNum() + 1;
         if (diag != null) {
             Row mrow = diag.createRow(diagRow++);
             mrow.createCell(0).setCellValue("headerRowIndex");
@@ -356,6 +438,69 @@ public class RefrigerantExcelExporter {
                     String val = getCellStringStatic(srcCell, df, eval);
                     hdrOut.createCell(ci).setCellValue(val);
                 }
+                // try to detect a 'Last Modified' column in header (common names)
+                int lastModifiedIndex = -1;
+                for (int ci = 0; ci < hdr.getLastCellNum(); ci++) {
+                    Cell srcCell = hdr.getCell(ci);
+                    String val = getCellStringStatic(srcCell, df, eval);
+                    String n = normalizeKey(val);
+                    if (n.contains("last") && n.contains("modif")) {
+                        lastModifiedIndex = ci;
+                        break;
+                    }
+                    if (n.contains("last") && n.contains("modified")) {
+                        lastModifiedIndex = ci;
+                        break;
+                    }
+                    if (n.contains("lastmodified") || n.contains("last_modified")) {
+                        lastModifiedIndex = ci;
+                        break;
+                    }
+                }
+                Row lmRow = diag.createRow(diagRow++);
+                lmRow.createCell(0).setCellValue("lastModifiedIndexDetected");
+                lmRow.createCell(1).setCellValue(lastModifiedIndex);
+            }
+        }
+
+        // Determine lastModifiedIndex for row-level parsing (repeat detection to have it in scope)
+        int lastModifiedIndexLocal = -1;
+        // Prefer explicit mapping index when provided by the UI mapping
+        try {
+            int mapped = mapping.getCompletionTimeIndex();
+            if (mapped >= 0) {
+                lastModifiedIndexLocal = mapped;
+            }
+        } catch (Exception ignored) {
+        }
+    // If the caller provided an explicit header name that was detected earlier, prefer that
+    // when resolving the column index.
+        Row hdrRow = source.getRow(headerRowIndex);
+        if (hdrRow != null) {
+            for (int ci = 0; ci < hdrRow.getLastCellNum(); ci++) {
+                Cell srcCell = hdrRow.getCell(ci);
+                String val = getCellStringStatic(srcCell, df, eval);
+                String n = normalizeKey(val);
+                if (lastModifiedHeader != null && !lastModifiedHeader.trim().isEmpty()) {
+                    // If a header name was supplied, match it case-insensitively and with normalization
+                    String normWanted = normalizeKey(lastModifiedHeader);
+                    if (normalizeKey(val).equals(normWanted)) {
+                        lastModifiedIndexLocal = ci;
+                        break;
+                    }
+                }
+                if (n.contains("last") && n.contains("modif")) {
+                    lastModifiedIndexLocal = ci;
+                    break;
+                }
+                if (n.contains("last") && n.contains("modified")) {
+                    lastModifiedIndexLocal = ci;
+                    break;
+                }
+                if (n.contains("lastmodified") || n.contains("last_modified")) {
+                    lastModifiedIndexLocal = ci;
+                    break;
+                }
             }
         }
 
@@ -372,8 +517,92 @@ public class RefrigerantExcelExporter {
             String qtyStr = getCellStringByIndex(src, mapping.getQuantityIndex(), df, eval);
 
             double qty = parseDoubleSafe(qtyStr);
-            if (qty <= 0)
+            if (qty <= 0) {
+                skippedByZeroQty++;
+                // per-row diagnostics: zero or negative quantity
+                if (diag != null) {
+                    try {
+                        Row dr = diag.createRow(diagRow++);
+                        dr.createCell(0).setCellValue(i);
+                        dr.createCell(1).setCellValue(invoice != null ? invoice : "");
+                        dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
+                        dr.createCell(3).setCellValue("");
+                        dr.createCell(4).setCellValue(getCellStringByIndex(src, lastModifiedIndexLocal, df, eval));
+                        dr.createCell(5).setCellValue("");
+                        dr.createCell(6).setCellValue(qty);
+                        dr.createCell(7).setCellValue("SKIPPED_ZERO_QTY");
+                    } catch (Exception ignored) {
+                    }
+                }
                 continue;
+            }
+
+            // Parse invoice date and include only rows that fall in the reporting year
+            LocalDate parsedInvoice = parseDateLenient(invoiceDate);
+            if (parsedInvoice == null || parsedInvoice.getYear() != reportingYear) {
+                skippedByYear++;
+                if (diag != null) {
+                    try {
+                        Row dr = diag.createRow(diagRow++);
+                        dr.createCell(0).setCellValue(i);
+                        dr.createCell(1).setCellValue(invoice != null ? invoice : "");
+                        dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
+                        dr.createCell(3).setCellValue(parsedInvoice != null ? parsedInvoice.toString() : "");
+                        dr.createCell(4).setCellValue(getCellStringByIndex(src, lastModifiedIndexLocal, df, eval));
+                        dr.createCell(5).setCellValue("");
+                        dr.createCell(6).setCellValue(qty);
+                        dr.createCell(7).setCellValue("SKIPPED_YEAR");
+                    } catch (Exception ignored) {
+                    }
+                }
+                continue;
+            }
+
+            // Last-Modified filter: if a dateLimitInstant is provided and the row
+            // has a Last Modified value AFTER the limit -> skip it (treat dateLimit as upper bound)
+            if (lastModifiedIndexLocal >= 0 && dateLimitInstant != null) {
+                String lmStr = getCellStringByIndex(src, lastModifiedIndexLocal, df, eval);
+                if (lmStr != null && !lmStr.trim().isEmpty()) {
+                    boolean parsedAndAfter = false;
+                    String parsedLmText = "";
+                    try {
+                        java.time.Instant lmInstant = java.time.Instant.parse(lmStr.trim());
+                        parsedLmText = lmInstant.toString();
+                        if (lmInstant.isAfter(dateLimitInstant))
+                            parsedAndAfter = true;
+                    } catch (Exception ex) {
+                        // fallback: try lenient local date parsing
+                        try {
+                            LocalDate lmd = parseDateLenient(lmStr.trim());
+                            if (lmd != null) {
+                                java.time.Instant lmInstant = lmd.atStartOfDay(java.time.ZoneOffset.UTC).toInstant();
+                                parsedLmText = lmInstant.toString();
+                                if (lmInstant.isAfter(dateLimitInstant))
+                                    parsedAndAfter = true;
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+                    if (parsedAndAfter) {
+                        skippedByLastModified++;
+                        if (diag != null) {
+                            try {
+                                Row dr = diag.createRow(diagRow++);
+                                dr.createCell(0).setCellValue(i);
+                                dr.createCell(1).setCellValue(invoice != null ? invoice : "");
+                                dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
+                                dr.createCell(3).setCellValue(parsedInvoice != null ? parsedInvoice.toString() : "");
+                                dr.createCell(4).setCellValue(lmStr != null ? lmStr : "");
+                                dr.createCell(5).setCellValue(parsedLmText);
+                                dr.createCell(6).setCellValue(qty);
+                                dr.createCell(7).setCellValue("SKIPPED_LAST_MODIFIED_AFTER_LIMIT");
+                            } catch (Exception ignored) {
+                            }
+                        }
+                        continue;
+                    }
+                }
+            }
 
             double pca = 0.0;
             if (rType != null && !rType.trim().isEmpty()) {
@@ -405,7 +634,7 @@ public class RefrigerantExcelExporter {
             try {
                 LocalDate d = parseDateLenient(invoiceDate);
                 if (d != null) {
-                    dateCell.setCellValue(java.sql.Date.valueOf(d));
+                    dateCell.setCellValue(Date.valueOf(d));
                     dateCell.setCellStyle(createDateStyle(target.getWorkbook()));
                 } else {
                     dateCell.setCellValue(invoiceDate != null ? invoiceDate : "");
@@ -427,6 +656,50 @@ public class RefrigerantExcelExporter {
             String facRef = CellReference.convertNumToColString(factorCol) + Integer.toString(out.getRowNum() + 1);
             String formula = qtyRef + "*" + facRef + "/1000";
             formulaCell.setCellFormula(formula);
+
+            // Tiempo de Finalizacion: write the completion/last-modified value (prefer mapped column)
+            String completionVal = "";
+            try {
+                if (lastModifiedIndexLocal >= 0) {
+                    completionVal = getCellStringByIndex(src, lastModifiedIndexLocal, df, eval);
+                }
+            } catch (Exception ignored) {
+            }
+            Cell completionCell = out.createCell(col++);
+            if (completionVal != null && !completionVal.trim().isEmpty()) {
+                // Try to write as a date if the value is ISO instant or a lenient date; otherwise write raw string
+                try {
+                    java.time.Instant.parse(completionVal.trim());
+                    // write as datetime string to preserve the instant
+                    completionCell.setCellValue(completionVal.trim());
+                } catch (Exception ex) {
+                    LocalDate ld = parseDateLenient(completionVal.trim());
+                    if (ld != null) {
+                        completionCell.setCellValue(Date.valueOf(ld));
+                        completionCell.setCellStyle(createDateStyle(target.getWorkbook()));
+                    } else {
+                        completionCell.setCellValue(completionVal);
+                    }
+                }
+            } else {
+                completionCell.setCellValue("");
+            }
+            // mark row as processed
+            processedRowCount++;
+            if (diag != null) {
+                try {
+                    Row dr = diag.createRow(diagRow++);
+                    dr.createCell(0).setCellValue(i);
+                    dr.createCell(1).setCellValue(invoice != null ? invoice : "");
+                    dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
+                    dr.createCell(3).setCellValue(parsedInvoice != null ? parsedInvoice.toString() : "");
+                    dr.createCell(4).setCellValue(getCellStringByIndex(src, lastModifiedIndexLocal, df, eval));
+                    dr.createCell(5).setCellValue("");
+                    dr.createCell(6).setCellValue(qty);
+                    dr.createCell(7).setCellValue("ACCEPTED");
+                } catch (Exception ignored) {
+                }
+            }
         }
 
         // After processing, write summary diagnostics
@@ -435,10 +708,19 @@ public class RefrigerantExcelExporter {
                 int summaryRowNum = diag.getLastRowNum() + 2;
                 Row s1 = diag.createRow(summaryRowNum++);
                 s1.createCell(0).setCellValue("sourceRowCount");
-                s1.createCell(1).setCellValue(source.getLastRowNum() - source.getFirstRowNum() + 1);
+                s1.createCell(1).setCellValue(Math.max(0, source.getLastRowNum() - source.getFirstRowNum()));
                 Row s2 = diag.createRow(summaryRowNum++);
                 s2.createCell(0).setCellValue("processedRows");
-                s2.createCell(1).setCellValue(perCenterAgg.size());
+                s2.createCell(1).setCellValue(processedRowCount);
+                Row s3 = diag.createRow(summaryRowNum++);
+                s3.createCell(0).setCellValue("skippedByYear");
+                s3.createCell(1).setCellValue(skippedByYear);
+                Row s4 = diag.createRow(summaryRowNum++);
+                s4.createCell(0).setCellValue("skippedByLastModified");
+                s4.createCell(1).setCellValue(skippedByLastModified);
+                Row s5 = diag.createRow(summaryRowNum++);
+                s5.createCell(0).setCellValue("skippedByZeroQty");
+                s5.createCell(1).setCellValue(skippedByZeroQty);
             } catch (Exception ignored) {
             }
         }
@@ -450,7 +732,7 @@ public class RefrigerantExcelExporter {
      * Create the per-center aggregation sheet using pre-computed aggregates.
      */
     private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates,
-            java.util.ResourceBundle spanish) {
+        ResourceBundle spanish) {
         Row h = sheet.createRow(0);
         // As requested: Centro	Consumo kg	Emisiones tCO2
         h.createCell(0).setCellValue(spanish.getString("refrigerant.mapping.centro"));
@@ -476,7 +758,7 @@ public class RefrigerantExcelExporter {
      * Create a simple total sheet summarizing quantity and emissions.
      */
     private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
-            Map<String, double[]> aggregates, java.util.ResourceBundle spanish) {
+        Map<String, double[]> aggregates, ResourceBundle spanish) {
         Row h = sheet.createRow(0);
         // As requested: Total Consumo kWh	Total Emisiones tCO2 Market Based
         h.createCell(0).setCellValue("Total Consumo kWh");
@@ -641,6 +923,26 @@ public class RefrigerantExcelExporter {
         } catch (Exception ignored) {
         }
         return cleaned.toLowerCase(Locale.ROOT);
+    }
+
+    private static int readCurrentYearFromFile() {
+        try {
+            Path p = Paths.get("data", "year", "current_year.txt");
+            if (Files.exists(p)) {
+                java.util.List<String> lines = Files.readAllLines(p);
+                if (lines != null && !lines.isEmpty()) {
+                    String s = lines.get(0).trim();
+                    if (!s.isEmpty()) {
+                        try {
+                            return Integer.parseInt(s);
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return LocalDate.now().getYear();
     }
 
     // readCurrentYearFromFile removed: not used in the simplified exporter

@@ -39,20 +39,21 @@ import com.carboncalc.util.ValidationUtils;
  *
  * Responsibilities:
  * - Orchestrate the top-level {@link EmissionFactorsPanel} (type and year
- *   selectors) and coordinate per-energy subcontrollers.
+ * selectors) and coordinate per-energy subcontrollers.
  * - Lazily create and manage per-energy subcontrollers (electricity, gas,
- *   fuel, ...) using an injected factory.
+ * fuel, ...) using an injected factory.
  * - Coordinate year selection, dirty-checks and delegate per-energy
- *   load/save operations to the active subcontroller.
+ * load/save operations to the active subcontroller.
  *
  * Implementation notes related to the electricity startup fix:
  * - Subcontroller activation and card showing are performed in a single EDT
- *   task (see {@link #handleTypeSelection}) so showCard(), shared-table
- *   loading and subcontroller.onActivate(...) occur in a deterministic order
- *   and reduce visibility timing races.
- * - We track the last activation year per-subcontroller in {@link #lastActivatedYear}
- *   to avoid wiping a freshly-populated table when startup activation and
- *   spinner-change handlers run in close succession.
+ * task (see {@link #handleTypeSelection}) so showCard(), shared-table
+ * loading and subcontroller.onActivate(...) occur in a deterministic order
+ * and reduce visibility timing races.
+ * - We track the last activation year per-subcontroller in
+ * {@link #lastActivatedYear}
+ * to avoid wiping a freshly-populated table when startup activation and
+ * spinner-change handlers run in close succession.
  */
 public class EmissionFactorsController {
     private final ResourceBundle messages;
@@ -290,7 +291,7 @@ public class EmissionFactorsController {
                 return;
             }
 
-                if (resp == JOptionPane.YES_OPTION) {
+            if (resp == JOptionPane.YES_OPTION) {
                 // User chose to save changes before switching year
                 try {
                     active.save(this.currentYear);

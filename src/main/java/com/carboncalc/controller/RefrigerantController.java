@@ -162,8 +162,9 @@ public class RefrigerantController {
     public void handleTeamsFormsFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-    FileNameExtensionFilter filter = new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx",
-        "xls", "csv");
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"),
+                "xlsx",
+                "xls", "csv");
         fileChooser.setFileFilter(filter);
         fileChooser.setAcceptAllFileFilterUsed(false);
 
@@ -598,10 +599,10 @@ public class RefrigerantController {
             }
 
             // Call exporter (reads provider file again internally)
-        RefrigerantExcelExporter.exportRefrigerantData(outputFile.getAbsolutePath(),
-            teamsFile != null ? teamsFile.getAbsolutePath() : null,
-            selectedSheet, mapping, this.currentYear, sheetMode, view.getDateLimit(),
-            this.teamsLastModifiedHeaderName);
+            RefrigerantExcelExporter.exportRefrigerantData(outputFile.getAbsolutePath(),
+                    teamsFile != null ? teamsFile.getAbsolutePath() : null,
+                    selectedSheet, mapping, this.currentYear, sheetMode, view.getDateLimit(),
+                    this.teamsLastModifiedHeaderName);
 
             JOptionPane.showMessageDialog(view, messages.getString("excel.save.success"),
                     messages.getString("success.title"), JOptionPane.INFORMATION_MESSAGE);

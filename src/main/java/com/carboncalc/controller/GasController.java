@@ -63,6 +63,12 @@ public class GasController {
         this.currentYear = persisted > 0 ? persisted : Year.now().getValue();
     }
 
+    /**
+     * Attach the view to this controller and initialize view data
+     * (persisted CUPS and gas types for the current year).
+     *
+     * @param view GasPanel instance to control
+     */
     public void setView(GasPanel view) {
         this.view = view;
         loadStoredCups();
@@ -121,6 +127,11 @@ public class GasController {
         }
     }
 
+    /**
+     * Return the currently selected year used by this controller.
+     *
+     * @return selected year
+     */
     public int getCurrentYear() {
         return currentYear;
     }
@@ -161,6 +172,13 @@ public class GasController {
         }
     }
 
+    /**
+     * Populate the gas-type selector with entries persisted for the
+     * requested year. This reads stored gas factor files and updates the
+     * view combo box.
+     *
+     * @param year year to load gas factor entries from
+     */
     public void populateGasTypesForYear(int year) {
         try {
             GasFactorServiceCsv svc = new GasFactorServiceCsv();
@@ -194,6 +212,10 @@ public class GasController {
         return -1;
     }
 
+    /**
+     * Open a file chooser for selecting the ERP spreadsheet and load it
+     * into memory for preview and processing.
+     */
     public void handleErpFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
@@ -249,6 +271,10 @@ public class GasController {
         }
     }
 
+    /**
+     * Update provider column selectors and preview when the provider sheet
+     * selection changes in the UI.
+     */
     public void handleProviderSheetSelection() {
         if (providerWorkbook == null)
             return;
@@ -263,6 +289,10 @@ public class GasController {
         updatePreviewTable(sheet, true);
     }
 
+    /**
+     * Update ERP column selectors and preview when the ERP sheet selection
+     * changes in the UI.
+     */
     public void handleErpSheetSelection() {
         if (erpWorkbook == null)
             return;
@@ -492,6 +522,12 @@ public class GasController {
                 JOptionPane.INFORMATION_MESSAGE);
     }
 
+    /**
+     * Validate required input files and column mappings before attempting
+     * to generate the Excel output.
+     *
+     * @return true when inputs are valid
+     */
     private boolean validateInputs() {
         if (providerWorkbook == null || view.getProviderSheetSelector().getSelectedItem() == null) {
             JOptionPane.showMessageDialog(view,

@@ -28,16 +28,19 @@ import com.carboncalc.util.ValidationUtils;
 /**
  * Controller responsible for orchestrating the Fuel import flow.
  *
- * <p>The controller performs the following responsibilities:
+ * <p>
+ * The controller performs the following responsibilities:
  * <ul>
  * <li>Show a file chooser and load the selected Teams Forms Excel file.</li>
  * <li>Enumerate sheets and populate mapping dropdowns with header values.</li>
  * <li>Provide a preview of the source sheet and validate the user's
  * mapping selections.</li>
- * <li>Delegate export tasks to {@link com.carboncalc.util.excel.FuelExcelExporter}.</li>
+ * <li>Delegate export tasks to
+ * {@link com.carboncalc.util.excel.FuelExcelExporter}.</li>
  * </ul>
  *
- * <p>Long-running operations (large exports) are performed synchronously
+ * <p>
+ * Long-running operations (large exports) are performed synchronously
  * for simplicity; if needed these should be moved off the EDT using a
  * {@code SwingWorker} to avoid blocking the UI thread.
  */
@@ -102,8 +105,9 @@ public class FuelController {
     public void handleTeamsFormsFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-    FileNameExtensionFilter filter = new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx",
-        "xls", "csv");
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"),
+                "xlsx",
+                "xls", "csv");
         fileChooser.setFileFilter(filter);
         fileChooser.setAcceptAllFileFilterUsed(false);
 
@@ -131,6 +135,7 @@ public class FuelController {
             }
         }
     }
+
     private void updateTeamsSheetsList() {
         JComboBox<String> sheetSelector = view.getTeamsSheetSelector();
         sheetSelector.removeAllItems();
@@ -177,12 +182,12 @@ public class FuelController {
             if (r == null)
                 continue;
             boolean nonEmpty = false;
-                for (Cell c : r) {
-                    if (!CellUtils.getCellString(c, df, eval).isEmpty()) {
-                        nonEmpty = true;
-                        break;
-                    }
+            for (Cell c : r) {
+                if (!CellUtils.getCellString(c, df, eval).isEmpty()) {
+                    nonEmpty = true;
+                    break;
                 }
+            }
             if (nonEmpty) {
                 headerRowIndex = i;
                 break;
@@ -209,7 +214,8 @@ public class FuelController {
         updateComboBox(view.getFuelTypeSelector(), columnHeaders);
         updateComboBox(view.getVehicleTypeSelector(), columnHeaders);
         updateComboBox(view.getAmountSelector(), columnHeaders);
-        // populate completion time mapping and attempt to pre-select a likely "Last Modified" header
+        // populate completion time mapping and attempt to pre-select a likely "Last
+        // Modified" header
         updateComboBox(view.getCompletionTimeSelector(), columnHeaders);
         try {
             JComboBox<String> completion = view.getCompletionTimeSelector();
@@ -217,7 +223,8 @@ public class FuelController {
                 for (int i = 0; i < completion.getItemCount(); i++) {
                     String h = completion.getItemAt(i);
                     String n = CellUtils.normalizeKey(h);
-                    if (n.contains("last") && (n.contains("modif") || n.contains("modified") || n.contains("lastmodified") || n.contains("last_modified"))) {
+                    if (n.contains("last") && (n.contains("modif") || n.contains("modified")
+                            || n.contains("lastmodified") || n.contains("last_modified"))) {
                         completion.setSelectedIndex(i);
                         break;
                     }
@@ -250,12 +257,12 @@ public class FuelController {
             if (r == null)
                 continue;
             boolean nonEmpty = false;
-                for (Cell c : r) {
-                    if (!CellUtils.getCellString(c, df, eval).isEmpty()) {
-                        nonEmpty = true;
-                        break;
-                    }
+            for (Cell c : r) {
+                if (!CellUtils.getCellString(c, df, eval).isEmpty()) {
+                    nonEmpty = true;
+                    break;
                 }
+            }
             if (nonEmpty) {
                 headerRowIndex = i;
                 break;
@@ -454,7 +461,8 @@ public class FuelController {
 
             if (fileChooser.showSaveDialog(view) != JFileChooser.APPROVE_OPTION) {
                 String msg = MessageFormat.format(messages.getString("fuel.success.import"), String.valueOf(processed));
-                JOptionPane.showMessageDialog(view, msg, messages.getString("message.title.success"), JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(view, msg, messages.getString("message.title.success"),
+                        JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
@@ -498,7 +506,8 @@ public class FuelController {
             } catch (Exception ignored) {
             }
 
-            FuelExcelExporter.exportFuelData(outputFile.getAbsolutePath(), teamsFile != null ? teamsFile.getAbsolutePath() : null,
+            FuelExcelExporter.exportFuelData(outputFile.getAbsolutePath(),
+                    teamsFile != null ? teamsFile.getAbsolutePath() : null,
                     selectedSheet, mapping, this.currentYear, sheetMode, view.getDateLimit(), completionHeader);
 
             JOptionPane.showMessageDialog(view, messages.getString("excel.save.success"),

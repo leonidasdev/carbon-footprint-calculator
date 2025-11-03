@@ -75,12 +75,25 @@ public class FuelFactorController extends GenericFactorController {
         this.fuelService = fuelService;
     }
 
+    /**
+     * Attach the parent emission-factors view to this subcontroller.
+     * The parent is kept so the controller can read shared controls such as
+     * the year spinner when performing imports or saves.
+     *
+     * @param view the parent EmissionFactorsPanel
+     */
     @Override
     public void setView(EmissionFactorsPanel view) {
         super.setView(view);
         this.parentView = view;
     }
 
+    /**
+     * Lazily create and return the fuel factors panel wiring UI actions to
+     * controller handlers. The panel is created on first access and cached.
+     *
+     * @return the fuel factors UI component
+     */
     @Override
     public JComponent getPanel() {
         if (panel == null) {
@@ -381,6 +394,13 @@ public class FuelFactorController extends GenericFactorController {
         return panel;
     }
 
+    /**
+     * Activate the controller for the given year: reload persisted fuel
+     * emission factors for that year and update UI lists (fuel/vehicle
+     * selectors) and the table model.
+     *
+     * @param year the year to activate the view for
+     */
     @Override
     public void onActivate(int year) {
         super.onActivate(year);
@@ -487,16 +507,29 @@ public class FuelFactorController extends GenericFactorController {
         onActivate(newYear);
     }
 
+    /**
+     * Invoked when the parent indicates the current year was changed.
+     * This simply re-activates the controller for the new year.
+     */
     @Override
     public boolean onDeactivate() {
+        // No special deactivation checks for fuel controller
         return true;
     }
 
+    /**
+     * Indicate whether this controller has unsaved changes. Fuel factors are
+     * immediately persisted by the service so this returns false.
+     */
     @Override
     public boolean hasUnsavedChanges() {
         return false;
     }
 
+    /**
+     * Persist any pending state for the given year. Fuel controller writes
+     * entries immediately, so this is a no-op and returns true.
+     */
     @Override
     public boolean save(int year) {
         return true;
@@ -645,7 +678,11 @@ public class FuelFactorController extends GenericFactorController {
         return out;
     }
 
-    /** Populate the sheet selector with sheet names from the loaded workbook. */
+    /**
+     * Populate the sheet selector with sheet names from the loaded workbook.
+     * Selects the first sheet by default and triggers the initial sheet
+     * selection handling to populate column mappings and preview.
+     */
     private void updateImportSheetsList() {
         javax.swing.JComboBox<String> sheetSelector = panel.getSheetSelector();
         sheetSelector.removeAllItems();
@@ -658,7 +695,9 @@ public class FuelFactorController extends GenericFactorController {
         }
     }
 
-    /** Update column selectors and preview when a sheet is selected. */
+    /**
+     * Update column selectors and preview when a sheet is selected.
+     */
     private void handleImportSheetSelection() {
         if (importWorkbook == null)
             return;
@@ -730,7 +769,13 @@ public class FuelFactorController extends GenericFactorController {
         }
     }
 
-    /** Replace items in a mapping combo with the provided header names. */
+    /**
+     * Replace items in a mapping combo with the provided header names.
+     * Inserts an empty selection as the first item to represent 'no mapping'.
+     *
+     * @param comboBox the combo box to populate
+     * @param items    list of header names
+     */
     private void updateComboBox(javax.swing.JComboBox<String> comboBox, java.util.List<String> items) {
         comboBox.removeAllItems();
         comboBox.addItem("");
@@ -849,7 +894,12 @@ public class FuelFactorController extends GenericFactorController {
         }
     }
 
-    /** Convert 0-based column index to Excel column name (A, B, ..., AA). */
+    /**
+     * Convert 0-based column index to Excel column name (A, B, ..., AA).
+     *
+     * @param columnNumber zero-based column index
+     * @return Excel-style column label
+     */
     private String convertToExcelColumn(int columnNumber) {
         StringBuilder result = new StringBuilder();
         while (columnNumber >= 0) {
@@ -860,6 +910,14 @@ public class FuelFactorController extends GenericFactorController {
         return result.toString();
     }
 
+    /**
+     * Translate the combo box selected index into a zero-based sheet column
+     * index. The mapping combo contains a leading blank entry at index 0 so
+     * the actual sheet column is selectedIndex-1; return -1 when none chosen.
+     *
+     * @param comboBox the mapping combo box
+     * @return zero-based column index or -1 if none selected
+     */
     private int getSelectedIndex(JComboBox<String> comboBox) {
         if (comboBox == null)
             return -1;

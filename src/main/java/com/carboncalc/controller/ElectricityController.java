@@ -76,6 +76,13 @@ public class ElectricityController {
         loadStoredCups();
     }
 
+    /**
+     * Attach the Electricity panel view to this controller and load persisted
+     * CUPS entries for the UI dropdowns.
+     *
+     * @param view the ElectricityPanel instance
+     */
+
     public int getCurrentYear() {
         return currentYear;
     }
@@ -86,6 +93,13 @@ public class ElectricityController {
         persistCurrentYear(year);
         // nothing else to do right now; view can trigger an export using this year
     }
+
+    /**
+     * Update and persist the currently selected year for electricity reports.
+     * The year is used during export/report generation.
+     *
+     * @param year the selected year
+     */
 
     private int loadPersistedYear() {
         try {
@@ -160,6 +174,11 @@ public class ElectricityController {
         }
     }
 
+    /**
+     * Show a file chooser for the provider file, open the selected workbook
+     * (XLS/XLSX) and prepare the provider sheet list and preview.
+     */
+
     public void handleErpFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
@@ -193,6 +212,11 @@ public class ElectricityController {
         }
     }
 
+    /**
+     * Show a file chooser for the ERP file, open the selected workbook and
+     * prepare ERP sheet lists and preview.
+     */
+
     private void updateProviderSheetList() {
         JComboBox<String> sheetSelector = view.getProviderSheetSelector();
         sheetSelector.removeAllItems();
@@ -206,6 +230,11 @@ public class ElectricityController {
             handleProviderSheetSelection();
         }
     }
+
+    /**
+     * Populate the provider sheet selector combo with sheets from the loaded
+     * provider workbook and select the first sheet by default.
+     */
 
     private void updateErpSheetList() {
         JComboBox<String> sheetSelector = view.getErpSheetSelector();
@@ -221,6 +250,11 @@ public class ElectricityController {
         }
     }
 
+    /**
+     * Populate the ERP sheet selector combo with sheets from the loaded ERP
+     * workbook and select the first sheet by default.
+     */
+
     public void handleProviderSheetSelection() {
         if (providerWorkbook == null)
             return;
@@ -235,6 +269,11 @@ public class ElectricityController {
         updatePreviewTable(sheet, true);
     }
 
+    /**
+     * Handler invoked when the provider sheet selection changes. Updates
+     * column selectors and the preview table.
+     */
+
     public void handleErpSheetSelection() {
         if (erpWorkbook == null)
             return;
@@ -248,6 +287,11 @@ public class ElectricityController {
         updateErpColumnSelectors(sheet);
         updatePreviewTable(sheet, false);
     }
+
+    /**
+     * Handler invoked when the ERP sheet selection changes. Updates ERP column
+     * selectors and the ERP preview table.
+     */
 
     private void updateProviderColumnSelectors(Sheet sheet) {
         // Find the first non-empty row to use as header (some files have leading blank
@@ -297,6 +341,13 @@ public class ElectricityController {
         updateComboBox(view.getEmissionEntitySelector(), columnHeaders);
     }
 
+    /**
+     * Inspect the sheet to locate a header row and populate provider-side
+     * mapping combo boxes with column headers.
+     *
+     * @param sheet the provider sheet to inspect
+     */
+
     private void updateErpColumnSelectors(Sheet sheet) {
         DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
@@ -332,6 +383,13 @@ public class ElectricityController {
         updateComboBox(view.getConformityDateSelector(), columnHeaders);
     }
 
+    /**
+     * Inspect the sheet to locate a header row and populate ERP-side mapping
+     * combo boxes with column headers.
+     *
+     * @param sheet the ERP sheet to inspect
+     */
+
     private void updateComboBox(JComboBox<String> comboBox, List<String> items) {
         comboBox.removeAllItems();
         comboBox.addItem(""); // Empty option
@@ -339,6 +397,14 @@ public class ElectricityController {
             comboBox.addItem(item);
         }
     }
+
+    /**
+     * Populate a combo box with an empty choice followed by the supplied
+     * column header names.
+     *
+     * @param comboBox the combo box to fill
+     * @param items    column header names
+     */
 
     private void updatePreviewTable(Sheet sheet, boolean isProvider) {
         DataFormatter df = new DataFormatter();
@@ -488,6 +554,15 @@ public class ElectricityController {
         }
     }
 
+    /**
+     * Build and display a read-only preview table for the provided sheet.
+     * The preview is purposely limited in rows/columns to keep the UI
+     * responsive.
+     *
+     * @param sheet      the sheet to preview
+     * @param isProvider true for provider preview, false for ERP preview
+     */
+
     private void packColumn(JTable table, int colIndex, int margin) {
         TableColumnModel colModel = table.getColumnModel();
         TableColumn col = colModel.getColumn(colIndex);
@@ -516,6 +591,11 @@ public class ElectricityController {
         col.setPreferredWidth(width);
     }
 
+    /**
+     * Measure and set a preferred width for the given table column based on
+     * header and cell renderer preferred sizes.
+     */
+
     private String convertToExcelColumn(int columnNumber) {
         StringBuilder result = new StringBuilder();
         while (columnNumber >= 0) {
@@ -525,6 +605,11 @@ public class ElectricityController {
         }
         return result.toString();
     }
+
+    /**
+     * Convert a zero-based column index to Excel-style column letters
+     * (e.g., 0 -> A, 27 -> AB).
+     */
 
     // Use DataFormatter and FormulaEvaluator to obtain the displayed string value
     // of a cell
@@ -553,14 +638,30 @@ public class ElectricityController {
         }
     }
 
+    /**
+     * Obtain the display string for a cell using DataFormatter and
+     * FormulaEvaluator, returning an empty string on null or errors.
+     */
+
     public void handleSourceSelection(boolean isProvider) {
         CardLayout cardLayout = view.getColumnConfigLayout();
         cardLayout.show(view.getColumnConfigPanel(), isProvider ? "provider" : "erp");
     }
 
+    /**
+     * Switch the column configuration panel to show provider or ERP mapping
+     * controls.
+     *
+     * @param isProvider true to show provider mappings, false for ERP
+     */
+
     public void handleColumnSelection() {
         // This method will be implemented when we add validation and processing logic
     }
+
+    /**
+     * Placeholder for when per-column selection logic/validation is added.
+     */
 
     public void handleSave() {
         if (!validateInputs()) {
@@ -575,6 +676,11 @@ public class ElectricityController {
                 messages.getString("success.title"),
                 JOptionPane.INFORMATION_MESSAGE);
     }
+
+    /**
+     * Validate current inputs and trigger Excel report generation. Shows a
+     * success dialog when done.
+     */
 
     private boolean validateInputs() {
         if (providerWorkbook == null || view.getProviderSheetSelector().getSelectedItem() == null) {
@@ -597,12 +703,22 @@ public class ElectricityController {
         return true;
     }
 
+    /**
+     * Quick validation ensuring a provider workbook is loaded and required
+     * mappings are present.
+     */
+
     public void handleApplyAndSaveExcel() {
         if (!validateInputs()) {
             return;
         }
         generateExcelReport();
     }
+
+    /**
+     * Apply mappings and start the Excel generation flow without showing a
+     * confirmation dialog.
+     */
 
     private void generateExcelReport() {
         try {
@@ -717,6 +833,12 @@ public class ElectricityController {
         }
     }
 
+    /**
+     * Generate the electricity Excel report using the selected files, sheets,
+     * mappings and year context. Handles file selection for the output and
+     * delegates heavy lifting to ElectricityExcelExporter.
+     */
+
     // Extract a 4-digit year from a string if possible. Returns -1 if none found.
     private int extractYearFromString(String s) {
         if (s == null)
@@ -742,4 +864,12 @@ public class ElectricityController {
         }
         return -1;
     }
+
+    /**
+     * Extract a 4-digit year or Spanish-style two-digit year from a string.
+     * Returns -1 if no year is found.
+     *
+     * @param s input string that may contain a date/year
+     * @return extracted year or -1
+     */
 }

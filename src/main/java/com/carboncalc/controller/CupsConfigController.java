@@ -99,6 +99,15 @@ public class CupsConfigController {
         return storedToken;
     }
 
+    /**
+     * Attach the view to this controller and schedule initial data loading.
+     * <p>
+     * This method must be called once the Swing components have been created.
+     * The controller will attempt to load persisted CUPS mappings on the EDT
+     * and will retry a few times if the view's table is not yet ready.
+     *
+     * @param view the CupsConfigPanel instance to control
+     */
     public void setView(CupsConfigPanel view) {
         this.view = view;
         // When the view is attached, schedule a load of persisted centers on the
@@ -136,10 +145,10 @@ public class CupsConfigController {
 
     /**
      * Load centers from the CSV and populate the centers table model.
-    *
-    * This method queries the {@code CupsService} for persisted mappings and
-    * populates the view's table model. It converts stored canonical energy
-    * tokens into localized display labels via {@link #localizedLabelFor}.
+     *
+     * This method queries the {@code CupsService} for persisted mappings and
+     * populates the view's table model. It converts stored canonical energy
+     * tokens into localized display labels via {@link #localizedLabelFor}.
      */
     private void loadCentersTable() throws Exception {
         List<CupsCenterMapping> mappings = csvService.loadCupsData();
@@ -165,6 +174,9 @@ public class CupsConfigController {
         }
     }
 
+    /**
+     * Show a file chooser and load the selected spreadsheet for preview/import.
+     */
     public void handleFileSelection() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
@@ -173,12 +185,16 @@ public class CupsConfigController {
         }
     }
 
-    private void loadExcelFile(File file) {
     /**
      * Open and cache the selected spreadsheet.
-     * The workbook instance is kept in {@link #currentWorkbook} and used by
-     * subsequent preview and import flows.
+     *
+     * The workbook instance is stored in {@link #currentWorkbook} and used by
+     * subsequent preview and import flows (sheet list, column mapping and
+     * previews).
+     *
+     * @param file the Excel/CSV file selected by the user
      */
+    private void loadExcelFile(File file) {
         try {
             currentFile = file;
             currentWorkbook = new XSSFWorkbook(new FileInputStream(file));
@@ -191,12 +207,12 @@ public class CupsConfigController {
         }
     }
 
-    private void updateSheetList() {
     /**
-     * Populate the sheet selector combo with sheets found in the current
-     * workbook. Selects the first sheet and refreshes column selectors
-     * and the preview automatically when available.
+     * Refresh the sheet selector combobox with sheet names from the current
+     * workbook. If sheets are present, the first is selected and column
+     * selectors / preview are updated.
      */
+    private void updateSheetList() {
         JComboBox<String> sheetSelector = view.getSheetSelector();
         sheetSelector.removeAllItems();
 
@@ -211,12 +227,12 @@ public class CupsConfigController {
         }
     }
 
-    private void updateColumnSelectors() {
     /**
-     * Read the header row of the currently selected sheet and populate
-     * all mapping combo boxes with the available column names. A leading
-     * blank entry is inserted representing 'no mapping'.
+     * Read the header row of the selected sheet and populate all mapping
+     * combo boxes. A blank entry is inserted at index 0 to represent
+     * 'no mapping'.
      */
+    private void updateColumnSelectors() {
         if (currentWorkbook == null)
             return;
 
@@ -271,6 +287,14 @@ public class CupsConfigController {
         }
     }
 
+    /**
+     * Populate a mapping JComboBox with the given column names and an
+     * initial blank choice representing 'none'. The blank choice is kept
+     * selected by default.
+     *
+     * @param comboBox the combo box to populate
+     * @param items    the list of column names to add
+     */
     private void updateComboBox(JComboBox<String> comboBox, Vector<String> items) {
         // Insert an explicit empty choice at index 0 so the user can leave the
         // mapping blank. This prevents the first sheet column from being
@@ -284,6 +308,10 @@ public class CupsConfigController {
         comboBox.setSelectedIndex(0);
     }
 
+    /**
+     * Invoked when the user changes the selected sheet; refresh mapping
+     * options and both raw and mapped previews.
+     */
     public void handleSheetSelection() {
         // When user selects a different sheet, refresh mapping options and previews
         updateColumnSelectors();
@@ -291,11 +319,18 @@ public class CupsConfigController {
         updateMappedPreview();
     }
 
+    /**
+     * Invoked when any column mapping changes; updates the mapped preview to
+     * reflect new mappings.
+     */
     public void handleColumnSelection() {
         // When any column mapping changes, refresh the mapped results preview
         updateMappedPreview();
     }
 
+    /**
+     * Request an update of the raw sheet preview (first N rows).
+     */
     public void handlePreviewRequest() {
         updatePreview();
     }
@@ -304,6 +339,11 @@ public class CupsConfigController {
      * Placeholder for the import action triggered from the Results Preview box.
      * Implementation will be added in subsequent steps. For now show an info
      * dialog so the UI wiring can be validated.
+     */
+    /**
+     * Import mapped rows from the currently selected sheet into the persisted
+     * CUPS CSV. The mapping selectors drive which sheet columns map to the
+     * target fields; duplicate and missing required-fields rows are skipped.
      */
     public void handleImportRequest() {
         // Import mapped rows from the currently selected sheet into the cups CSV.
@@ -578,6 +618,14 @@ public class CupsConfigController {
         }
     }
 
+    /**
+     * Safely read a cell as a string, returning an empty string when the
+     * index is negative or the cell is missing.
+     *
+     * @param row      the sheet row
+     * @param colIndex the 0-based column index, or -1 for 'no mapping'
+     * @return string representation of the cell or empty string
+     */
     private String safeCellString(Row row, int colIndex) {
         if (colIndex < 0)
             return "";
@@ -652,6 +700,10 @@ public class CupsConfigController {
         return t.substring(0, 1).toUpperCase(Locale.ROOT) + t.substring(1);
     }
 
+    /**
+     * Build the raw preview table (first 100 rows) for the selected sheet.
+     * This is a lightweight view intended for user validation before import.
+     */
     private void updatePreview() {
         if (currentWorkbook == null)
             return;
@@ -684,10 +736,20 @@ public class CupsConfigController {
         view.getPreviewTable().setModel(model);
     }
 
+    /**
+     * Export persisted CUPS mappings to an external format. (Not implemented.)
+     */
     public void handleExportRequest() {
         // TODO: Implement export functionality
     }
 
+    /**
+     * Validate and append a single CenterData entry to the persisted CSV.
+     * Handles normalization and basic validation (CUPS format, required
+     * fields) and refreshes the table view after saving.
+     *
+     * @param centerData the center information entered by the user
+     */
     public void handleAddCenter(CenterData centerData) {
         if (!validateCenterData(centerData)) {
             JOptionPane.showMessageDialog(view,
@@ -761,6 +823,11 @@ public class CupsConfigController {
         }
     }
 
+    /**
+     * Present an edit dialog for the selected center and apply/save edits
+     * to the persisted CSV. If the original entry cannot be found the
+     * operation is aborted and the user is notified.
+     */
     public void handleEditCenter() {
         int selectedRow = view.getCentersTable().getSelectedRow();
         if (selectedRow == -1) {
@@ -1025,6 +1092,9 @@ public class CupsConfigController {
         }
     }
 
+    /**
+     * Delete the selected center mapping after user confirmation.
+     */
     public void handleDeleteCenter() {
         int selectedRow = view.getCentersTable().getSelectedRow();
         if (selectedRow == -1) {
@@ -1076,6 +1146,10 @@ public class CupsConfigController {
         }
     }
 
+    /**
+     * Save current table state. Currently a placeholder that shows a
+     * success message; persistent save is TODO.
+     */
     public void handleSave() {
         try {
             List<CenterData> centers = extractCentersFromTable();
@@ -1092,6 +1166,12 @@ public class CupsConfigController {
         }
     }
 
+    /**
+     * Quick validation for required center fields used by add/edit flows.
+     *
+     * @param data the center data to validate
+     * @return true if required fields are present
+     */
     private boolean validateCenterData(CenterData data) {
         return data.getCups() != null && !data.getCups().trim().isEmpty() &&
                 data.getCenterName() != null && !data.getCenterName().trim().isEmpty() &&
@@ -1099,6 +1179,10 @@ public class CupsConfigController {
                 data.getEnergyType() != null;
     }
 
+    /**
+     * Clear the manual input fields in the view after a successful add
+     * or when resetting the form.
+     */
     private void clearManualInputFields() {
         view.getCupsField().setText("");
         view.getMarketerField().setText("");
@@ -1112,6 +1196,11 @@ public class CupsConfigController {
         view.getProvinceField().setText("");
     }
 
+    /**
+     * Extract CenterData objects from the visible centers table model.
+     *
+     * @return list of centers currently shown in the table
+     */
     private List<CenterData> extractCentersFromTable() {
         List<CenterData> centers = new ArrayList<>();
         DefaultTableModel model = (DefaultTableModel) view.getCentersTable().getModel();

@@ -283,7 +283,7 @@ public class CupsConfigPanel extends BaseModulePanel {
          * Excel import tab content.
          * Top area contains file management and column mapping; preview lives below.
          */
-    JPanel panel = new JPanel(new BorderLayout(10, 10));
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(UIUtils.CONTENT_BACKGROUND);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -294,8 +294,8 @@ public class CupsConfigPanel extends BaseModulePanel {
         topPanel.setPreferredSize(new Dimension(0, UIUtils.MANUAL_INPUT_HEIGHT));
 
         // File Management Section (keep compact) and file preview under it
-    // File management controls (file chooser and sheet selector)
-    JPanel fileMgmt = createFileManagementPanel();
+        // File management controls (file chooser and sheet selector)
+        JPanel fileMgmt = createFileManagementPanel();
         fileMgmt.setPreferredSize(new Dimension(0, UIUtils.FILE_MGMT_HEIGHT));
 
         // File preview: show selected sheet content (first N rows)
@@ -578,8 +578,8 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     private void addColumnSelector(JPanel panel, GridBagConstraints gbc, int row,
             String labelKey, JComboBox<String> selector) {
-    // Add a labeled column mapping selector and wire it to the controller
-    // so changes update the mapped preview in real-time.
+        // Add a labeled column mapping selector and wire it to the controller
+        // so changes update the mapped preview in real-time.
         gbc.gridx = 0;
         gbc.gridy = row;
         panel.add(new JLabel(messages.getString(labelKey) + ":"), gbc);

@@ -143,15 +143,15 @@ public class FuelPanel extends BaseModulePanel {
         amountSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
         addColumnMapping(mappingPanel, mg, "fuel.mapping.amount", amountSelector);
 
-    completionTimeSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
-    addColumnMapping(mappingPanel, mg, "fuel.mapping.completionTime", completionTimeSelector);
+        completionTimeSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
+        addColumnMapping(mappingPanel, mg, "fuel.mapping.completionTime", completionTimeSelector);
 
-    // Preview area and result box (preview on left, result controls on right)
-    // Use GridBagLayout so preview and result can have custom width ratios
-    JPanel previewContainer = new JPanel(new GridBagLayout());
-    previewContainer.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-    previewContainer.setBackground(UIUtils.CONTENT_BACKGROUND);
-    previewContainer.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_PANEL_HEIGHT));
+        // Preview area and result box (preview on left, result controls on right)
+        // Use GridBagLayout so preview and result can have custom width ratios
+        JPanel previewContainer = new JPanel(new GridBagLayout());
+        previewContainer.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        previewContainer.setBackground(UIUtils.CONTENT_BACKGROUND);
+        previewContainer.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_PANEL_HEIGHT));
 
         JPanel previewPanel = new JPanel(new BorderLayout());
         previewPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("fuel.preview")));
@@ -236,22 +236,22 @@ public class FuelPanel extends BaseModulePanel {
         resultPanel.add(resultTopPanel, BorderLayout.NORTH);
         resultPanel.add(resultButtonPanel, BorderLayout.SOUTH);
 
-    GridBagConstraints pc = new GridBagConstraints();
-    pc.fill = GridBagConstraints.BOTH;
-    pc.gridy = 0;
-    pc.weighty = 1.0;
+        GridBagConstraints pc = new GridBagConstraints();
+        pc.fill = GridBagConstraints.BOTH;
+        pc.gridy = 0;
+        pc.weighty = 1.0;
 
-    // Preview: approx 4/9 of total (preview ≈ 0.444)
-    pc.gridx = 0;
-    pc.weightx = 0.444;
-    pc.insets = new Insets(0, 0, 0, 10);
-    previewContainer.add(previewPanel, pc);
+        // Preview: approx 4/9 of total (preview ≈ 0.444)
+        pc.gridx = 0;
+        pc.weightx = 0.444;
+        pc.insets = new Insets(0, 0, 0, 10);
+        previewContainer.add(previewPanel, pc);
 
-    // Result: remaining width
-    pc.gridx = 1;
-    pc.weightx = 0.556;
-    pc.insets = new Insets(0, 0, 0, 0);
-    previewContainer.add(resultPanel, pc);
+        // Result: remaining width
+        pc.gridx = 1;
+        pc.weightx = 0.556;
+        pc.insets = new Insets(0, 0, 0, 0);
+        previewContainer.add(resultPanel, pc);
 
         main.add(top, BorderLayout.NORTH);
         main.add(previewContainer, BorderLayout.CENTER);
@@ -412,11 +412,11 @@ public class FuelPanel extends BaseModulePanel {
      * represented as {@code -1}.
      */
     public FuelMapping getSelectedColumns() {
-    return new FuelMapping(getSelectedIndex(centroSelector), getSelectedIndex(responsableSelector),
-        getSelectedIndex(invoiceNumberSelector), getSelectedIndex(providerSelector),
-        getSelectedIndex(invoiceDateSelector), getSelectedIndex(fuelTypeSelector),
-        getSelectedIndex(vehicleTypeSelector), getSelectedIndex(amountSelector),
-        getSelectedIndex(completionTimeSelector));
+        return new FuelMapping(getSelectedIndex(centroSelector), getSelectedIndex(responsableSelector),
+                getSelectedIndex(invoiceNumberSelector), getSelectedIndex(providerSelector),
+                getSelectedIndex(invoiceDateSelector), getSelectedIndex(fuelTypeSelector),
+                getSelectedIndex(vehicleTypeSelector), getSelectedIndex(amountSelector),
+                getSelectedIndex(completionTimeSelector));
     }
 
     /** Install a preview table model and apply project table styling. */

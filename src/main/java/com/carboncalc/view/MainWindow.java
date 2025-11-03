@@ -105,7 +105,8 @@ public class MainWindow extends JFrame {
         // Style the navigation panel
         navigationPanel.setBorder(null);
 
-        // Add main title split in two lines (localized keys: application.title.line1/line2)
+        // Add main title split in two lines (localized keys:
+        // application.title.line1/line2)
         JPanel titlePanel = new JPanel();
         titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
         titlePanel.setOpaque(false);
@@ -167,8 +168,8 @@ public class MainWindow extends JFrame {
         // Initialize all module panels
         contentPanel.add(createElectricityPanel(), EnergyType.ELECTRICITY.id());
         contentPanel.add(createGasPanel(), EnergyType.GAS.id());
-    // Add modules (use real panels when implemented)
-    contentPanel.add(createFuelPanel(), EnergyType.FUEL.id());
+        // Add modules (use real panels when implemented)
+        contentPanel.add(createFuelPanel(), EnergyType.FUEL.id());
         contentPanel.add(createRefrigerantPanel(), EnergyType.REFRIGERANT.id());
         contentPanel.add(createPlaceholderPanel("module.general"), "general");
         contentPanel.add(createCupsConfigPanel(), "cups");
@@ -245,11 +246,11 @@ public class MainWindow extends JFrame {
 
     private JPanel createEmissionFactorsPanel() {
         // Create concrete implementations here and inject into the controller.
-    EmissionFactorService efService = new EmissionFactorServiceCsv();
-    ElectricityFactorService egfService = new ElectricityFactorServiceCsv();
-    GasFactorService gasFactorService = new GasFactorServiceCsv();
-    FuelFactorService fuelFactorService = new FuelFactorServiceCsv();
-    RefrigerantFactorService refrigerantFactorService = new RefrigerantFactorServiceCsv();
+        EmissionFactorService efService = new EmissionFactorServiceCsv();
+        ElectricityFactorService egfService = new ElectricityFactorServiceCsv();
+        GasFactorService gasFactorService = new GasFactorServiceCsv();
+        FuelFactorService fuelFactorService = new FuelFactorServiceCsv();
+        RefrigerantFactorService refrigerantFactorService = new RefrigerantFactorServiceCsv();
 
         // Provide a factory lambda that creates subcontrollers lazily by type
         Function<String, FactorSubController> factory = (type) -> {

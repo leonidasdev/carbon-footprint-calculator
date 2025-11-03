@@ -3,6 +3,7 @@ package com.carboncalc.util;
 import java.text.NumberFormat;
 import java.text.Normalizer;
 import java.util.Locale;
+import java.math.BigDecimal;
 
 /**
  * Small collection of input validation helpers used by UI controllers.
@@ -109,7 +110,7 @@ public final class ValidationUtils {
      * normalization heuristics as {@link #tryParseDouble}. Returns null on
      * failure. Useful when callers need decimal precision instead of double.
      */
-    public static java.math.BigDecimal tryParseBigDecimal(String text) {
+    public static BigDecimal tryParseBigDecimal(String text) {
         if (text == null)
             return null;
         String t = text.trim();
@@ -135,14 +136,14 @@ public final class ValidationUtils {
             }
             candidate = candidate.replace(" ", "").replace('\u00A0', ' ');
             candidate = candidate.replaceAll("[^0-9.\\-+eE]", "");
-            return new java.math.BigDecimal(candidate);
+            return new BigDecimal(candidate);
         } catch (Exception e) {
             try {
                 NumberFormat nf = NumberFormat.getInstance();
                 Number n = nf.parse(s);
                 if (n == null)
                     return null;
-                return new java.math.BigDecimal(n.toString());
+                return new BigDecimal(n.toString());
             } catch (Exception ex2) {
                 return null;
             }

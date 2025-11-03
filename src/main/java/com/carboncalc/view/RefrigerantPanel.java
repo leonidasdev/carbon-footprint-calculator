@@ -139,16 +139,17 @@ public class RefrigerantPanel extends BaseModulePanel {
         quantitySelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
         addColumnMapping(mappingPanel, mg, "refrigerant.mapping.quantity", quantitySelector);
 
-        // Place completion time mapping directly below the quantity mapping as requested
+        // Place completion time mapping directly below the quantity mapping as
+        // requested
         completionTimeSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
         addColumnMapping(mappingPanel, mg, "refrigerant.mapping.completionTime", completionTimeSelector);
 
-    // Preview area and result box (preview on left, result controls on right)
-    // Use GridBagLayout so we can size preview and result with different weights
-    JPanel previewContainer = new JPanel(new GridBagLayout());
-    previewContainer.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-    previewContainer.setBackground(UIUtils.CONTENT_BACKGROUND);
-    previewContainer.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_PANEL_HEIGHT));
+        // Preview area and result box (preview on left, result controls on right)
+        // Use GridBagLayout so we can size preview and result with different weights
+        JPanel previewContainer = new JPanel(new GridBagLayout());
+        previewContainer.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        previewContainer.setBackground(UIUtils.CONTENT_BACKGROUND);
+        previewContainer.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_PANEL_HEIGHT));
 
         // Preview panel (left)
         JPanel previewPanel = new JPanel(new BorderLayout());
@@ -259,22 +260,23 @@ public class RefrigerantPanel extends BaseModulePanel {
         resultPanel.add(resultTopPanel, BorderLayout.NORTH);
         resultPanel.add(resultButtonPanel, BorderLayout.SOUTH);
 
-    GridBagConstraints pc = new GridBagConstraints();
-    pc.fill = GridBagConstraints.BOTH;
-    pc.gridy = 0;
-    pc.weighty = 1.0;
+        GridBagConstraints pc = new GridBagConstraints();
+        pc.fill = GridBagConstraints.BOTH;
+        pc.gridy = 0;
+        pc.weighty = 1.0;
 
-    // Preview panel: roughly 4/9 of the total width (preview ≈ 0.444, result ≈ 0.556)
-    pc.gridx = 0;
-    pc.weightx = 0.444;
-    pc.insets = new Insets(0, 0, 0, 10); // 10px gap to the right
-    previewContainer.add(previewPanel, pc);
+        // Preview panel: roughly 4/9 of the total width (preview ≈ 0.444, result ≈
+        // 0.556)
+        pc.gridx = 0;
+        pc.weightx = 0.444;
+        pc.insets = new Insets(0, 0, 0, 10); // 10px gap to the right
+        previewContainer.add(previewPanel, pc);
 
-    // Result panel: remaining width
-    pc.gridx = 1;
-    pc.weightx = 0.556;
-    pc.insets = new Insets(0, 0, 0, 0);
-    previewContainer.add(resultPanel, pc);
+        // Result panel: remaining width
+        pc.gridx = 1;
+        pc.weightx = 0.556;
+        pc.insets = new Insets(0, 0, 0, 0);
+        previewContainer.add(resultPanel, pc);
 
         // Compose panels
         main.add(top, BorderLayout.NORTH);
@@ -418,10 +420,10 @@ public class RefrigerantPanel extends BaseModulePanel {
      * by {@code -1}.
      */
     public RefrigerantMapping getSelectedColumns() {
-    return new RefrigerantMapping(getSelectedIndex(centroSelector), getSelectedIndex(personSelector),
-        getSelectedIndex(invoiceNumberSelector), getSelectedIndex(providerSelector),
-        getSelectedIndex(invoiceDateSelector), getSelectedIndex(refrigerantTypeSelector),
-        getSelectedIndex(quantitySelector), getSelectedIndex(completionTimeSelector));
+        return new RefrigerantMapping(getSelectedIndex(centroSelector), getSelectedIndex(personSelector),
+                getSelectedIndex(invoiceNumberSelector), getSelectedIndex(providerSelector),
+                getSelectedIndex(invoiceDateSelector), getSelectedIndex(refrigerantTypeSelector),
+                getSelectedIndex(quantitySelector), getSelectedIndex(completionTimeSelector));
     }
 
     /**

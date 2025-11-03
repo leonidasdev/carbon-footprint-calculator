@@ -74,7 +74,7 @@ public class RefrigerantMapping {
      * other import panels so the exporter has the data it needs.
      */
     public boolean isComplete() {
-    return centroIndex >= 0 && invoiceIndex >= 0 && providerIndex >= 0 && invoiceDateIndex >= 0
-        && refrigerantTypeIndex >= 0 && quantityIndex >= 0 && completionTimeIndex >= 0;
+        return centroIndex >= 0 && invoiceIndex >= 0 && providerIndex >= 0 && invoiceDateIndex >= 0
+                && refrigerantTypeIndex >= 0 && quantityIndex >= 0 && completionTimeIndex >= 0;
     }
 }

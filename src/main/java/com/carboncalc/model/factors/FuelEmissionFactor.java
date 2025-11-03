@@ -27,11 +27,12 @@ public class FuelEmissionFactor implements EmissionFactor {
     /**
      * Create a fuel emission factor with essential fields.
      *
-     * @param entity     entity identifier (e.g., supplier or tariff)
-     * @param year       applicable year
-     * @param baseFactor baseline kgCO2 per litre
-     * @param fuelType   descriptive fuel type (Diesel, Gasoline, ...)
-     * @param vehicleType vehicle classification (Car, Truck, ...). May be null/empty.
+     * @param entity      entity identifier (e.g., supplier or tariff)
+     * @param year        applicable year
+     * @param baseFactor  baseline kgCO2 per litre
+     * @param fuelType    descriptive fuel type (Diesel, Gasoline, ...)
+     * @param vehicleType vehicle classification (Car, Truck, ...). May be
+     *                    null/empty.
      */
     public FuelEmissionFactor(String entity, int year, double baseFactor, String fuelType) {
         this.entity = entity;

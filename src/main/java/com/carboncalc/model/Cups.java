@@ -25,9 +25,9 @@ public class Cups implements Comparable<Cups> {
     /**
      * Create a Cups value object.
      *
-     * @param cups          CUPS identifier (string)
+     * @param cups           CUPS identifier (string)
      * @param emissionEntity emission entity / company name
-     * @param energyType    canonical energy token (e.g. ELECTRICITY)
+     * @param energyType     canonical energy token (e.g. ELECTRICITY)
      */
     public Cups(String cups, String emissionEntity, String energyType) {
         this.cups = cups;

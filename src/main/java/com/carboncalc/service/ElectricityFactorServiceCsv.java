@@ -29,9 +29,9 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
     /**
      * Load electricity general factors and trading companies for a year.
      * <p>
-      * Returns an {@link ElectricityGeneralFactors} instance populated from
-      * {@code electricity_general_factors.csv} (general values) and
-      * {@code electricity_factors.csv} (trading companies). Missing
+     * Returns an {@link ElectricityGeneralFactors} instance populated from
+     * {@code electricity_general_factors.csv} (general values) and
+     * {@code electricity_factors.csv} (trading companies). Missing
      * files are treated as empty data.
      * </p>
      */
@@ -92,9 +92,9 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
      * Writes two CSV files (general + companies) using atomic replace semantics.
      */
     public void saveFactors(ElectricityGeneralFactors factors, int year) throws IOException {
-    Path yearDir = BASE_PATH.resolve(String.valueOf(year));
-    Path generalFile = yearDir.resolve("electricity_general_factors.csv");
-    Path companiesFile = yearDir.resolve("electricity_factors.csv");
+        Path yearDir = BASE_PATH.resolve(String.valueOf(year));
+        Path generalFile = yearDir.resolve("electricity_general_factors.csv");
+        Path companiesFile = yearDir.resolve("electricity_factors.csv");
 
         // Ensure directory exists
         Files.createDirectories(yearDir);
@@ -109,7 +109,8 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
 
         List<String> companyLines = new ArrayList<>();
         companyLines.add("comercializadora,factor_emision,tipo_gdo");
-        // Ensure canonical ordering: sort trading companies by company name (case-insensitive)
+        // Ensure canonical ordering: sort trading companies by company name
+        // (case-insensitive)
         List<ElectricityGeneralFactors.TradingCompany> companies = new ArrayList<>(factors.getTradingCompanies());
         companies.sort((a, b) -> {
             String na = a == null || a.getName() == null ? "" : a.getName();

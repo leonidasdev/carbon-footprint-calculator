@@ -16,12 +16,14 @@ import java.util.List;
  * small and dependency-free: it supports quoted fields and doubled-quote
  * escaping and writes all rows into a single sheet named "Sheet1".
  *
- * <p>This utility exists to reuse CSV loading in a single place. It is not a
+ * <p>
+ * This utility exists to reuse CSV loading in a single place. It is not a
  * fully featured CSV library; for more advanced parsing consider using
  * OpenCSV or Apache Commons CSV.
  */
 public final class ExcelCsvLoader {
-    private ExcelCsvLoader() {}
+    private ExcelCsvLoader() {
+    }
 
     /**
      * Load the CSV file located at {@code csvPath} into an XSSFWorkbook with a

@@ -7,12 +7,14 @@ import java.util.Locale;
 /**
  * Small helpers for working with Apache POI cells used by import/export logic.
  *
- * <p>The utilities provide safe accessors that handle nulls, formulas and
+ * <p>
+ * The utilities provide safe accessors that handle nulls, formulas and
  * basic normalization (for matching header names and parsing numbers) so the
  * higher-level code can remain compact and robust.
  */
 public final class CellUtils {
-    private CellUtils() {}
+    private CellUtils() {
+    }
 
     /**
      * Return a cell value as a string. Evaluates formulas via the provided

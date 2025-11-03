@@ -60,9 +60,9 @@ public class FuelFactorServiceCsv implements FuelFactorService {
                 }
             }
 
-        String row = String.join(",", quoteCsv(fuelType), quoteCsv(vehicle),
-            String.format(Locale.ROOT, "%.6f", entry.getBaseFactor()),
-            String.format(Locale.ROOT, "%.6f", entry.getPricePerUnit()));
+            String row = String.join(",", quoteCsv(fuelType), quoteCsv(vehicle),
+                    String.format(Locale.ROOT, "%.6f", entry.getBaseFactor()),
+                    String.format(Locale.ROOT, "%.6f", entry.getPricePerUnit()));
 
             String key = normalizeKey(fuelType, vehicle);
             byKey.put(key, row);

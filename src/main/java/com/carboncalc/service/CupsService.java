@@ -8,21 +8,23 @@ import java.util.List;
 /**
  * Service interface for working with stored CUPS and center mappings.
  *
- * <p>Implementations provide load/save/append/delete operations for the
+ * <p>
+ * Implementations provide load/save/append/delete operations for the
  * CUPS and CUPS-center mapping domain objects. The current project includes
  * a CSV-backed implementation ({@code CupsServiceCsv}) but other storage
  * backends (database, remote API) may be provided in future.
  *
- * <p>Important semantics callers rely on:
+ * <p>
+ * Important semantics callers rely on:
  * <ul>
- *   <li>Persistence operations that replace storage (e.g. {@link #saveCupsData})
- *       should be atomic from the caller's perspective: partial writes are not
- *       acceptable.</li>
- *   <li>When appending new mappings via {@link #appendCupsCenter} implementations
- *       should avoid creating duplicates; equality is typically defined by the
- *       (cups, centerName) pair or an assigned numeric id.</li>
- *   <li>Implementations should tolerate legacy file formats where possible and
- *       provide a lenient loader (see {@code CupsServiceCsv}) to ease upgrades.</li>
+ * <li>Persistence operations that replace storage (e.g. {@link #saveCupsData})
+ * should be atomic from the caller's perspective: partial writes are not
+ * acceptable.</li>
+ * <li>When appending new mappings via {@link #appendCupsCenter} implementations
+ * should avoid creating duplicates; equality is typically defined by the
+ * (cups, centerName) pair or an assigned numeric id.</li>
+ * <li>Implementations should tolerate legacy file formats where possible and
+ * provide a lenient loader (see {@code CupsServiceCsv}) to ease upgrades.</li>
  * </ul>
  */
 public interface CupsService {

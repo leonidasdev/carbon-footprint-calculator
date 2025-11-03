@@ -23,7 +23,8 @@ import java.sql.Date;
 /**
  * Excel exporter for fuel import results.
  *
- * <p>Produces an "Extendido" sheet containing detailed rows with the
+ * <p>
+ * Produces an "Extendido" sheet containing detailed rows with the
  * calculated emissions (Emisiones tCO2) as a spreadsheet formula, a
  * "Por centro" sheet with per-center aggregates and a "Total" sheet
  * summarizing overall quantity and emissions.
@@ -44,7 +45,8 @@ public class FuelExcelExporter {
      * @throws IOException when writing the output file fails
      */
     public static void exportFuelData(String filePath, String providerPath, String providerSheet,
-        FuelMapping mapping, int year, String sheetMode, String dateLimit, String lastModifiedHeader) throws IOException {
+            FuelMapping mapping, int year, String sheetMode, String dateLimit, String lastModifiedHeader)
+            throws IOException {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
             ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
@@ -78,7 +80,8 @@ public class FuelExcelExporter {
                     if (src != null) {
                         Sheet srcSheet = src.getSheet(providerSheet);
                         if (srcSheet != null) {
-                            Map<String, double[]> aggregates = writeDetailedRows(detailed, srcSheet, mapping, year, dateLimit, lastModifiedHeader);
+                            Map<String, double[]> aggregates = writeDetailedRows(detailed, srcSheet, mapping, year,
+                                    dateLimit, lastModifiedHeader);
                             FormulaEvaluator wbEval = workbook.getCreationHelper().createFormulaEvaluator();
                             if (aggregates == null || aggregates.isEmpty()) {
                                 aggregates = computeAggregatesFromDetailed(detailed, wbEval);
@@ -258,7 +261,8 @@ public class FuelExcelExporter {
                 continue;
             }
 
-            // Determine lastModified index: prefer mapping.completionTimeIndex, otherwise try to match header by name or heuristics
+            // Determine lastModified index: prefer mapping.completionTimeIndex, otherwise
+            // try to match header by name or heuristics
             int lastModifiedIndexLocal = -1;
             try {
                 int mapped = mapping.getCompletionTimeIndex();
@@ -293,7 +297,8 @@ public class FuelExcelExporter {
                 }
             }
 
-            // Apply Last Modified upper-bound filtering: if the row has a last-modified and it's AFTER the dateLimit -> skip
+            // Apply Last Modified upper-bound filtering: if the row has a last-modified and
+            // it's AFTER the dateLimit -> skip
             if (lastModifiedIndexLocal >= 0 && dateLimitInstant != null) {
                 String lmStr = CellUtils.getCellStringByIndex(src, lastModifiedIndexLocal, df, eval);
                 if (lmStr != null && !lmStr.trim().isEmpty()) {
@@ -495,7 +500,8 @@ public class FuelExcelExporter {
         return dateStyle;
     }
 
-    // compute aggregates from detailed sheet (in case writeDetailedRows didn't return any)
+    // compute aggregates from detailed sheet (in case writeDetailedRows didn't
+    // return any)
     private static Map<String, double[]> computeAggregatesFromDetailed(Sheet detailed, FormulaEvaluator eval) {
         // Recompute aggregates scanning the detailed sheet when we don't
         // have aggregates from the writing pass. This can be useful when

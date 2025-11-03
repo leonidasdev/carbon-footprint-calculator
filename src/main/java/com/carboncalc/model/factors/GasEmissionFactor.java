@@ -11,14 +11,15 @@ package com.carboncalc.model.factors;
 public class GasEmissionFactor implements EmissionFactor {
     private String entity;
     private int year;
-    private double baseFactor;      // kgCO2/m³
+    private double baseFactor; // kgCO2/m³
     private double pressureFactor;
-    private double calorificValue;  // kWh/m³
+    private double calorificValue; // kWh/m³
 
     /**
      * No-arg constructor for frameworks and CSV mapping.
      */
-    public GasEmissionFactor() {}
+    public GasEmissionFactor() {
+    }
 
     /**
      * Construct a minimal GasEmissionFactor instance.

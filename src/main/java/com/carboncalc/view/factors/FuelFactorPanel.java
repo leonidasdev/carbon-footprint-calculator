@@ -2,59 +2,43 @@ package com.carboncalc.view.factors;
 
 import com.carboncalc.util.UIUtils;
 import com.carboncalc.util.UIComponents;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingConstants;
+
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
+import java.awt.*;
 import java.util.ResourceBundle;
 
 /**
  * Panel containing controls to manage fuel emission factors.
  *
- * <p>
- * The panel exposes a compact manual-entry area where the user can enter
- * a fuel type, an optional vehicle type and the emission factor in
- * kg CO2e/unit. Added entries appear in the table below. All user-visible
- * strings are loaded from the provided {@link ResourceBundle}.
- * </p>
+ * This panel mirrors the refrigerant factors panel layout and provides
+ * two modes: Manual input and Excel import. The Excel import requires mapping
+ * of Fuel Type, Vehicle Type, Year and Price per unit columns.
  */
 public class FuelFactorPanel extends JPanel {
-    /** Localized messages bundle supplied by the caller. */
     private final ResourceBundle messages;
 
-    /** Table showing configured fuel factor rows for the selected year. */
+    // Manual input controls
     private JTable factorsTable;
-
-    /** Editable combo for selecting/typing a fuel type. */
     private JComboBox<String> fuelTypeSelector;
-
-    /** Editable combo for selecting/typing a vehicle type (e.g., M1, N1). */
     private JComboBox<String> vehicleTypeSelector;
-
-    /** Text field for the emission factor value (kg CO2e / unit). */
     private JTextField emissionFactorField;
-    /** Text field for the price per unit (e.g. EUR/unit). */
     private JTextField pricePerUnitField;
-
-    /** Controls to add/edit/delete rows from the table. */
     private JButton addFactorButton;
     private JButton editButton;
     private JButton deleteButton;
+    private JPanel addButtonPanel;
+
+    // Excel import controls
+    private JButton addFileButton;
+    private JComboBox<String> sheetSelector;
+    private JTable previewTable;
+    private JScrollPane previewScrollPane;
+    private JComboBox<String> fuelTypeColumnSelector;
+    private JComboBox<String> vehicleTypeColumnSelector;
+    private JComboBox<String> yearColumnSelector;
+    private JComboBox<String> priceColumnSelector;
+    private JButton importButton;
 
     public FuelFactorPanel(ResourceBundle messages) {
         this.messages = messages;
@@ -65,73 +49,48 @@ public class FuelFactorPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(UIUtils.CONTENT_BACKGROUND);
 
-        // Manual input arranged in four rows: Fuel Type, Vehicle Type, Emission Factor,
-        // Price per litre
-        JPanel leftLabels = new JPanel();
-        leftLabels.setLayout(new BoxLayout(leftLabels, BoxLayout.Y_AXIS));
-        leftLabels.setBackground(UIUtils.CONTENT_BACKGROUND);
-        leftLabels.add(new JLabel(messages.getString("label.fuel.type") + ":"));
-        leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
-        leftLabels.add(new JLabel(messages.getString("label.vehicle.type") + ":"));
-        leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
-        leftLabels.add(new JLabel(messages.getString("label.emission.factor") + ":"));
-        leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
-    leftLabels.add(new JLabel(messages.getString("label.price.per.unit") + ":"));
+        JPanel inputGrid = buildInputGrid();
+        JPanel factorsPanel = createFactorsPanel();
+        JPanel manualInputBox = createManualInputBox(inputGrid);
 
-        JPanel middleFields = new JPanel();
-        middleFields.setLayout(new BoxLayout(middleFields, BoxLayout.Y_AXIS));
-        middleFields.setBackground(UIUtils.CONTENT_BACKGROUND);
-        // Use shared component factory and sizing constants for consistent look
+        JTabbedPane tabbed = new JTabbedPane();
+        tabbed.setBackground(UIUtils.CONTENT_BACKGROUND);
+        tabbed.addTab(messages.getString("tab.manual.input"), manualInputBox);
+        tabbed.addTab(messages.getString("tab.excel.import"), createExcelImportPanel());
+
+        JPanel wrapperPanel = new JPanel(new BorderLayout());
+        wrapperPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+        wrapperPanel.add(tabbed, BorderLayout.NORTH);
+        wrapperPanel.add(factorsPanel, BorderLayout.CENTER);
+
+        add(wrapperPanel, BorderLayout.CENTER);
+    }
+
+    private JPanel buildInputGrid() {
         fuelTypeSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
         fuelTypeSelector.setEditable(true);
-        middleFields.add(fuelTypeSelector);
-        middleFields.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
         vehicleTypeSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
         vehicleTypeSelector.setEditable(true);
-        middleFields.add(vehicleTypeSelector);
-        middleFields.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
         emissionFactorField = UIUtils.createCompactTextField(UIUtils.MAPPING_COMBO_WIDTH, UIUtils.MAPPING_COMBO_HEIGHT);
-        middleFields.add(emissionFactorField);
-        middleFields.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
-    pricePerUnitField = UIUtils.createCompactTextField(UIUtils.MAPPING_COMBO_WIDTH, UIUtils.MAPPING_COMBO_HEIGHT);
-    middleFields.add(pricePerUnitField);
+        pricePerUnitField = UIUtils.createCompactTextField(UIUtils.MAPPING_COMBO_WIDTH, UIUtils.MAPPING_COMBO_HEIGHT);
 
-        JPanel rightColumn = new JPanel(new BorderLayout());
-        rightColumn.setBackground(UIUtils.CONTENT_BACKGROUND);
-        JPanel rightTop = new JPanel(new GridLayout(4, 1, 0, 8));
-        rightTop.setBackground(UIUtils.CONTENT_BACKGROUND);
-        // Spacer aligns the unit label vertically with the field
-        JLabel spacer = new JLabel(" ");
-        spacer.setOpaque(false);
-        Dimension pref = emissionFactorField.getPreferredSize();
-        if (pref == null)
-            pref = new Dimension(UIUtils.SMALL_STRUT_WIDTH, UIUtils.YEAR_SPINNER_HEIGHT);
-        spacer.setPreferredSize(new Dimension(UIUtils.TINY_STRUT_WIDTH, pref.height));
-        rightTop.add(spacer);
-        rightTop.add(new JLabel(" "));
-    JLabel unitLabel = UIUtils.createUnitLabel(messages, "unit.kg_co2e_unit");
+        JLabel unitLabel = UIUtils.createUnitLabel(messages, "unit.kg_co2e_unit");
         unitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-    JLabel priceUnitLabel = UIUtils.createUnitLabel(messages, "unit.eur_unit");
+        JLabel priceUnitLabel = UIUtils.createUnitLabel(messages, "unit.eur_unit");
         priceUnitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        rightTop.add(unitLabel);
-        rightTop.add(priceUnitLabel);
-        rightColumn.add(rightTop, BorderLayout.NORTH);
 
-        JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         addButtonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
         addFactorButton = new JButton(messages.getString("button.add.fuel"));
         UIUtils.styleButton(addFactorButton);
         addButtonPanel.add(addFactorButton);
-        rightColumn.add(addButtonPanel, BorderLayout.SOUTH);
 
-        // Build the input grid using GridBagLayout for fine-grained alignment
         JPanel inputGrid = new JPanel(new GridBagLayout());
         inputGrid.setBackground(UIUtils.CONTENT_BACKGROUND);
         GridBagConstraints ig = new GridBagConstraints();
         ig.insets = new Insets(6, 6, 6, 6);
         ig.fill = GridBagConstraints.HORIZONTAL;
 
-        // Row 0: Fuel Type
         ig.gridx = 0;
         ig.gridy = 0;
         ig.weightx = 0;
@@ -142,7 +101,6 @@ public class FuelFactorPanel extends JPanel {
         ig.weightx = 1.0;
         inputGrid.add(fuelTypeSelector, ig);
 
-        // Row 1: Vehicle Type
         ig.gridx = 0;
         ig.gridy = 1;
         ig.weightx = 0;
@@ -152,8 +110,6 @@ public class FuelFactorPanel extends JPanel {
         ig.weightx = 1.0;
         inputGrid.add(vehicleTypeSelector, ig);
 
-        // Row 2: Emission Factor + unit
-        // Row 2: Emission Factor + unit
         ig.gridx = 0;
         ig.gridy = 2;
         ig.weightx = 0;
@@ -168,23 +124,21 @@ public class FuelFactorPanel extends JPanel {
         ig.anchor = GridBagConstraints.LINE_END;
         inputGrid.add(unitLabel, ig);
 
-        // Row 3: Price per litre + unit
         ig.gridx = 0;
         ig.gridy = 3;
         ig.weightx = 0;
         ig.anchor = GridBagConstraints.LINE_START;
-    inputGrid.add(new JLabel(messages.getString("label.price.per.unit") + ":"), ig);
+        inputGrid.add(new JLabel(messages.getString("label.price.per.unit") + ":"), ig);
         ig.gridx = 1;
         ig.gridy = 3;
         ig.weightx = 1.0;
-    inputGrid.add(pricePerUnitField, ig);
+        inputGrid.add(pricePerUnitField, ig);
         ig.gridx = 2;
         ig.gridy = 3;
         ig.weightx = 0;
         ig.anchor = GridBagConstraints.LINE_END;
         inputGrid.add(priceUnitLabel, ig);
 
-        // Row 4: spacer + add button
         ig.gridx = 0;
         ig.gridy = 4;
         ig.weightx = 1.0;
@@ -199,12 +153,10 @@ public class FuelFactorPanel extends JPanel {
         ig.anchor = GridBagConstraints.SOUTHEAST;
         inputGrid.add(addButtonPanel, ig);
 
-        // Use a larger manual input box so fields are not cropped on small displays
-        JPanel manualInputBox = UIComponents.createManualInputBox(messages, "tab.manual.input",
-                inputGrid, addButtonPanel, UIUtils.FACTOR_MANUAL_INPUT_WIDTH,
-                UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_FUEL_LARGE, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_FUEL_LARGE);
+        return inputGrid;
+    }
 
-        // Factors table (fuel type, vehicle type, emission factor, price)
+    private JPanel createFactorsPanel() {
         String[] columnNames = { messages.getString("table.header.fuel.type"),
                 messages.getString("table.header.vehicle.type"), messages.getString("table.header.factor"),
                 messages.getString("table.header.price") };
@@ -219,7 +171,9 @@ public class FuelFactorPanel extends JPanel {
         factorsTable.getTableHeader().setReorderingAllowed(false);
         UIUtils.styleTable(factorsTable);
         JScrollPane scrollPane = new JScrollPane(factorsTable);
-        scrollPane.setPreferredSize(new Dimension(0, UIUtils.FACTOR_SCROLL_HEIGHT));
+        // Use the compact refrigerant scroll height so the titled box remains compact
+        // and behaves like the Refrigerant panel.
+        scrollPane.setPreferredSize(new Dimension(0, UIUtils.FACTOR_SCROLL_HEIGHT_REFRIGERANT));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -233,19 +187,149 @@ public class FuelFactorPanel extends JPanel {
         JPanel factorsPanel = new JPanel(new BorderLayout(10, 10));
         factorsPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.fuel.types")));
         factorsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        factorsPanel.add(scrollPane, BorderLayout.CENTER);
+        // Place the table at the top (NORTH) so the titled box keeps a compact height
+        // similar to the refrigerant factors panel.
+        factorsPanel.add(scrollPane, BorderLayout.NORTH);
         factorsPanel.add(buttonPanel, BorderLayout.SOUTH);
+        return factorsPanel;
+    }
 
-        JPanel topPanel = new JPanel(new BorderLayout());
+    private JPanel createManualInputBox(JPanel inputGrid) {
+        JPanel manualInputBox = UIComponents.createManualInputBox(messages, "tab.manual.input",
+                inputGrid, addButtonPanel, UIUtils.FACTOR_MANUAL_INPUT_WIDTH,
+                UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_SMALL * 2, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_SMALL * 2);
+        manualInputBox.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(5, 0, 0, 0), manualInputBox.getBorder()));
+        return manualInputBox;
+    }
+
+    private JPanel createExcelImportPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBackground(UIUtils.CONTENT_BACKGROUND);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JPanel topPanel = new JPanel(new GridLayout(1, 2, 10, 0));
         topPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        topPanel.add(manualInputBox, BorderLayout.CENTER);
+        // Match refrigerant panel size to provide a larger area for controls
+        // Use the extra-large manual/input height to give more room for mapping
+        // controls
+        topPanel.setPreferredSize(new Dimension(0, UIUtils.FACTOR_MANUAL_INPUT_HEIGHT_EXTRA));
 
-        JPanel wrapperPanel = new JPanel(new BorderLayout());
-        wrapperPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        wrapperPanel.add(topPanel, BorderLayout.NORTH);
-        wrapperPanel.add(factorsPanel, BorderLayout.CENTER);
+        JPanel fileMgmt = new JPanel(new BorderLayout());
+        fileMgmt.setBackground(UIUtils.CONTENT_BACKGROUND);
+        fileMgmt.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.file.management")));
+        fileMgmt.setPreferredSize(new Dimension(0, UIUtils.FILE_MGMT_HEIGHT));
 
-        add(wrapperPanel, BorderLayout.CENTER);
+        JPanel controlsPanel = new JPanel(new GridBagLayout());
+        controlsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        addFileButton = new JButton(messages.getString("button.file.add"));
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        controlsPanel.add(addFileButton, gbc);
+
+        JLabel sheetLabel = new JLabel(messages.getString("label.sheet.select"));
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        controlsPanel.add(sheetLabel, gbc);
+
+        sheetSelector = UIComponents.createSheetSelector();
+        gbc.gridx = 1;
+        controlsPanel.add(sheetSelector, gbc);
+
+        fileMgmt.add(controlsPanel, BorderLayout.NORTH);
+
+        previewTable = new JTable(new DefaultTableModel());
+        UIUtils.styleTable(previewTable);
+        previewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        previewScrollPane = new JScrollPane(previewTable);
+        previewScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        previewScrollPane.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_SCROLL_HEIGHT));
+
+        JPanel leftColumn = new JPanel(new BorderLayout(5, 5));
+        leftColumn.setBackground(UIUtils.CONTENT_BACKGROUND);
+        leftColumn.add(fileMgmt, BorderLayout.NORTH);
+        JPanel previewBox = new JPanel(new BorderLayout());
+        previewBox.setBackground(UIUtils.CONTENT_BACKGROUND);
+        // Left preview should show the file preview box specifically for fuel factors
+        previewBox.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.fuel.file.preview")));
+        previewBox.add(previewScrollPane, BorderLayout.CENTER);
+        leftColumn.add(previewBox, BorderLayout.CENTER);
+        topPanel.add(leftColumn);
+
+        JPanel mapAndResult = new JPanel(new BorderLayout(5, 5));
+        mapAndResult.setBackground(UIUtils.CONTENT_BACKGROUND);
+
+        JPanel mappingPanel = new JPanel(new GridBagLayout());
+        mappingPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+        mappingPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.column.mapping")));
+        GridBagConstraints m = new GridBagConstraints();
+        m.fill = GridBagConstraints.HORIZONTAL;
+        m.insets = new Insets(5, 5, 5, 5);
+
+        fuelTypeColumnSelector = UIComponents.createMappingCombo(150);
+        vehicleTypeColumnSelector = UIComponents.createMappingCombo(150);
+        yearColumnSelector = UIComponents.createMappingCombo(150);
+        priceColumnSelector = UIComponents.createMappingCombo(150);
+
+        m.gridx = 0;
+        m.gridy = 0;
+        mappingPanel.add(
+                new JLabel(messages.getString("label.column.refrigerant.type").replace("Refrigerant", "Fuel") + ":"),
+                m);
+        m.gridx = 1;
+        mappingPanel.add(fuelTypeColumnSelector, m);
+
+        m.gridx = 0;
+        m.gridy = 1;
+        mappingPanel.add(new JLabel(messages.getString("label.vehicle.type") + ":"), m);
+        m.gridx = 1;
+        mappingPanel.add(vehicleTypeColumnSelector, m);
+
+        m.gridx = 0;
+        m.gridy = 2;
+        mappingPanel.add(new JLabel(messages.getString("label.year.short") + ":"), m);
+        m.gridx = 1;
+        mappingPanel.add(yearColumnSelector, m);
+
+        m.gridx = 0;
+        m.gridy = 3;
+        mappingPanel.add(new JLabel(messages.getString("label.price.per.unit") + ":"), m);
+        m.gridx = 1;
+        mappingPanel.add(priceColumnSelector, m);
+
+        mapAndResult.add(mappingPanel, BorderLayout.NORTH);
+
+        JPanel resultsBox = new JPanel(new BorderLayout());
+        resultsBox.setBackground(UIUtils.CONTENT_BACKGROUND);
+        // Keep the right-side results box using the generic Result title
+        resultsBox.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.result")));
+
+        JTable resultsPreviewTable = new JTable(new DefaultTableModel());
+        UIUtils.styleTable(resultsPreviewTable);
+        resultsPreviewTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        JScrollPane resultsPreviewScrollPane = new JScrollPane(resultsPreviewTable);
+        resultsPreviewScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        resultsPreviewScrollPane.setPreferredSize(new Dimension(0, UIUtils.PREVIEW_SCROLL_HEIGHT));
+        resultsBox.add(resultsPreviewScrollPane, BorderLayout.CENTER);
+
+        JPanel importBtnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        importBtnRow.setBackground(UIUtils.CONTENT_BACKGROUND);
+        importButton = new JButton(messages.getString("button.import"));
+        UIUtils.styleButton(importButton);
+        importBtnRow.add(importButton);
+        resultsBox.add(importBtnRow, BorderLayout.SOUTH);
+
+        mapAndResult.add(resultsBox, BorderLayout.CENTER);
+
+        topPanel.add(mapAndResult);
+
+        panel.add(topPanel, BorderLayout.CENTER);
+        return panel;
     }
 
     // Getters used by controller
@@ -279,5 +363,38 @@ public class FuelFactorPanel extends JPanel {
 
     public JButton getDeleteButton() {
         return deleteButton;
+    }
+
+    // Excel import getters
+    public JButton getAddFileButton() {
+        return addFileButton;
+    }
+
+    public JComboBox<String> getSheetSelector() {
+        return sheetSelector;
+    }
+
+    public JTable getPreviewTable() {
+        return previewTable;
+    }
+
+    public JComboBox<String> getFuelTypeColumnSelector() {
+        return fuelTypeColumnSelector;
+    }
+
+    public JComboBox<String> getVehicleTypeColumnSelector() {
+        return vehicleTypeColumnSelector;
+    }
+
+    public JComboBox<String> getYearColumnSelector() {
+        return yearColumnSelector;
+    }
+
+    public JComboBox<String> getPriceColumnSelector() {
+        return priceColumnSelector;
+    }
+
+    public JButton getImportButton() {
+        return importButton;
     }
 }

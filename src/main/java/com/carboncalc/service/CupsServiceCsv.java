@@ -99,6 +99,15 @@ public class CupsServiceCsv implements CupsService {
         return readCsvFile(Paths.get(CUPS_DIR, "cups.csv").toString(), Cups.class);
     }
 
+    /**
+     * Load the cups->center mapping data. This method prefers the bean-backed
+     * CSV loader but falls back to a lenient parser when files have legacy
+     * variations (missing columns, extra blank lines, header differences).
+     *
+     * @return list of {@link Cups} entries (may be empty)
+     * @throws IOException on IO errors
+     */
+
     @Override
     public void saveCups(List<Cups> cupsList) throws IOException {
         Collections.sort(cupsList); // Sort by CUPS code
@@ -141,6 +150,13 @@ public class CupsServiceCsv implements CupsService {
     }
 
     private List<CupsCenterMapping> loadCupsDataLenient() throws IOException {
+    /**
+     * Best-effort CSV parsing for older/irregular cups CSV files.
+     *
+     * This parser tolerates a missing header row, optional 'campus'
+     * column, and blank lines. It maps columns by position and will
+     * return an empty list when the file is absent or unparseable.
+     */
         Path filePath = Paths.get(DATA_DIR, CUPS_DIR, CUPS_FILE);
         if (!Files.exists(filePath))
             return List.of();
@@ -270,6 +286,24 @@ public class CupsServiceCsv implements CupsService {
             csvWriter.flush();
         }
     }
+
+    /**
+     * Append a new cups center mapping to the persisted CSV. This method
+     * loads existing mappings, checks for duplicates, assigns sequential
+     * IDs and writes the full file back to disk to maintain consistency.
+     *
+     * @param cups       CUPS identifier
+     * @param marketer   marketer name
+     * @param centerName center display name
+     * @param acronym    center acronym
+     * @param campus     campus string (may be empty)
+     * @param energyType canonical energy token (e.g. ELECTRICITY)
+     * @param street     street address
+     * @param postalCode postal code
+     * @param city       city
+     * @param province   province
+     * @throws IOException on persistence error
+     */
 
     @Override
     public void saveCupsData(String cups, String centerName) throws IOException {

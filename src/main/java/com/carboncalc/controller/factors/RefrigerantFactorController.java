@@ -10,8 +10,18 @@ import com.carboncalc.view.EmissionFactorsPanel;
 import com.carboncalc.view.factors.RefrigerantFactorPanel;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.time.Year;
+import java.util.Vector;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Locale;
@@ -34,6 +44,10 @@ public class RefrigerantFactorController extends GenericFactorController {
     private final ResourceBundle messages;
     private final RefrigerantFactorService refrigerantService;
     private EmissionFactorsPanel parentView;
+    // Import workflow state
+    private Workbook importWorkbook;
+    private File importFile;
+    private String importLastModifiedHeaderName;
 
     public RefrigerantFactorController(ResourceBundle messages, EmissionFactorService emissionFactorService,
             RefrigerantFactorService refrigerantService) {
@@ -253,6 +267,20 @@ public class RefrigerantFactorController extends GenericFactorController {
                     }
                 });
 
+                // Wire import UI controls (file management, sheet selection, preview, import)
+                try {
+                    panel.getAddFileButton().addActionListener(ev -> handleFileSelection());
+                } catch (Exception ignored) {
+                }
+                try {
+                    panel.getSheetSelector().addActionListener(ev -> handleImportSheetSelection());
+                } catch (Exception ignored) {
+                }
+                try {
+                    panel.getImportButton().addActionListener(ev -> handleImportFromFile());
+                } catch (Exception ignored) {
+                }
+
             } catch (Exception e) {
                 e.printStackTrace();
                 return new JPanel();
@@ -312,5 +340,426 @@ public class RefrigerantFactorController extends GenericFactorController {
     @Override
     public boolean save(int year) {
         return true;
+    }
+
+    // -------------------- Import helpers --------------------
+    private void handleFileSelection() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"),
+                "xlsx", "xls", "csv");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        if (fileChooser.showOpenDialog(panel) == JFileChooser.APPROVE_OPTION) {
+            try {
+                importFile = fileChooser.getSelectedFile();
+                FileInputStream fis = new FileInputStream(importFile);
+                String lname = importFile.getName().toLowerCase();
+                if (lname.endsWith(".xlsx")) {
+                    importWorkbook = new XSSFWorkbook(fis);
+                } else if (lname.endsWith(".xls")) {
+                    importWorkbook = new HSSFWorkbook(fis);
+                } else if (lname.endsWith(".csv")) {
+                    importWorkbook = loadCsvAsWorkbook(importFile);
+                } else {
+                    throw new IllegalArgumentException("Unsupported file format");
+                }
+                updateImportSheetsList();
+                try {
+                    this.importLastModifiedHeaderName = detectLastModifiedHeader(importWorkbook);
+                } catch (Exception ignored) {
+                    this.importLastModifiedHeaderName = null;
+                }
+                fis.close();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(panel, messages.getString("error.file.read"),
+                        messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private String detectLastModifiedHeader(Workbook wb) {
+        if (wb == null)
+            return null;
+        DataFormatter df = new DataFormatter();
+        for (int s = 0; s < wb.getNumberOfSheets(); s++) {
+            Sheet sh = wb.getSheetAt(s);
+            if (sh == null)
+                continue;
+            FormulaEvaluator eval = wb.getCreationHelper().createFormulaEvaluator();
+            int headerRowIndex = -1;
+            for (int i = sh.getFirstRowNum(); i <= sh.getLastRowNum(); i++) {
+                Row r = sh.getRow(i);
+                if (r == null)
+                    continue;
+                boolean nonEmpty = false;
+                for (Cell c : r) {
+                    if (!getCellString(c, df, eval).isEmpty()) {
+                        nonEmpty = true;
+                        break;
+                    }
+                }
+                if (nonEmpty) {
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+            if (headerRowIndex == -1)
+                continue;
+            Row hdr = sh.getRow(headerRowIndex);
+            for (Cell c : hdr) {
+                String v = getCellString(c, df, eval);
+                String n = v == null ? "" : v.toLowerCase().replaceAll("[_\\s]+", "");
+                if (n.contains("last") && (n.contains("modif") || n.contains("modified"))) {
+                    return v;
+                }
+            }
+        }
+        return null;
+    }
+
+    private Workbook loadCsvAsWorkbook(File csvFile) throws IOException {
+        XSSFWorkbook wb = new XSSFWorkbook();
+        Sheet sheet = wb.createSheet("Sheet1");
+
+        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+            String line;
+            int rowIdx = 0;
+            while ((line = br.readLine()) != null) {
+                List<String> cells = parseCsvLine(line);
+                Row r = sheet.createRow(rowIdx++);
+                for (int c = 0; c < cells.size(); c++) {
+                    Cell cell = r.createCell(c);
+                    cell.setCellValue(cells.get(c));
+                }
+            }
+        }
+        return wb;
+    }
+
+    private List<String> parseCsvLine(String line) {
+        List<String> out = new java.util.ArrayList<>();
+        if (line == null || line.isEmpty()) {
+            out.add("");
+            return out;
+        }
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char ch = line.charAt(i);
+            if (ch == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    cur.append('"');
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (ch == ',' && !inQuotes) {
+                out.add(cur.toString());
+                cur.setLength(0);
+            } else {
+                cur.append(ch);
+            }
+        }
+        out.add(cur.toString());
+        return out;
+    }
+
+    private void updateImportSheetsList() {
+        JComboBox<String> sheetSelector = panel.getSheetSelector();
+        sheetSelector.removeAllItems();
+        for (int i = 0; i < importWorkbook.getNumberOfSheets(); i++) {
+            sheetSelector.addItem(importWorkbook.getSheetName(i));
+        }
+        if (sheetSelector.getItemCount() > 0) {
+            sheetSelector.setSelectedIndex(0);
+            handleImportSheetSelection();
+        }
+    }
+
+    private void handleImportSheetSelection() {
+        if (importWorkbook == null)
+            return;
+        JComboBox<String> sheetSelector = panel.getSheetSelector();
+        String selected = (String) sheetSelector.getSelectedItem();
+        if (selected == null)
+            return;
+        Sheet sheet = importWorkbook.getSheet(selected);
+        updateImportColumnSelectors(sheet);
+        updateImportPreviewTable(sheet);
+    }
+
+    private void updateImportColumnSelectors(Sheet sheet) {
+        DataFormatter df = new DataFormatter();
+        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
+
+        int headerRowIndex = -1;
+        for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+            Row r = sheet.getRow(i);
+            if (r == null)
+                continue;
+            boolean nonEmpty = false;
+            for (Cell c : r) {
+                if (!getCellString(c, df, eval).isEmpty()) {
+                    nonEmpty = true;
+                    break;
+                }
+            }
+            if (nonEmpty) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+        if (headerRowIndex == -1) {
+            if (sheet.getPhysicalNumberOfRows() > 0)
+                headerRowIndex = sheet.getFirstRowNum();
+            else
+                return;
+        }
+
+        java.util.List<String> columnHeaders = new java.util.ArrayList<>();
+        Row headerRow = sheet.getRow(headerRowIndex);
+        for (Cell cell : headerRow) {
+            columnHeaders.add(getCellString(cell, df, eval));
+        }
+
+        JComboBox<String> rType = panel.getRefrigerantTypeColumnSelector();
+        JComboBox<String> pca = panel.getPcaColumnSelector();
+        updateComboBox(rType, columnHeaders);
+        updateComboBox(pca, columnHeaders);
+
+        if (this.importLastModifiedHeaderName != null) {
+            JComboBox<String> c = panel.getPcaColumnSelector();
+            for (int i = 0; i < c.getItemCount(); i++) {
+                String it = c.getItemAt(i);
+                if (it != null && it.equalsIgnoreCase(this.importLastModifiedHeaderName)) {
+                    c.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void updateComboBox(JComboBox<String> comboBox, java.util.List<String> items) {
+        comboBox.removeAllItems();
+        comboBox.addItem("");
+        for (String item : items) {
+            comboBox.addItem(item);
+        }
+    }
+
+    private void updateImportPreviewTable(Sheet sheet) {
+        DataFormatter df = new DataFormatter();
+        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
+
+        int headerRowIndex = -1;
+        for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+            Row r = sheet.getRow(i);
+            if (r == null)
+                continue;
+            boolean nonEmpty = false;
+            for (Cell c : r) {
+                if (!getCellString(c, df, eval).isEmpty()) {
+                    nonEmpty = true;
+                    break;
+                }
+            }
+            if (nonEmpty) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+        if (headerRowIndex == -1) {
+            if (sheet.getPhysicalNumberOfRows() > 0)
+                headerRowIndex = sheet.getFirstRowNum();
+            else
+                return;
+        }
+
+        int maxColumns = 0;
+        int scanEnd = Math.min(sheet.getLastRowNum(), headerRowIndex + 100);
+        for (int r = headerRowIndex; r <= scanEnd; r++) {
+            Row row = sheet.getRow(r);
+            if (row == null)
+                continue;
+            short last = row.getLastCellNum();
+            if (last > maxColumns)
+                maxColumns = last;
+        }
+        if (maxColumns <= 0)
+            return;
+
+        Vector<String> columnHeaders = new Vector<>();
+        for (int i = 0; i < maxColumns; i++) {
+            columnHeaders.add(convertToExcelColumn(i));
+        }
+
+        Vector<Vector<String>> data = new Vector<>();
+        Vector<String> headerData = new Vector<>();
+        Row headerRow = sheet.getRow(headerRowIndex);
+        for (int j = 0; j < maxColumns; j++) {
+            Cell cell = headerRow.getCell(j);
+            headerData.add(getCellString(cell, df, eval));
+        }
+        data.add(headerData);
+
+        int maxRows = Math.min(sheet.getLastRowNum(), headerRowIndex + 100);
+        for (int i = headerRowIndex + 1; i <= maxRows; i++) {
+            Row row = sheet.getRow(i);
+            if (row == null)
+                continue;
+            Vector<String> rowData = new Vector<>();
+            for (int j = 0; j < maxColumns; j++) {
+                Cell cell = row.getCell(j);
+                rowData.add(getCellString(cell, df, eval));
+            }
+            data.add(rowData);
+        }
+
+        DefaultTableModel model = new DefaultTableModel(data, columnHeaders) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        panel.getPreviewTable().setModel(model);
+        UIUtils.setupPreviewTable(panel.getPreviewTable());
+    }
+
+    private String getCellString(Cell cell, DataFormatter df, FormulaEvaluator eval) {
+        if (cell == null)
+            return "";
+        try {
+            if (cell.getCellType() == CellType.FORMULA) {
+                CellValue cv = eval.evaluate(cell);
+                if (cv == null)
+                    return "";
+                switch (cv.getCellType()) {
+                    case STRING:
+                        return cv.getStringValue();
+                    case NUMERIC:
+                        return String.valueOf(cv.getNumberValue());
+                    case BOOLEAN:
+                        return String.valueOf(cv.getBooleanValue());
+                    default:
+                        return df.formatCellValue(cell, eval);
+                }
+            }
+            return df.formatCellValue(cell);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String convertToExcelColumn(int columnNumber) {
+        StringBuilder result = new StringBuilder();
+        while (columnNumber >= 0) {
+            int remainder = columnNumber % 26;
+            result.insert(0, (char) (65 + remainder));
+            columnNumber = (columnNumber / 26) - 1;
+        }
+        return result.toString();
+    }
+
+    private int getSelectedIndex(JComboBox<String> comboBox) {
+        if (comboBox == null)
+            return -1;
+        int sel = comboBox.getSelectedIndex();
+        if (sel <= 0)
+            return -1;
+        return sel - 1;
+    }
+
+    private void handleImportFromFile() {
+        // Validate
+        if (importWorkbook == null || panel.getSheetSelector().getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(panel, messages.getString("error.no.data"), messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        int rTypeIdx = getSelectedIndex(panel.getRefrigerantTypeColumnSelector());
+        int pcaIdx = getSelectedIndex(panel.getPcaColumnSelector());
+        if (rTypeIdx < 0 || pcaIdx < 0) {
+            JOptionPane.showMessageDialog(panel, messages.getString("refrigerant.error.missingMapping"),
+                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String selectedSheet = (String) panel.getSheetSelector().getSelectedItem();
+        if (selectedSheet == null)
+            return;
+        Sheet sheet = importWorkbook.getSheet(selectedSheet);
+        if (sheet == null)
+            return;
+
+        DataFormatter df = new DataFormatter();
+        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
+
+        int headerRowIndex = -1;
+        for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+            Row r = sheet.getRow(i);
+            if (r == null)
+                continue;
+            boolean nonEmpty = false;
+            for (Cell c : r) {
+                if (!getCellString(c, df, eval).isEmpty()) {
+                    nonEmpty = true;
+                    break;
+                }
+            }
+            if (nonEmpty) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+        if (headerRowIndex == -1) {
+            JOptionPane.showMessageDialog(panel, messages.getString("error.no.data"), messages.getString("error.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int processed = 0;
+        int saveYear = Year.now().getValue();
+        if (parentView != null) {
+            JSpinner spinner = parentView.getYearSpinner();
+            if (spinner != null) {
+                try {
+                    if (spinner.getEditor() instanceof JSpinner.DefaultEditor)
+                        spinner.commitEdit();
+                } catch (Exception ignored) {
+                }
+                Object val = spinner.getValue();
+                if (val instanceof Number)
+                    saveYear = ((Number) val).intValue();
+            }
+        }
+
+        for (int r = headerRowIndex + 1; r <= sheet.getLastRowNum(); r++) {
+            Row row = sheet.getRow(r);
+            if (row == null)
+                continue;
+            try {
+                String rType = getCellString(row.getCell(rTypeIdx), df, eval);
+                String pcaStr = getCellString(row.getCell(pcaIdx), df, eval);
+                if (pcaStr == null || pcaStr.trim().isEmpty() || rType == null || rType.trim().isEmpty())
+                    continue;
+                String normalized = pcaStr.replace(',', '.').trim();
+                Double pca = Double.parseDouble(normalized);
+                RefrigerantEmissionFactor entry = new RefrigerantEmissionFactor(rType.trim(), saveYear, pca, rType.trim());
+                refrigerantService.saveRefrigerantFactor(entry);
+                processed++;
+            } catch (Exception ex) {
+                // skip errors and continue
+            }
+        }
+
+        // reload and inform user
+        onActivate(saveYear);
+        String msg = java.text.MessageFormat.format(messages.getString("refrigerant.success.import"),
+                String.valueOf(processed));
+        JOptionPane.showMessageDialog(panel, msg, messages.getString("message.title.success"),
+                JOptionPane.INFORMATION_MESSAGE);
     }
 }

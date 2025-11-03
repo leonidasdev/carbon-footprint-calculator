@@ -71,6 +71,13 @@ public class UIUtils {
     /** Larger variant used when extra vertical space is required (20px more) */
     public static final int FACTOR_MANUAL_INPUT_HEIGHT_FUEL_LARGE = FACTOR_MANUAL_INPUT_HEIGHT_FUEL + 40;
     public static final int FACTOR_SCROLL_HEIGHT = 180;
+    /**
+     * Preferred scroll height for refrigerant types table. Reduced to half (50px)
+     * to fit Excel import UI better.
+     */
+    public static final int FACTOR_SCROLL_HEIGHT_REFRIGERANT = 50;
+    /** Extra-large manual input height for panels that need more breathing room. */
+    public static final int FACTOR_MANUAL_INPUT_HEIGHT_EXTRA = FACTOR_MANUAL_INPUT_HEIGHT_SMALL * 2 + 50;
     // Common minimum widths used by manual input boxes across factor panels
     public static final int MANUAL_INPUT_MIN_WIDTH = 300;
 

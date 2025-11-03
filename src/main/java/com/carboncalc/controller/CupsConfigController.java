@@ -136,6 +136,10 @@ public class CupsConfigController {
 
     /**
      * Load centers from the CSV and populate the centers table model.
+    *
+    * This method queries the {@code CupsService} for persisted mappings and
+    * populates the view's table model. It converts stored canonical energy
+    * tokens into localized display labels via {@link #localizedLabelFor}.
      */
     private void loadCentersTable() throws Exception {
         List<CupsCenterMapping> mappings = csvService.loadCupsData();
@@ -170,6 +174,11 @@ public class CupsConfigController {
     }
 
     private void loadExcelFile(File file) {
+    /**
+     * Open and cache the selected spreadsheet.
+     * The workbook instance is kept in {@link #currentWorkbook} and used by
+     * subsequent preview and import flows.
+     */
         try {
             currentFile = file;
             currentWorkbook = new XSSFWorkbook(new FileInputStream(file));
@@ -183,6 +192,11 @@ public class CupsConfigController {
     }
 
     private void updateSheetList() {
+    /**
+     * Populate the sheet selector combo with sheets found in the current
+     * workbook. Selects the first sheet and refreshes column selectors
+     * and the preview automatically when available.
+     */
         JComboBox<String> sheetSelector = view.getSheetSelector();
         sheetSelector.removeAllItems();
 
@@ -198,6 +212,11 @@ public class CupsConfigController {
     }
 
     private void updateColumnSelectors() {
+    /**
+     * Read the header row of the currently selected sheet and populate
+     * all mapping combo boxes with the available column names. A leading
+     * blank entry is inserted representing 'no mapping'.
+     */
         if (currentWorkbook == null)
             return;
 
@@ -266,6 +285,7 @@ public class CupsConfigController {
     }
 
     public void handleSheetSelection() {
+        // When user selects a different sheet, refresh mapping options and previews
         updateColumnSelectors();
         updatePreview();
         updateMappedPreview();

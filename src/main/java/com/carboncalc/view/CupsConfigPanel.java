@@ -107,6 +107,16 @@ public class CupsConfigPanel extends BaseModulePanel {
         setBackground(UIUtils.CONTENT_BACKGROUND);
     }
 
+    /**
+     * Build the Manual Input tab UI.
+     *
+     * This method constructs a compact two-column form used to add a single
+     * CUPS/center entry manually. The Add button delegates to the controller
+     * via {@code controller.handleAddCenter} and the UI uses shared helpers
+     * in {@link UIComponents} and {@link UIUtils} for consistent sizing.
+     *
+     * @return the panel containing the manual input form boxed with a title
+     */
     private JPanel createManualInputPanel() {
         /**
          * Manual input tab content.
@@ -273,7 +283,7 @@ public class CupsConfigPanel extends BaseModulePanel {
          * Excel import tab content.
          * Top area contains file management and column mapping; preview lives below.
          */
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
+    JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(UIUtils.CONTENT_BACKGROUND);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -284,7 +294,8 @@ public class CupsConfigPanel extends BaseModulePanel {
         topPanel.setPreferredSize(new Dimension(0, UIUtils.MANUAL_INPUT_HEIGHT));
 
         // File Management Section (keep compact) and file preview under it
-        JPanel fileMgmt = createFileManagementPanel();
+    // File management controls (file chooser and sheet selector)
+    JPanel fileMgmt = createFileManagementPanel();
         fileMgmt.setPreferredSize(new Dimension(0, UIUtils.FILE_MGMT_HEIGHT));
 
         // File preview: show selected sheet content (first N rows)
@@ -350,6 +361,16 @@ public class CupsConfigPanel extends BaseModulePanel {
         return panel;
     }
 
+    /**
+     * Create the column mapping controls used by the Excel import flow.
+     *
+     * Each mapping row pairs a localized label with a combo box produced by
+     * {@link UIComponents#createMappingCombo}. The combos include a leading
+     * blank item to indicate 'no mapping'. The controller reads the selected
+     * indices and subtracts one to obtain zero-based sheet column indices.
+     *
+     * @return panel containing all mapping selectors
+     */
     private JPanel createColumnMappingPanel() {
         /**
          * Column mapping controls used by the Excel import tab.
@@ -388,6 +409,16 @@ public class CupsConfigPanel extends BaseModulePanel {
         return panel;
     }
 
+    /**
+     * Create the compact file-management controls shown above the sheet preview.
+     *
+     * This panel contains the "Add File" button (which opens a file chooser)
+     * and the sheet selector combo. The heavy lifting of previewing sheet
+     * content is implemented in the controller and preview table population
+     * methods.
+     *
+     * @return compact file management panel
+     */
     private JPanel createFileManagementPanel() {
         /**
          * File management controls: add file, sheet selector and preview/import
@@ -461,11 +492,16 @@ public class CupsConfigPanel extends BaseModulePanel {
         return resultsPreviewTable;
     }
 
+    /**
+     * Build the centers table panel shown below the manual/import tabs.
+     *
+     * The table model contains a hidden ID column at index 0 which is used
+     * to track entries for edit/delete operations. Visible columns are
+     * localized using the resource bundle.
+     *
+     * @return panel containing the centers table and action buttons
+     */
     private JPanel createCentersTablePanel() {
-        /**
-         * Panel that displays the current list of centers and action buttons
-         * (Edit / Delete / Save). Uses localized column headers.
-         */
         JPanel panel = new JPanel(new BorderLayout());
         // Title for the centers table panel is localized; use a descriptive key
         panel.setBorder(BorderFactory.createTitledBorder(messages.getString("label.cups.centers.mapping")));
@@ -542,6 +578,8 @@ public class CupsConfigPanel extends BaseModulePanel {
 
     private void addColumnSelector(JPanel panel, GridBagConstraints gbc, int row,
             String labelKey, JComboBox<String> selector) {
+    // Add a labeled column mapping selector and wire it to the controller
+    // so changes update the mapped preview in real-time.
         gbc.gridx = 0;
         gbc.gridy = row;
         panel.add(new JLabel(messages.getString(labelKey) + ":"), gbc);
@@ -562,6 +600,7 @@ public class CupsConfigPanel extends BaseModulePanel {
     }
 
     private CenterData getManualInputData() {
+        // Collect values from the manual input form into a value object
         return new CenterData(
                 cupsField.getText(),
                 marketerField.getText(),

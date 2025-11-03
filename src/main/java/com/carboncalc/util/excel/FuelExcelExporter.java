@@ -133,6 +133,15 @@ public class FuelExcelExporter {
         }
     }
 
+    /**
+     * Create the header row for the detailed ("Extendido") sheet.
+     * Labels are obtained from the provided resource bundle to keep the
+     * exported file localized.
+     *
+     * @param sheet       target sheet
+     * @param headerStyle optional header style to apply
+     * @param spanish     resource bundle used for labels
+     */
     private static void createDetailedHeader(Sheet sheet, CellStyle headerStyle, ResourceBundle spanish) {
         Row h = sheet.createRow(0);
         String[] labels = new String[] { spanish.getString("fuel.mapping.id"),
@@ -394,16 +403,27 @@ public class FuelExcelExporter {
         return perCenter;
     }
 
+    /**
+     * Create the "Per center" summary sheet.
+     *
+     * @param sheet       target sheet
+     * @param headerStyle optional header style
+     * @param aggregates  map keyed by center with {consumption, emissions}
+     * @param spanish     resource bundle to localize column headers
+     */
     private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates,
             ResourceBundle spanish) {
+        // Header row (localized)
         Row h = sheet.createRow(0);
         h.createCell(0).setCellValue(spanish.getString("fuel.mapping.centro"));
-        h.createCell(1).setCellValue("Consumo L");
+        h.createCell(1).setCellValue(spanish.getString("fuel.export.consumption"));
         h.createCell(2).setCellValue(spanish.getString("fuel.mapping.emissions"));
         if (headerStyle != null) {
             for (int i = 0; i <= 2; i++)
                 h.getCell(i).setCellStyle(headerStyle);
         }
+
+        // Write aggregates: consumption (L) and emissions (tCO2)
         int r = 1;
         for (Map.Entry<String, double[]> e : aggregates.entrySet()) {
             Row row = sheet.createRow(r++);
@@ -412,19 +432,32 @@ public class FuelExcelExporter {
             row.createCell(1).setCellValue(v[0]);
             row.createCell(2).setCellValue(v[1]);
         }
+
+        // Autosize columns for readability
         for (int i = 0; i <= 2; i++)
             sheet.autoSizeColumn(i);
     }
 
+    /**
+     * Create a small "Total" sheet from per-center aggregates.
+     * Uses localized labels for the two summary columns.
+     *
+     * @param sheet       target sheet
+     * @param headerStyle optional header style
+     * @param aggregates  per-center aggregates
+     * @param spanish     resource bundle for localization
+     */
     private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
             Map<String, double[]> aggregates, ResourceBundle spanish) {
         Row h = sheet.createRow(0);
-        h.createCell(0).setCellValue("Total Consumo L");
-        h.createCell(1).setCellValue("Total Emisiones tCO2");
+        h.createCell(0).setCellValue(spanish.getString("fuel.export.total.consumption"));
+        h.createCell(1).setCellValue(spanish.getString("fuel.export.total.emissions"));
         if (headerStyle != null) {
             h.getCell(0).setCellStyle(headerStyle);
             h.getCell(1).setCellStyle(headerStyle);
         }
+
+        // Sum up all centers
         double totalAmt = 0.0;
         double totalEm = 0.0;
         for (double[] v : aggregates.values()) {
@@ -433,6 +466,7 @@ public class FuelExcelExporter {
             totalAmt += v[0];
             totalEm += v[1];
         }
+
         Row r = sheet.createRow(1);
         r.createCell(0).setCellValue(totalAmt);
         r.createCell(1).setCellValue(totalEm);
@@ -463,6 +497,9 @@ public class FuelExcelExporter {
 
     // compute aggregates from detailed sheet (in case writeDetailedRows didn't return any)
     private static Map<String, double[]> computeAggregatesFromDetailed(Sheet detailed, FormulaEvaluator eval) {
+        // Recompute aggregates scanning the detailed sheet when we don't
+        // have aggregates from the writing pass. This can be useful when
+        // formulas exist in the detailed sheet and we need evaluated values.
         Map<String, double[]> out = new HashMap<>();
         if (detailed == null)
             return out;

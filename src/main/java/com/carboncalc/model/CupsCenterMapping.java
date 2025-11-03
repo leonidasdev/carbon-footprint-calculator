@@ -51,6 +51,20 @@ public class CupsCenterMapping implements Comparable<CupsCenterMapping> {
         this.province = province;
     }
 
+    /**
+     * Convenience constructor used by bean mappers and tests.
+     *
+     * @param cups       CUPS identifier
+     * @param marketer   marketer name
+     * @param centerName display name for the center
+     * @param acronym    short acronym
+     * @param campus     campus string (may be empty)
+     * @param energyType canonical energy token
+     * @param street     street address
+     * @param postalCode postal code
+     * @param city       city
+     * @param province   province
+     */
     public CupsCenterMapping(String cups, String marketer, String centerName, String acronym, String campus,
             String energyType, String street, String postalCode,
             String city, String province) {

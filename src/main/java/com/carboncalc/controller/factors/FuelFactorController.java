@@ -24,6 +24,24 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellValue;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Vector;
+import java.util.Optional;
+
 /**
  * Controller for fuel emission factors.
  *
@@ -45,8 +63,8 @@ public class FuelFactorController extends GenericFactorController {
      * Import workflow state: loaded workbook, original file and optional
      * detected header name (e.g. a Last Modified column).
      */
-    private org.apache.poi.ss.usermodel.Workbook importWorkbook;
-    private java.io.File importFile;
+    private Workbook importWorkbook;
+    private File importFile;
     private String importLastModifiedHeaderName;
 
     public FuelFactorController(ResourceBundle messages, EmissionFactorService emissionFactorService,
@@ -532,7 +550,7 @@ public class FuelFactorController extends GenericFactorController {
      *
      * @return the header cell text if found, otherwise null
      */
-    private String detectLastModifiedHeader(org.apache.poi.ss.usermodel.Workbook wb) {
+    private String detectLastModifiedHeader(Workbook wb) {
         if (wb == null)
             return null;
         org.apache.poi.ss.usermodel.DataFormatter df = new org.apache.poi.ss.usermodel.DataFormatter();
@@ -577,12 +595,11 @@ public class FuelFactorController extends GenericFactorController {
      * so the preview & mapping logic can treat spreadsheets and CSVs
      * uniformly.
      */
-    private org.apache.poi.xssf.usermodel.XSSFWorkbook loadCsvAsWorkbook(java.io.File csvFile)
-            throws java.io.IOException {
-        org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
-        org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet("Sheet1");
+    private XSSFWorkbook loadCsvAsWorkbook(File csvFile) throws IOException {
+        XSSFWorkbook wb = new XSSFWorkbook();
+        Sheet sheet = wb.createSheet("Sheet1");
 
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(csvFile))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
             String line;
             int rowIdx = 0;
             while ((line = br.readLine()) != null) {
@@ -600,8 +617,8 @@ public class FuelFactorController extends GenericFactorController {
     /**
      * Very small CSV parser that handles quoted fields and doubled quotes.
      */
-    private java.util.List<String> parseCsvLine(String line) {
-        java.util.List<String> out = new java.util.ArrayList<>();
+    private List<String> parseCsvLine(String line) {
+        List<String> out = new ArrayList<>();
         if (line == null || line.isEmpty()) {
             out.add("");
             return out;
@@ -658,10 +675,9 @@ public class FuelFactorController extends GenericFactorController {
      * Inspect the sheet for a header row and populate the mapping
      * dropdowns used by the Fuel import UI.
      */
-    private void updateImportColumnSelectors(org.apache.poi.ss.usermodel.Sheet sheet) {
-        org.apache.poi.ss.usermodel.DataFormatter df = new org.apache.poi.ss.usermodel.DataFormatter();
-        org.apache.poi.ss.usermodel.FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper()
-                .createFormulaEvaluator();
+    private void updateImportColumnSelectors(Sheet sheet) {
+        DataFormatter df = new DataFormatter();
+        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
 
         int headerRowIndex = -1;
         for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
@@ -687,9 +703,9 @@ public class FuelFactorController extends GenericFactorController {
                 return;
         }
 
-        java.util.List<String> columnHeaders = new java.util.ArrayList<>();
-        org.apache.poi.ss.usermodel.Row headerRow = sheet.getRow(headerRowIndex);
-        for (org.apache.poi.ss.usermodel.Cell cell : headerRow) {
+        List<String> columnHeaders = new ArrayList<>();
+        Row headerRow = sheet.getRow(headerRowIndex);
+        for (Cell cell : headerRow) {
             columnHeaders.add(getCellString(cell, df, eval));
         }
 
@@ -726,10 +742,9 @@ public class FuelFactorController extends GenericFactorController {
     /**
      * Build a small read-only preview (header + ~100 rows) for the selected sheet.
      */
-    private void updateImportPreviewTable(org.apache.poi.ss.usermodel.Sheet sheet) {
-        org.apache.poi.ss.usermodel.DataFormatter df = new org.apache.poi.ss.usermodel.DataFormatter();
-        org.apache.poi.ss.usermodel.FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper()
-                .createFormulaEvaluator();
+    private void updateImportPreviewTable(Sheet sheet) {
+        DataFormatter df = new DataFormatter();
+        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
 
         int headerRowIndex = -1;
         for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
@@ -768,28 +783,28 @@ public class FuelFactorController extends GenericFactorController {
         if (maxColumns <= 0)
             return;
 
-        java.util.Vector<String> columnHeaders = new java.util.Vector<>();
+        Vector<String> columnHeaders = new Vector<>();
         for (int i = 0; i < maxColumns; i++) {
             columnHeaders.add(convertToExcelColumn(i));
         }
 
-        java.util.Vector<java.util.Vector<String>> data = new java.util.Vector<>();
-        java.util.Vector<String> headerData = new java.util.Vector<>();
-        org.apache.poi.ss.usermodel.Row headerRow = sheet.getRow(headerRowIndex);
+        Vector<Vector<String>> data = new Vector<>();
+        Vector<String> headerData = new Vector<>();
+        Row headerRow = sheet.getRow(headerRowIndex);
         for (int j = 0; j < maxColumns; j++) {
-            org.apache.poi.ss.usermodel.Cell cell = headerRow.getCell(j);
+            Cell cell = headerRow.getCell(j);
             headerData.add(getCellString(cell, df, eval));
         }
         data.add(headerData);
 
         int maxRows = Math.min(sheet.getLastRowNum(), headerRowIndex + 100);
         for (int i = headerRowIndex + 1; i <= maxRows; i++) {
-            org.apache.poi.ss.usermodel.Row row = sheet.getRow(i);
+            Row row = sheet.getRow(i);
             if (row == null)
                 continue;
             java.util.Vector<String> rowData = new java.util.Vector<>();
             for (int j = 0; j < maxColumns; j++) {
-                org.apache.poi.ss.usermodel.Cell cell = row.getCell(j);
+                Cell cell = row.getCell(j);
                 rowData.add(getCellString(cell, df, eval));
             }
             data.add(rowData);
@@ -809,13 +824,12 @@ public class FuelFactorController extends GenericFactorController {
     /**
      * Safely format a cell value to string, evaluating formulas where present.
      */
-    private String getCellString(org.apache.poi.ss.usermodel.Cell cell, org.apache.poi.ss.usermodel.DataFormatter df,
-            org.apache.poi.ss.usermodel.FormulaEvaluator eval) {
+    private String getCellString(Cell cell, DataFormatter df, FormulaEvaluator eval) {
         if (cell == null)
             return "";
         try {
             if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.FORMULA) {
-                org.apache.poi.ss.usermodel.CellValue cv = eval.evaluate(cell);
+                CellValue cv = eval.evaluate(cell);
                 if (cv == null)
                     return "";
                 switch (cv.getCellType()) {
@@ -846,7 +860,7 @@ public class FuelFactorController extends GenericFactorController {
         return result.toString();
     }
 
-    private int getSelectedIndex(javax.swing.JComboBox<String> comboBox) {
+    private int getSelectedIndex(JComboBox<String> comboBox) {
         if (comboBox == null)
             return -1;
         int sel = comboBox.getSelectedIndex();
@@ -884,9 +898,8 @@ public class FuelFactorController extends GenericFactorController {
         if (sheet == null)
             return;
 
-        org.apache.poi.ss.usermodel.DataFormatter df = new org.apache.poi.ss.usermodel.DataFormatter();
-        org.apache.poi.ss.usermodel.FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper()
-                .createFormulaEvaluator();
+        DataFormatter df = new DataFormatter();
+        FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
 
         int headerRowIndex = -1;
         for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
@@ -914,7 +927,7 @@ public class FuelFactorController extends GenericFactorController {
         // Heuristically find the emission-factor column: prefer headers containing
         // known keywords, otherwise pick the most-numeric column excluding mapped
         // identifier columns.
-        org.apache.poi.ss.usermodel.Row headerRow = sheet.getRow(headerRowIndex);
+        Row headerRow = sheet.getRow(headerRowIndex);
         int maxCols = headerRow == null ? 0 : headerRow.getLastCellNum();
         int factorIdx = -1;
         if (headerRow != null) {
@@ -941,10 +954,10 @@ public class FuelFactorController extends GenericFactorController {
                     continue;
                 int count = 0;
                 for (int r = headerRowIndex + 1; r <= scanEnd; r++) {
-                    org.apache.poi.ss.usermodel.Row row = sheet.getRow(r);
+                    Row row = sheet.getRow(r);
                     if (row == null)
                         continue;
-                    org.apache.poi.ss.usermodel.Cell cell = row.getCell(c);
+                    Cell cell = row.getCell(c);
                     String val = getCellString(cell, df, eval);
                     if (val == null || val.trim().isEmpty())
                         continue;
@@ -974,7 +987,8 @@ public class FuelFactorController extends GenericFactorController {
             JSpinner spinner = parentView.getYearSpinner();
             if (spinner != null) {
                 try {
-                    // Clear focus first so editor commits its value (matches Refrigerant controller behavior)
+                    // Clear focus first so editor commits its value (matches Refrigerant controller
+                    // behavior)
                     try {
                         java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
                     } catch (Exception ignored) {
@@ -990,10 +1004,11 @@ public class FuelFactorController extends GenericFactorController {
                 }
             }
         }
-        // If spinner wasn't available or didn't provide a value, prefer service-configured default year
+        // If spinner wasn't available or didn't provide a value, prefer
+        // service-configured default year
         if (!spinnerResolved) {
             try {
-                java.util.Optional<Integer> d = fuelService.getDefaultYear();
+                Optional<Integer> d = fuelService.getDefaultYear();
                 if (d != null && d.isPresent())
                     saveYear = d.get();
             } catch (Exception ignored) {
@@ -1001,7 +1016,7 @@ public class FuelFactorController extends GenericFactorController {
         }
 
         for (int r = headerRowIndex + 1; r <= sheet.getLastRowNum(); r++) {
-            org.apache.poi.ss.usermodel.Row row = sheet.getRow(r);
+            Row row = sheet.getRow(r);
             if (row == null)
                 continue;
             try {
@@ -1014,7 +1029,8 @@ public class FuelFactorController extends GenericFactorController {
                 if (baseFactor == null)
                     continue;
 
-                // Use the selected spinner year for all imported rows (match refrigerant behavior)
+                // Use the selected spinner year for all imported rows (match refrigerant
+                // behavior)
                 int rowYear = saveYear;
 
                 Double price = null;
@@ -1049,17 +1065,16 @@ public class FuelFactorController extends GenericFactorController {
             }
         }
 
-    // Reload the generic controller model for the selected year so the table
-    // shows the newly-imported rows.
-    onActivate(saveYear);
+        // Reload the generic controller model for the selected year so the table
+        // shows the newly-imported rows.
+        onActivate(saveYear);
 
         // Do not mutate the top-level spinner here. The selected year is the
         // authoritative value; we refreshed the subcontroller's view with
         // onActivate(saveYear) above so the table shows the imported rows.
 
-    String msg = java.text.MessageFormat.format(messages.getString("fuel.success.import"),
-        String.valueOf(processed));
-    JOptionPane.showMessageDialog(panel, msg, messages.getString("message.title.success"),
-        JOptionPane.INFORMATION_MESSAGE);
+        String msg = MessageFormat.format(messages.getString("fuel.success.import"), String.valueOf(processed));
+        JOptionPane.showMessageDialog(panel, msg, messages.getString("message.title.success"),
+                JOptionPane.INFORMATION_MESSAGE);
     }
 }

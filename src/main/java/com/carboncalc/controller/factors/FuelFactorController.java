@@ -969,17 +969,34 @@ public class FuelFactorController extends GenericFactorController {
 
         int processed = 0;
         int saveYear = Year.now().getValue();
+        boolean spinnerResolved = false;
         if (parentView != null) {
             JSpinner spinner = parentView.getYearSpinner();
             if (spinner != null) {
                 try {
+                    // Clear focus first so editor commits its value (matches Refrigerant controller behavior)
+                    try {
+                        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
+                    } catch (Exception ignored) {
+                    }
                     if (spinner.getEditor() instanceof JSpinner.DefaultEditor)
                         spinner.commitEdit();
                 } catch (Exception ignored) {
                 }
                 Object val = spinner.getValue();
-                if (val instanceof Number)
+                if (val instanceof Number) {
                     saveYear = ((Number) val).intValue();
+                    spinnerResolved = true;
+                }
+            }
+        }
+        // If spinner wasn't available or didn't provide a value, prefer service-configured default year
+        if (!spinnerResolved) {
+            try {
+                java.util.Optional<Integer> d = fuelService.getDefaultYear();
+                if (d != null && d.isPresent())
+                    saveYear = d.get();
+            } catch (Exception ignored) {
             }
         }
 
@@ -997,19 +1014,8 @@ public class FuelFactorController extends GenericFactorController {
                 if (baseFactor == null)
                     continue;
 
-                // Row-level year override if provided and numeric
+                // Use the selected spinner year for all imported rows (match refrigerant behavior)
                 int rowYear = saveYear;
-                if (yearIdx >= 0) {
-                    String y = getCellString(row.getCell(yearIdx), df, eval);
-                    if (y != null && !y.trim().isEmpty()) {
-                        try {
-                            Double yy = ValidationUtils.tryParseDouble(y);
-                            if (yy != null)
-                                rowYear = yy.intValue();
-                        } catch (Exception ignored) {
-                        }
-                    }
-                }
 
                 Double price = null;
                 if (priceIdx >= 0) {
@@ -1043,10 +1049,17 @@ public class FuelFactorController extends GenericFactorController {
             }
         }
 
-        onActivate(saveYear);
-        String msg = java.text.MessageFormat.format(messages.getString("fuel.success.import"),
-                String.valueOf(processed));
-        JOptionPane.showMessageDialog(panel, msg, messages.getString("message.title.success"),
-                JOptionPane.INFORMATION_MESSAGE);
+    // Reload the generic controller model for the selected year so the table
+    // shows the newly-imported rows.
+    onActivate(saveYear);
+
+        // Do not mutate the top-level spinner here. The selected year is the
+        // authoritative value; we refreshed the subcontroller's view with
+        // onActivate(saveYear) above so the table shows the imported rows.
+
+    String msg = java.text.MessageFormat.format(messages.getString("fuel.success.import"),
+        String.valueOf(processed));
+    JOptionPane.showMessageDialog(panel, msg, messages.getString("message.title.success"),
+        JOptionPane.INFORMATION_MESSAGE);
     }
 }

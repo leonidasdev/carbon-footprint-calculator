@@ -60,15 +60,15 @@ public class FuelFactorServiceCsv implements FuelFactorService {
                 }
             }
 
-            String row = String.join(",", quoteCsv(fuelType), quoteCsv(vehicle),
-                    String.format(Locale.ROOT, "%.6f", entry.getBaseFactor()),
-                    String.format(Locale.ROOT, "%.6f", entry.getPricePerLitre()));
+        String row = String.join(",", quoteCsv(fuelType), quoteCsv(vehicle),
+            String.format(Locale.ROOT, "%.6f", entry.getBaseFactor()),
+            String.format(Locale.ROOT, "%.6f", entry.getPricePerUnit()));
 
             String key = normalizeKey(fuelType, vehicle);
             byKey.put(key, row);
 
             List<String> out = new ArrayList<>();
-            out.add("fuelType,vehicleType,emissionFactor,pricePerLitre");
+            out.add("fuelType,vehicleType,emissionFactor,pricePerUnit");
             // Ensure canonical ordering: sort by fuelType then vehicleType
             // (case-insensitive)
             List<Map.Entry<String, String>> entries = new ArrayList<>(byKey.entrySet());
@@ -146,7 +146,7 @@ public class FuelFactorServiceCsv implements FuelFactorService {
                         entity = fuelType + " (" + vehicle + ")";
 
                     FuelEmissionFactor f = new FuelEmissionFactor(entity, year, factor, fuelType, vehicle);
-                    f.setPricePerLitre(price);
+                    f.setPricePerUnit(price);
                     out.add(f);
                 }
             }
@@ -164,7 +164,7 @@ public class FuelFactorServiceCsv implements FuelFactorService {
         try {
             List<String> lines = Files.readAllLines(p);
             List<String> out = new ArrayList<>();
-            out.add("fuelType,vehicleType,emissionFactor,pricePerLitre");
+            out.add("fuelType,vehicleType,emissionFactor,pricePerUnit");
             String target = entity == null ? "" : entity.trim().toUpperCase(Locale.ROOT);
             for (int i = 1; i < lines.size(); i++) {
                 String ln = lines.get(i);

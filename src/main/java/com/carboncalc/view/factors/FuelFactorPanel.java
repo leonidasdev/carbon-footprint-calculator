@@ -29,7 +29,7 @@ import java.util.ResourceBundle;
  * <p>
  * The panel exposes a compact manual-entry area where the user can enter
  * a fuel type, an optional vehicle type and the emission factor in
- * kg CO2e/l. Added entries appear in the table below. All user-visible
+ * kg CO2e/unit. Added entries appear in the table below. All user-visible
  * strings are loaded from the provided {@link ResourceBundle}.
  * </p>
  */
@@ -46,10 +46,10 @@ public class FuelFactorPanel extends JPanel {
     /** Editable combo for selecting/typing a vehicle type (e.g., M1, N1). */
     private JComboBox<String> vehicleTypeSelector;
 
-    /** Text field for the emission factor value (kg CO2e / litre). */
+    /** Text field for the emission factor value (kg CO2e / unit). */
     private JTextField emissionFactorField;
-    /** Text field for the price per litre (e.g. EUR/L). */
-    private JTextField pricePerLitreField;
+    /** Text field for the price per unit (e.g. EUR/unit). */
+    private JTextField pricePerUnitField;
 
     /** Controls to add/edit/delete rows from the table. */
     private JButton addFactorButton;
@@ -76,7 +76,7 @@ public class FuelFactorPanel extends JPanel {
         leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
         leftLabels.add(new JLabel(messages.getString("label.emission.factor") + ":"));
         leftLabels.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
-        leftLabels.add(new JLabel(messages.getString("label.price.per.litre") + ":"));
+    leftLabels.add(new JLabel(messages.getString("label.price.per.unit") + ":"));
 
         JPanel middleFields = new JPanel();
         middleFields.setLayout(new BoxLayout(middleFields, BoxLayout.Y_AXIS));
@@ -93,8 +93,8 @@ public class FuelFactorPanel extends JPanel {
         emissionFactorField = UIUtils.createCompactTextField(UIUtils.MAPPING_COMBO_WIDTH, UIUtils.MAPPING_COMBO_HEIGHT);
         middleFields.add(emissionFactorField);
         middleFields.add(Box.createVerticalStrut(UIUtils.VERTICAL_STRUT_MEDIUM));
-        pricePerLitreField = UIUtils.createCompactTextField(UIUtils.MAPPING_COMBO_WIDTH, UIUtils.MAPPING_COMBO_HEIGHT);
-        middleFields.add(pricePerLitreField);
+    pricePerUnitField = UIUtils.createCompactTextField(UIUtils.MAPPING_COMBO_WIDTH, UIUtils.MAPPING_COMBO_HEIGHT);
+    middleFields.add(pricePerUnitField);
 
         JPanel rightColumn = new JPanel(new BorderLayout());
         rightColumn.setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -109,9 +109,9 @@ public class FuelFactorPanel extends JPanel {
         spacer.setPreferredSize(new Dimension(UIUtils.TINY_STRUT_WIDTH, pref.height));
         rightTop.add(spacer);
         rightTop.add(new JLabel(" "));
-        JLabel unitLabel = UIUtils.createUnitLabel(messages, "unit.kg_co2e_l");
+    JLabel unitLabel = UIUtils.createUnitLabel(messages, "unit.kg_co2e_unit");
         unitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        JLabel priceUnitLabel = UIUtils.createUnitLabel(messages, "unit.eur_l");
+    JLabel priceUnitLabel = UIUtils.createUnitLabel(messages, "unit.eur_unit");
         priceUnitLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         rightTop.add(unitLabel);
         rightTop.add(priceUnitLabel);
@@ -173,11 +173,11 @@ public class FuelFactorPanel extends JPanel {
         ig.gridy = 3;
         ig.weightx = 0;
         ig.anchor = GridBagConstraints.LINE_START;
-        inputGrid.add(new JLabel(messages.getString("label.price.per.litre") + ":"), ig);
+    inputGrid.add(new JLabel(messages.getString("label.price.per.unit") + ":"), ig);
         ig.gridx = 1;
         ig.gridy = 3;
         ig.weightx = 1.0;
-        inputGrid.add(pricePerLitreField, ig);
+    inputGrid.add(pricePerUnitField, ig);
         ig.gridx = 2;
         ig.gridy = 3;
         ig.weightx = 0;
@@ -265,8 +265,8 @@ public class FuelFactorPanel extends JPanel {
         return emissionFactorField;
     }
 
-    public JTextField getPricePerLitreField() {
-        return pricePerLitreField;
+    public JTextField getPricePerUnitField() {
+        return pricePerUnitField;
     }
 
     public JButton getAddFactorButton() {

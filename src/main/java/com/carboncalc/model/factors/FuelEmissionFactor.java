@@ -16,7 +16,7 @@ public class FuelEmissionFactor implements EmissionFactor {
     private String vehicleType; // e.g., Car, Van, Truck
     private double density; // kg/L
     private double energyContent; // kWh/L
-    private double pricePerLitre; // currency units per litre (e.g. EUR/L)
+    private double pricePerUnit; // currency units per unit (e.g. EUR / unit)
 
     /**
      * Default constructor used by mapping frameworks.
@@ -41,14 +41,14 @@ public class FuelEmissionFactor implements EmissionFactor {
     }
 
     /**
-     * Extended constructor including price per litre.
+     * Extended constructor including price per unit.
      */
-    public FuelEmissionFactor(String entity, int year, double baseFactor, String fuelType, double pricePerLitre) {
+    public FuelEmissionFactor(String entity, int year, double baseFactor, String fuelType, double pricePerUnit) {
         this.entity = entity;
         this.year = year;
         this.baseFactor = baseFactor;
         this.fuelType = fuelType;
-        this.pricePerLitre = pricePerLitre;
+        this.pricePerUnit = pricePerUnit;
     }
 
     /**
@@ -79,7 +79,7 @@ public class FuelEmissionFactor implements EmissionFactor {
 
     @Override
     public String getUnit() {
-        return "kgCO2/L";
+        return "kgCO2/unit";
     }
 
     @Override
@@ -133,16 +133,32 @@ public class FuelEmissionFactor implements EmissionFactor {
     }
 
     /**
-     * Get the configured price per litre for this fuel factor (e.g. EUR/L).
+     * Get the configured price per unit for this fuel factor (e.g. EUR / unit).
      */
-    public double getPricePerLitre() {
-        return pricePerLitre;
+    public double getPricePerUnit() {
+        return pricePerUnit;
     }
 
     /**
-     * Set the price per litre for this fuel factor.
+     * Set the price per unit for this fuel factor.
      */
+    public void setPricePerUnit(double pricePerUnit) {
+        this.pricePerUnit = pricePerUnit;
+    }
+
+    /**
+     * Backwards-compatible alias for code that still uses "per litre" naming.
+     */
+    @Deprecated
+    public double getPricePerLitre() {
+        return getPricePerUnit();
+    }
+
+    /**
+     * Backwards-compatible alias for code that still uses "per litre" naming.
+     */
+    @Deprecated
     public void setPricePerLitre(double pricePerLitre) {
-        this.pricePerLitre = pricePerLitre;
+        setPricePerUnit(pricePerLitre);
     }
 }

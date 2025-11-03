@@ -37,6 +37,7 @@ public class FuelPanel extends BaseModulePanel {
     private JComboBox<String> fuelTypeSelector;
     private JComboBox<String> vehicleTypeSelector;
     private JComboBox<String> amountSelector;
+    private JComboBox<String> completionTimeSelector;
 
     private JTable previewTable;
     private JScrollPane previewScrollPane;
@@ -141,6 +142,9 @@ public class FuelPanel extends BaseModulePanel {
 
         amountSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
         addColumnMapping(mappingPanel, mg, "fuel.mapping.amount", amountSelector);
+
+    completionTimeSelector = UIComponents.createMappingCombo(UIUtils.MAPPING_COMBO_WIDTH);
+    addColumnMapping(mappingPanel, mg, "fuel.mapping.completionTime", completionTimeSelector);
 
     // Preview area and result box (preview on left, result controls on right)
     // Use GridBagLayout so preview and result can have custom width ratios
@@ -346,6 +350,10 @@ public class FuelPanel extends BaseModulePanel {
         return v.trim();
     }
 
+    public JComboBox<String> getCompletionTimeSelector() {
+        return completionTimeSelector;
+    }
+
     // Mapping getters (exposed to the controller so it can populate the
     // mapping combos when a sheet is loaded)
     public JComboBox<String> getCentroSelector() {
@@ -404,10 +412,11 @@ public class FuelPanel extends BaseModulePanel {
      * represented as {@code -1}.
      */
     public FuelMapping getSelectedColumns() {
-        return new FuelMapping(getSelectedIndex(centroSelector), getSelectedIndex(responsableSelector),
-                getSelectedIndex(invoiceNumberSelector), getSelectedIndex(providerSelector),
-                getSelectedIndex(invoiceDateSelector), getSelectedIndex(fuelTypeSelector),
-                getSelectedIndex(vehicleTypeSelector), getSelectedIndex(amountSelector));
+    return new FuelMapping(getSelectedIndex(centroSelector), getSelectedIndex(responsableSelector),
+        getSelectedIndex(invoiceNumberSelector), getSelectedIndex(providerSelector),
+        getSelectedIndex(invoiceDateSelector), getSelectedIndex(fuelTypeSelector),
+        getSelectedIndex(vehicleTypeSelector), getSelectedIndex(amountSelector),
+        getSelectedIndex(completionTimeSelector));
     }
 
     /** Install a preview table model and apply project table styling. */
@@ -422,8 +431,9 @@ public class FuelPanel extends BaseModulePanel {
      */
     private void updateApplyAndSaveButtonState() {
         FuelMapping mapping = getSelectedColumns();
+        boolean enable = mapping.isComplete() && getDateLimit() != null;
         if (applyAndSaveExcelButton != null)
-            applyAndSaveExcelButton.setEnabled(mapping.isComplete());
+            applyAndSaveExcelButton.setEnabled(enable);
     }
 
     @Override

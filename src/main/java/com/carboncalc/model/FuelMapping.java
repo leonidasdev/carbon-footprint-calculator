@@ -20,9 +20,10 @@ public class FuelMapping {
     private final int fuelTypeIndex;
     private final int vehicleTypeIndex;
     private final int amountIndex;
+    private final int completionTimeIndex;
 
     public FuelMapping(int centroIndex, int responsableIndex, int invoiceIndex, int providerIndex,
-            int invoiceDateIndex, int fuelTypeIndex, int vehicleTypeIndex, int amountIndex) {
+            int invoiceDateIndex, int fuelTypeIndex, int vehicleTypeIndex, int amountIndex, int completionTimeIndex) {
         this.centroIndex = centroIndex;
         this.responsableIndex = responsableIndex;
         this.invoiceIndex = invoiceIndex;
@@ -31,6 +32,7 @@ public class FuelMapping {
         this.fuelTypeIndex = fuelTypeIndex;
         this.vehicleTypeIndex = vehicleTypeIndex;
         this.amountIndex = amountIndex;
+        this.completionTimeIndex = completionTimeIndex;
     }
 
     public int getCentroIndex() {
@@ -63,6 +65,10 @@ public class FuelMapping {
 
     public int getAmountIndex() {
         return amountIndex;
+    }
+
+    public int getCompletionTimeIndex() {
+        return completionTimeIndex;
     }
 
     /**

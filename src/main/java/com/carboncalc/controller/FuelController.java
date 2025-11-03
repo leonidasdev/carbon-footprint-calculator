@@ -20,9 +20,9 @@ import java.nio.file.Paths;
 import java.time.Year;
 import java.util.*;
 import java.text.MessageFormat;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+
+import com.carboncalc.util.ExcelCsvLoader;
+import com.carboncalc.util.CellUtils;
 
 /**
  * Controller responsible for orchestrating the Fuel import flow.
@@ -117,7 +117,7 @@ public class FuelController {
                     teamsWorkbook = new HSSFWorkbook(fis);
                 } else if (lname.endsWith(".csv")) {
                     // Simple CSV -> Workbook conversion for preview and mapping
-                    teamsWorkbook = loadCsvAsWorkbook(teamsFile);
+                    teamsWorkbook = ExcelCsvLoader.loadCsvAsWorkbookFromPath(teamsFile.getAbsolutePath());
                 } else {
                     throw new IllegalArgumentException("Unsupported file format");
                 }
@@ -130,63 +130,6 @@ public class FuelController {
             }
         }
     }
-
-    /**
-     * Read a CSV file and produce an in-memory XSSFWorkbook with a single
-     * sheet containing the parsed rows. This is used to provide a unified
-     * preview/mapping flow that expects a Workbook.
-     */
-    private Workbook loadCsvAsWorkbook(File csvFile) throws IOException {
-        XSSFWorkbook wb = new XSSFWorkbook();
-        Sheet sheet = wb.createSheet("Sheet1");
-
-        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
-            String line;
-            int rowIdx = 0;
-            while ((line = br.readLine()) != null) {
-                List<String> cells = parseCsvLine(line);
-                Row r = sheet.createRow(rowIdx++);
-                for (int c = 0; c < cells.size(); c++) {
-                    Cell cell = r.createCell(c);
-                    cell.setCellValue(cells.get(c));
-                }
-            }
-        }
-        return wb;
-    }
-
-    /**
-     * Lightweight CSV line parser that handles quoted fields and commas.
-     */
-    private List<String> parseCsvLine(String line) {
-        List<String> out = new ArrayList<>();
-        if (line == null || line.isEmpty()) {
-            out.add("");
-            return out;
-        }
-        StringBuilder cur = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < line.length(); i++) {
-            char ch = line.charAt(i);
-            if (ch == '"') {
-                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                    // escaped quote
-                    cur.append('"');
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
-            } else if (ch == ',' && !inQuotes) {
-                out.add(cur.toString());
-                cur.setLength(0);
-            } else {
-                cur.append(ch);
-            }
-        }
-        out.add(cur.toString());
-        return out;
-    }
-
     private void updateTeamsSheetsList() {
         JComboBox<String> sheetSelector = view.getTeamsSheetSelector();
         sheetSelector.removeAllItems();
@@ -233,12 +176,12 @@ public class FuelController {
             if (r == null)
                 continue;
             boolean nonEmpty = false;
-            for (Cell c : r) {
-                if (!getCellString(c, df, eval).isEmpty()) {
-                    nonEmpty = true;
-                    break;
+                for (Cell c : r) {
+                    if (!CellUtils.getCellString(c, df, eval).isEmpty()) {
+                        nonEmpty = true;
+                        break;
+                    }
                 }
-            }
             if (nonEmpty) {
                 headerRowIndex = i;
                 break;
@@ -254,7 +197,7 @@ public class FuelController {
         List<String> columnHeaders = new ArrayList<>();
         Row headerRow = sheet.getRow(headerRowIndex);
         for (Cell cell : headerRow) {
-            columnHeaders.add(getCellString(cell, df, eval));
+            columnHeaders.add(CellUtils.getCellString(cell, df, eval));
         }
 
         updateComboBox(view.getCentroSelector(), columnHeaders);
@@ -265,6 +208,22 @@ public class FuelController {
         updateComboBox(view.getFuelTypeSelector(), columnHeaders);
         updateComboBox(view.getVehicleTypeSelector(), columnHeaders);
         updateComboBox(view.getAmountSelector(), columnHeaders);
+        // populate completion time mapping and attempt to pre-select a likely "Last Modified" header
+        updateComboBox(view.getCompletionTimeSelector(), columnHeaders);
+        try {
+            JComboBox<String> completion = view.getCompletionTimeSelector();
+            if (completion != null && completion.getItemCount() > 0) {
+                for (int i = 0; i < completion.getItemCount(); i++) {
+                    String h = completion.getItemAt(i);
+                    String n = CellUtils.normalizeKey(h);
+                    if (n.contains("last") && (n.contains("modif") || n.contains("modified") || n.contains("lastmodified") || n.contains("last_modified"))) {
+                        completion.setSelectedIndex(i);
+                        break;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     private void updateComboBox(JComboBox<String> comboBox, List<String> items) {
@@ -290,12 +249,12 @@ public class FuelController {
             if (r == null)
                 continue;
             boolean nonEmpty = false;
-            for (Cell c : r) {
-                if (!getCellString(c, df, eval).isEmpty()) {
-                    nonEmpty = true;
-                    break;
+                for (Cell c : r) {
+                    if (!CellUtils.getCellString(c, df, eval).isEmpty()) {
+                        nonEmpty = true;
+                        break;
+                    }
                 }
-            }
             if (nonEmpty) {
                 headerRowIndex = i;
                 break;
@@ -332,7 +291,7 @@ public class FuelController {
         Row headerRow = sheet.getRow(headerRowIndex);
         for (int j = 0; j < maxColumns; j++) {
             Cell cell = headerRow.getCell(j);
-            headerData.add(getCellString(cell, df, eval));
+            headerData.add(CellUtils.getCellString(cell, df, eval));
         }
         data.add(headerData);
 
@@ -344,7 +303,7 @@ public class FuelController {
             Vector<String> rowData = new Vector<>();
             for (int j = 0; j < maxColumns; j++) {
                 Cell cell = row.getCell(j);
-                rowData.add(getCellString(cell, df, eval));
+                rowData.add(CellUtils.getCellString(cell, df, eval));
             }
             data.add(rowData);
         }
@@ -528,8 +487,19 @@ public class FuelController {
                 sheetMode = "extended";
             }
 
+            // Determine selected completion-time header (if any) to forward to the exporter
+            String completionHeader = null;
+            try {
+                JComboBox<String> comp = view.getCompletionTimeSelector();
+                if (comp != null) {
+                    Object sel = comp.getSelectedItem();
+                    completionHeader = sel != null ? sel.toString() : null;
+                }
+            } catch (Exception ignored) {
+            }
+
             FuelExcelExporter.exportFuelData(outputFile.getAbsolutePath(), teamsFile != null ? teamsFile.getAbsolutePath() : null,
-                    selectedSheet, mapping, this.currentYear, sheetMode);
+                    selectedSheet, mapping, this.currentYear, sheetMode, view.getDateLimit(), completionHeader);
 
             JOptionPane.showMessageDialog(view, messages.getString("excel.save.success"),
                     messages.getString("success.title"), JOptionPane.INFORMATION_MESSAGE);

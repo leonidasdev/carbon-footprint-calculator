@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.ArrayList;
 
 import com.carboncalc.service.RefrigerantFactorServiceCsv;
 import com.carboncalc.model.factors.RefrigerantEmissionFactor;
@@ -27,12 +26,9 @@ import java.time.format.DateTimeFormatter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.text.Normalizer;
-import java.io.File;
-import java.io.BufferedReader;
-import java.io.FileReader;
+import com.carboncalc.util.ExcelCsvLoader;
+import com.carboncalc.util.CellUtils;
+import com.carboncalc.util.DateUtils;
 import java.sql.Date;
 
 /**
@@ -115,7 +111,7 @@ public class RefrigerantExcelExporter {
                 org.apache.poi.ss.usermodel.Workbook src = null;
                 try {
                     if (providerPath.toLowerCase().endsWith(".csv")) {
-                        src = loadCsvAsWorkbookFromPath(providerPath);
+                        src = ExcelCsvLoader.loadCsvAsWorkbookFromPath(providerPath);
                     } else {
                         try (FileInputStream fis = new FileInputStream(providerPath)) {
                             src = providerPath.toLowerCase().endsWith(".xlsx") ? new XSSFWorkbook(fis)
@@ -187,6 +183,16 @@ public class RefrigerantExcelExporter {
                 createDetailedHeader(detailed, header, spanish);
                 createTotalSheetFromAggregates(total, header, new HashMap<>(), spanish);
                 }
+                // Ensure sheet order: put Extendido first, Diagnostics second (if present)
+                try {
+                    if (workbook.getSheet("Extendido") != null)
+                        workbook.setSheetOrder("Extendido", 0);
+                    if (workbook.getSheet("Diagnostics") != null)
+                        workbook.setSheetOrder("Diagnostics", 1);
+                    // set first sheet active for user convenience
+                    workbook.setActiveSheet(0);
+                } catch (Exception ignored) {
+                }
                 try (FileOutputStream fos = new FileOutputStream(filePath)) {
                     workbook.write(fos);
                 }
@@ -221,54 +227,7 @@ public class RefrigerantExcelExporter {
         }
     }
 
-    // Helper: load a CSV file into an in-memory XSSFWorkbook (single sheet)
-    private static Workbook loadCsvAsWorkbookFromPath(String csvPath) throws IOException {
-        XSSFWorkbook wb = new XSSFWorkbook();
-        Sheet sheet = wb.createSheet("Sheet1");
-        File f = new File(csvPath);
-        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
-            String line;
-            int rowIdx = 0;
-            while ((line = br.readLine()) != null) {
-                List<String> parts = parseCsvLineStatic(line);
-                Row r = sheet.createRow(rowIdx++);
-                for (int c = 0; c < parts.size(); c++) {
-                    Cell cell = r.createCell(c);
-                    cell.setCellValue(parts.get(c));
-                }
-            }
-        }
-        return wb;
-    }
-
-    // Static CSV parser variant for use inside exporter
-    private static List<String> parseCsvLineStatic(String line) {
-    List<String> out = new ArrayList<>();
-        if (line == null || line.isEmpty()) {
-            out.add("");
-            return out;
-        }
-        StringBuilder cur = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < line.length(); i++) {
-            char ch = line.charAt(i);
-            if (ch == '"') {
-                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                    cur.append('"');
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
-            } else if (ch == ',' && !inQuotes) {
-                out.add(cur.toString());
-                cur.setLength(0);
-            } else {
-                cur.append(ch);
-            }
-        }
-        out.add(cur.toString());
-        return out;
-    }
+    // CSV loading/parsing is handled by ExcelCsvLoader; inline helpers removed.
 
     /**
      * Create the header row for the detailed (Extendido) sheet.
@@ -316,7 +275,7 @@ public class RefrigerantExcelExporter {
             RefrigerantFactorServiceCsv rfsvc = new RefrigerantFactorServiceCsv();
             List<RefrigerantEmissionFactor> factors = rfsvc.loadRefrigerantFactors(year);
             for (RefrigerantEmissionFactor f : factors) {
-                String key = normalizeKey(f.getRefrigerantType());
+                String key = CellUtils.normalizeKey(f.getRefrigerantType());
                 typeToPca.put(key, f.getPca());
             }
         } catch (Exception ex) {
@@ -345,7 +304,7 @@ public class RefrigerantExcelExporter {
                 continue;
             boolean nonEmpty = false;
             for (Cell c : r) {
-                if (!getCellStringStatic(c, df, eval).isEmpty()) {
+                if (!CellUtils.getCellString(c, df, eval).isEmpty()) {
                     nonEmpty = true;
                     break;
                 }
@@ -380,21 +339,10 @@ public class RefrigerantExcelExporter {
     int skippedByZeroQty = 0;
     int processedRowCount = 0;
 
-    // Parse dateLimit (if provided) into an Instant for comparison
+        // Parse dateLimit (if provided) into an Instant for comparison
         java.time.Instant dateLimitInstant = null;
         if (dateLimit != null && !dateLimit.trim().isEmpty()) {
-            try {
-                // Try ISO instant first (e.g. 2025-11-02T21:18:35Z)
-                dateLimitInstant = java.time.Instant.parse(dateLimit.trim());
-            } catch (Exception e) {
-                // Fallback: try to parse as a local date using existing parser and treat as start of day UTC
-                try {
-                    java.time.LocalDate ld = parseDateLenient(dateLimit.trim());
-                    if (ld != null)
-                        dateLimitInstant = ld.atStartOfDay(java.time.ZoneOffset.UTC).toInstant();
-                } catch (Exception ignored) {
-                }
-            }
+            dateLimitInstant = DateUtils.parseInstantLenient(dateLimit.trim());
         }
 
         int outRow = target.getLastRowNum() + 1;
@@ -435,15 +383,15 @@ public class RefrigerantExcelExporter {
                 Row hdrOut = diag.createRow(diagRow++);
                 for (int ci = 0; ci < hdr.getLastCellNum(); ci++) {
                     Cell srcCell = hdr.getCell(ci);
-                    String val = getCellStringStatic(srcCell, df, eval);
+                    String val = CellUtils.getCellString(srcCell, df, eval);
                     hdrOut.createCell(ci).setCellValue(val);
                 }
                 // try to detect a 'Last Modified' column in header (common names)
                 int lastModifiedIndex = -1;
                 for (int ci = 0; ci < hdr.getLastCellNum(); ci++) {
                     Cell srcCell = hdr.getCell(ci);
-                    String val = getCellStringStatic(srcCell, df, eval);
-                    String n = normalizeKey(val);
+                    String val = CellUtils.getCellString(srcCell, df, eval);
+                    String n = CellUtils.normalizeKey(val);
                     if (n.contains("last") && n.contains("modif")) {
                         lastModifiedIndex = ci;
                         break;
@@ -477,14 +425,14 @@ public class RefrigerantExcelExporter {
     // when resolving the column index.
         Row hdrRow = source.getRow(headerRowIndex);
         if (hdrRow != null) {
-            for (int ci = 0; ci < hdrRow.getLastCellNum(); ci++) {
+                for (int ci = 0; ci < hdrRow.getLastCellNum(); ci++) {
                 Cell srcCell = hdrRow.getCell(ci);
-                String val = getCellStringStatic(srcCell, df, eval);
-                String n = normalizeKey(val);
+                String val = CellUtils.getCellString(srcCell, df, eval);
+                String n = CellUtils.normalizeKey(val);
                 if (lastModifiedHeader != null && !lastModifiedHeader.trim().isEmpty()) {
                     // If a header name was supplied, match it case-insensitively and with normalization
-                    String normWanted = normalizeKey(lastModifiedHeader);
-                    if (normalizeKey(val).equals(normWanted)) {
+                    String normWanted = CellUtils.normalizeKey(lastModifiedHeader);
+                    if (CellUtils.normalizeKey(val).equals(normWanted)) {
                         lastModifiedIndexLocal = ci;
                         break;
                     }
@@ -508,15 +456,15 @@ public class RefrigerantExcelExporter {
             Row src = source.getRow(i);
             if (src == null)
                 continue;
-            String center = getCellStringByIndex(src, mapping.getCentroIndex(), df, eval);
-            String person = getCellStringByIndex(src, mapping.getPersonIndex(), df, eval);
-            String invoice = getCellStringByIndex(src, mapping.getInvoiceIndex(), df, eval);
-            String provider = getCellStringByIndex(src, mapping.getProviderIndex(), df, eval);
-            String invoiceDate = getCellStringByIndex(src, mapping.getInvoiceDateIndex(), df, eval);
-            String rType = getCellStringByIndex(src, mapping.getRefrigerantTypeIndex(), df, eval);
-            String qtyStr = getCellStringByIndex(src, mapping.getQuantityIndex(), df, eval);
+            String center = CellUtils.getCellStringByIndex(src, mapping.getCentroIndex(), df, eval);
+            String person = CellUtils.getCellStringByIndex(src, mapping.getPersonIndex(), df, eval);
+            String invoice = CellUtils.getCellStringByIndex(src, mapping.getInvoiceIndex(), df, eval);
+            String provider = CellUtils.getCellStringByIndex(src, mapping.getProviderIndex(), df, eval);
+            String invoiceDate = CellUtils.getCellStringByIndex(src, mapping.getInvoiceDateIndex(), df, eval);
+            String rType = CellUtils.getCellStringByIndex(src, mapping.getRefrigerantTypeIndex(), df, eval);
+            String qtyStr = CellUtils.getCellStringByIndex(src, mapping.getQuantityIndex(), df, eval);
 
-            double qty = parseDoubleSafe(qtyStr);
+            double qty = CellUtils.parseDoubleSafe(qtyStr);
             if (qty <= 0) {
                 skippedByZeroQty++;
                 // per-row diagnostics: zero or negative quantity
@@ -527,7 +475,7 @@ public class RefrigerantExcelExporter {
                         dr.createCell(1).setCellValue(invoice != null ? invoice : "");
                         dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
                         dr.createCell(3).setCellValue("");
-                        dr.createCell(4).setCellValue(getCellStringByIndex(src, lastModifiedIndexLocal, df, eval));
+                        dr.createCell(4).setCellValue(CellUtils.getCellStringByIndex(src, lastModifiedIndexLocal, df, eval));
                         dr.createCell(5).setCellValue("");
                         dr.createCell(6).setCellValue(qty);
                         dr.createCell(7).setCellValue("SKIPPED_ZERO_QTY");
@@ -538,7 +486,7 @@ public class RefrigerantExcelExporter {
             }
 
             // Parse invoice date and include only rows that fall in the reporting year
-            LocalDate parsedInvoice = parseDateLenient(invoiceDate);
+            LocalDate parsedInvoice = DateUtils.parseDateLenient(invoiceDate);
             if (parsedInvoice == null || parsedInvoice.getYear() != reportingYear) {
                 skippedByYear++;
                 if (diag != null) {
@@ -548,7 +496,7 @@ public class RefrigerantExcelExporter {
                         dr.createCell(1).setCellValue(invoice != null ? invoice : "");
                         dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
                         dr.createCell(3).setCellValue(parsedInvoice != null ? parsedInvoice.toString() : "");
-                        dr.createCell(4).setCellValue(getCellStringByIndex(src, lastModifiedIndexLocal, df, eval));
+                        dr.createCell(4).setCellValue(CellUtils.getCellStringByIndex(src, lastModifiedIndexLocal, df, eval));
                         dr.createCell(5).setCellValue("");
                         dr.createCell(6).setCellValue(qty);
                         dr.createCell(7).setCellValue("SKIPPED_YEAR");
@@ -561,27 +509,18 @@ public class RefrigerantExcelExporter {
             // Last-Modified filter: if a dateLimitInstant is provided and the row
             // has a Last Modified value AFTER the limit -> skip it (treat dateLimit as upper bound)
             if (lastModifiedIndexLocal >= 0 && dateLimitInstant != null) {
-                String lmStr = getCellStringByIndex(src, lastModifiedIndexLocal, df, eval);
+                String lmStr = CellUtils.getCellStringByIndex(src, lastModifiedIndexLocal, df, eval);
                 if (lmStr != null && !lmStr.trim().isEmpty()) {
                     boolean parsedAndAfter = false;
                     String parsedLmText = "";
                     try {
-                        java.time.Instant lmInstant = java.time.Instant.parse(lmStr.trim());
-                        parsedLmText = lmInstant.toString();
-                        if (lmInstant.isAfter(dateLimitInstant))
-                            parsedAndAfter = true;
-                    } catch (Exception ex) {
-                        // fallback: try lenient local date parsing
-                        try {
-                            LocalDate lmd = parseDateLenient(lmStr.trim());
-                            if (lmd != null) {
-                                java.time.Instant lmInstant = lmd.atStartOfDay(java.time.ZoneOffset.UTC).toInstant();
-                                parsedLmText = lmInstant.toString();
-                                if (lmInstant.isAfter(dateLimitInstant))
-                                    parsedAndAfter = true;
-                            }
-                        } catch (Exception ignored) {
+                        java.time.Instant lmInstant = DateUtils.parseInstantLenient(lmStr.trim());
+                        if (lmInstant != null) {
+                            parsedLmText = lmInstant.toString();
+                            if (lmInstant.isAfter(dateLimitInstant))
+                                parsedAndAfter = true;
                         }
+                    } catch (Exception ignored) {
                     }
                     if (parsedAndAfter) {
                         skippedByLastModified++;
@@ -606,7 +545,7 @@ public class RefrigerantExcelExporter {
 
             double pca = 0.0;
             if (rType != null && !rType.trim().isEmpty()) {
-                pca = typeToPca.getOrDefault(normalizeKey(rType), 0.0);
+                pca = typeToPca.getOrDefault(CellUtils.normalizeKey(rType), 0.0);
             }
 
             double emissionsT = (qty * pca) / 1000.0;
@@ -632,7 +571,7 @@ public class RefrigerantExcelExporter {
 
             Cell dateCell = out.createCell(col++);
             try {
-                LocalDate d = parseDateLenient(invoiceDate);
+                LocalDate d = DateUtils.parseDateLenient(invoiceDate);
                 if (d != null) {
                     dateCell.setCellValue(Date.valueOf(d));
                     dateCell.setCellStyle(createDateStyle(target.getWorkbook()));
@@ -661,7 +600,7 @@ public class RefrigerantExcelExporter {
             String completionVal = "";
             try {
                 if (lastModifiedIndexLocal >= 0) {
-                    completionVal = getCellStringByIndex(src, lastModifiedIndexLocal, df, eval);
+                    completionVal = CellUtils.getCellStringByIndex(src, lastModifiedIndexLocal, df, eval);
                 }
             } catch (Exception ignored) {
             }
@@ -669,17 +608,20 @@ public class RefrigerantExcelExporter {
             if (completionVal != null && !completionVal.trim().isEmpty()) {
                 // Try to write as a date if the value is ISO instant or a lenient date; otherwise write raw string
                 try {
-                    java.time.Instant.parse(completionVal.trim());
-                    // write as datetime string to preserve the instant
-                    completionCell.setCellValue(completionVal.trim());
-                } catch (Exception ex) {
-                    LocalDate ld = parseDateLenient(completionVal.trim());
-                    if (ld != null) {
-                        completionCell.setCellValue(Date.valueOf(ld));
-                        completionCell.setCellStyle(createDateStyle(target.getWorkbook()));
+                    java.time.Instant inst = DateUtils.parseInstantLenient(completionVal.trim());
+                    if (inst != null) {
+                        completionCell.setCellValue(completionVal.trim());
                     } else {
-                        completionCell.setCellValue(completionVal);
+                        LocalDate ld = DateUtils.parseDateLenient(completionVal.trim());
+                        if (ld != null) {
+                            completionCell.setCellValue(Date.valueOf(ld));
+                            completionCell.setCellStyle(createDateStyle(target.getWorkbook()));
+                        } else {
+                            completionCell.setCellValue(completionVal);
+                        }
                     }
+                } catch (Exception ex) {
+                    completionCell.setCellValue(completionVal);
                 }
             } else {
                 completionCell.setCellValue("");
@@ -693,7 +635,7 @@ public class RefrigerantExcelExporter {
                     dr.createCell(1).setCellValue(invoice != null ? invoice : "");
                     dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
                     dr.createCell(3).setCellValue(parsedInvoice != null ? parsedInvoice.toString() : "");
-                    dr.createCell(4).setCellValue(getCellStringByIndex(src, lastModifiedIndexLocal, df, eval));
+                    dr.createCell(4).setCellValue(CellUtils.getCellStringByIndex(src, lastModifiedIndexLocal, df, eval));
                     dr.createCell(5).setCellValue("");
                     dr.createCell(6).setCellValue(qty);
                     dr.createCell(7).setCellValue("ACCEPTED");
@@ -782,50 +724,7 @@ public class RefrigerantExcelExporter {
         sheet.autoSizeColumn(1);
     }
 
-    // Reused helpers (simplified variants)
-    // Helper: read formatted cell value as string, handling formulas.
-    private static String getCellStringStatic(Cell cell, DataFormatter df, FormulaEvaluator eval) {
-        if (cell == null)
-            return "";
-        try {
-            if (cell.getCellType() == CellType.FORMULA) {
-                CellValue cv = eval.evaluate(cell);
-                if (cv == null)
-                    return "";
-                switch (cv.getCellType()) {
-                    case STRING:
-                        return cv.getStringValue();
-                    case NUMERIC:
-                        return String.valueOf(cv.getNumberValue());
-                    case BOOLEAN:
-                        return String.valueOf(cv.getBooleanValue());
-                    default:
-                        return df.formatCellValue(cell, eval);
-                }
-            }
-            return df.formatCellValue(cell);
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    private static String getCellStringByIndex(Row row, int index, DataFormatter df, FormulaEvaluator eval) {
-        if (index < 0 || row == null)
-            return "";
-        Cell cell = row.getCell(index);
-        return getCellStringStatic(cell, df, eval);
-    }
-
-    private static double parseDoubleSafe(String s) {
-        if (s == null || s.isEmpty())
-            return 0.0;
-        try {
-            s = s.replace(',', '.');
-            return Double.parseDouble(s);
-        } catch (NumberFormatException e) {
-            return 0.0;
-        }
-    }
+    
 
     private static CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
@@ -848,7 +747,16 @@ public class RefrigerantExcelExporter {
         return dateStyle;
     }
 
-    // Compute aggregates (total quantity and emissions) by grouping rows in the detailed sheet.
+    /**
+     * Compute aggregates (total quantity and emissions) by grouping rows in the
+     * detailed sheet produced by this exporter. This method expects the detailed
+     * sheet to follow the exporter column layout (Cantidad at col 6, Emisiones at
+     * col 8) and will evaluate formulas where needed.
+     *
+     * @param detailed sheet previously written by the exporter
+     * @param eval     formula evaluator from the workbook
+     * @return map from center key to [totalQuantity, totalEmissions]
+     */
     private static Map<String, double[]> computeAggregatesFromDetailed(Sheet detailed, FormulaEvaluator eval) {
         Map<String, double[]> out = new HashMap<>();
         if (detailed == null)
@@ -865,19 +773,19 @@ public class RefrigerantExcelExporter {
             String center = "";
             try {
                 Cell c0 = row.getCell(0);
-                center = c0 != null ? (c0.getCellType() == CellType.STRING ? c0.getStringCellValue() : String.valueOf(getNumericCellValue(c0, eval))) : "";
+                center = c0 != null ? (c0.getCellType() == CellType.STRING ? c0.getStringCellValue() : String.valueOf(CellUtils.getNumericCellValue(c0, eval))) : "";
             } catch (Exception ignored) {
             }
             double qty = 0.0;
             double em = 0.0;
             try {
                 Cell qtyCell = row.getCell(6);
-                qty = getNumericCellValue(qtyCell, eval);
+                qty = CellUtils.getNumericCellValue(qtyCell, eval);
             } catch (Exception ignored) {
             }
             try {
                 Cell emCell = row.getCell(8);
-                em = getNumericCellValue(emCell, eval);
+                em = CellUtils.getNumericCellValue(emCell, eval);
             } catch (Exception ignored) {
             }
             if ((center == null || center.trim().isEmpty()))
@@ -893,38 +801,28 @@ public class RefrigerantExcelExporter {
         return out;
     }
 
-    // Helper to read numeric values from cells, evaluating formulas when needed.
+    /**
+     * Convenience wrapper that delegates to {@link CellUtils#getNumericCellValue}.
+     * Kept for backward-compatibility with older exporter call sites.
+     */
     private static double getNumericCellValue(Cell cell, FormulaEvaluator eval) {
-        if (cell == null)
-            return 0.0;
-        try {
-            if (cell.getCellType() == CellType.NUMERIC) {
-                return cell.getNumericCellValue();
-            } else if (cell.getCellType() == CellType.FORMULA) {
-                CellValue cv = eval.evaluate(cell);
-                if (cv != null && cv.getCellType() == CellType.NUMERIC)
-                    return cv.getNumberValue();
-                return 0.0;
-            } else if (cell.getCellType() == CellType.STRING) {
-                return parseDoubleSafe(cell.getStringCellValue());
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return 0.0;
+        return CellUtils.getNumericCellValue(cell, eval);
     }
 
+    /**
+     * Normalize a key/header name for matching. Delegates to {@link CellUtils}.
+     */
     private static String normalizeKey(String s) {
-        if (s == null)
-            return "";
-        String cleaned = s.replace('\u00A0', ' ').trim();
-        try {
-            cleaned = Normalizer.normalize(cleaned, Normalizer.Form.NFKC);
-        } catch (Exception ignored) {
-        }
-        return cleaned.toLowerCase(Locale.ROOT);
+        return CellUtils.normalizeKey(s);
     }
 
+    /**
+     * Read the current reporting year from the `data/year/current_year.txt` file
+     * when present. Falls back to the system year when the file is missing or
+     * malformed.
+     *
+     * @return reporting year as int
+     */
     private static int readCurrentYearFromFile() {
         try {
             Path p = Paths.get("data", "year", "current_year.txt");
@@ -946,57 +844,5 @@ public class RefrigerantExcelExporter {
     }
 
     // readCurrentYearFromFile removed: not used in the simplified exporter
-
-    private static LocalDate parseDateLenient(String s) {
-        if (s == null)
-            return null;
-        String in = s.trim().replace('\u00A0', ' ').replaceAll("\\s+", " ");
-        if (in.isEmpty())
-            return null;
-        DateTimeFormatter[] fmts = new DateTimeFormatter[] { DateTimeFormatter.ISO_LOCAL_DATE,
-                DateTimeFormatter.ofPattern("d/M/yyyy"), DateTimeFormatter.ofPattern("d-M-yyyy"),
-                DateTimeFormatter.ofPattern("dd/MM/yyyy"), DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-                DateTimeFormatter.ofPattern("d/M/yy"), DateTimeFormatter.ofPattern("d-M-yy"),
-                DateTimeFormatter.ofPattern("dd/MM/yy"), DateTimeFormatter.ofPattern("dd-MM-yy"),
-                DateTimeFormatter.ofPattern("M/d/yyyy"), DateTimeFormatter.ofPattern("M-d-yyyy"),
-                DateTimeFormatter.ofPattern("M/d/yy"), DateTimeFormatter.ofPattern("M-d-yy") };
-        for (DateTimeFormatter f : fmts) {
-            try {
-                return LocalDate.parse(in, f);
-            } catch (Exception ignored) {
-            }
-        }
-        try {
-            if (in.length() == 8 && in.matches("\\d{8}"))
-                return LocalDate.parse(in, DateTimeFormatter.ofPattern("yyyyMMdd"));
-        } catch (Exception ignored) {
-        }
-        try {
-            Matcher m = Pattern.compile("^(\\s*)(\\d{1,2})\\s*[\\/\\-]\\s*(\\d{1,2})\\s*[\\/\\-]\\s*(\\d{2,4})(\\s*)$")
-                    .matcher(in);
-            if (m.find()) {
-                int a = Integer.parseInt(m.group(2));
-                int b = Integer.parseInt(m.group(3));
-                String yearPart = m.group(4);
-                int year;
-                if (yearPart.length() == 2) {
-                    int yy = Integer.parseInt(yearPart);
-                    year = (yy >= 50) ? (1900 + yy) : (2000 + yy);
-                } else {
-                    year = Integer.parseInt(yearPart);
-                }
-                try {
-                    return LocalDate.of(year, b, a);
-                } catch (Exception ignored) {
-                }
-                try {
-                    return LocalDate.of(year, a, b);
-                } catch (Exception ignored) {
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
 
 }

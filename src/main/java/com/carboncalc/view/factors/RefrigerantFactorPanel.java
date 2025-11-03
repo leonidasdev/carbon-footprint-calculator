@@ -140,7 +140,11 @@ public class RefrigerantFactorPanel extends JPanel {
         UIUtils.styleTable(factorsTable);
 
         JScrollPane scrollPane = new JScrollPane(factorsTable);
-        scrollPane.setPreferredSize(new Dimension(0, UIUtils.FACTOR_SCROLL_HEIGHT_REFRIGERANT));
+        // Allow the refrigerant types table to expand and fill the available
+        // space inside the factors panel. Avoid forcing a small fixed height
+        // so the table will grow to match the container; BorderLayout.CENTER
+        // will give it the remaining vertical space when the panel is shown.
+        scrollPane.setPreferredSize(null);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -154,7 +158,8 @@ public class RefrigerantFactorPanel extends JPanel {
         JPanel factorsPanel = new JPanel(new BorderLayout(10, 10));
         factorsPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.refrigerant.types")));
         factorsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        factorsPanel.add(scrollPane, BorderLayout.NORTH);
+        // Add the scroll pane to CENTER so it expands to fill the group's area
+        factorsPanel.add(scrollPane, BorderLayout.CENTER);
         factorsPanel.add(buttonPanel, BorderLayout.SOUTH);
         return factorsPanel;
     }

@@ -30,7 +30,9 @@ public class CenterData {
     }
 
     /**
-     * Full-value constructor (legacy ordering without campus).
+     * Legacy constructor without the {@code campus} field (kept for backward
+     * compatibility). Controllers may normalize/validate these values before
+     * persisting.
      *
      * @param cups          CUPS identifier
      * @param marketer      marketer name or identifier
@@ -38,20 +40,6 @@ public class CenterData {
      * @param centerAcronym short acronym for the center
      * @param energyType    energy type identifier (localized label is resolved in
      *                      the UI)
-     * @param street        street/address
-     * @param postalCode    postal code
-     * @param city          city name
-     * @param province      province name
-     */
-    /**
-     * Extended constructor that includes the Campus field.
-     *
-     * @param cups          CUPS identifier
-     * @param marketer      marketer name or identifier
-     * @param centerName    display name for the center
-     * @param centerAcronym short acronym for the center
-     * @param campus        campus name (optional)
-     * @param energyType    energy type identifier
      * @param street        street/address
      * @param postalCode    postal code
      * @param city          city name
@@ -70,6 +58,22 @@ public class CenterData {
         this.province = province;
     }
 
+    /**
+     * Extended constructor including the optional {@code campus} field.
+     * Prefer this constructor when campus information is available from the
+     * import source or manual entry UI.
+     *
+     * @param cups          CUPS identifier
+     * @param marketer      marketer name or identifier
+     * @param centerName    display name for the center
+     * @param centerAcronym short acronym for the center
+     * @param campus        campus name (optional)
+     * @param energyType    energy type identifier
+     * @param street        street/address
+     * @param postalCode    postal code
+     * @param city          city name
+     * @param province      province name
+     */
     public CenterData(String cups, String marketer, String centerName, String centerAcronym, String campus,
             String energyType, String street, String postalCode, String city, String province) {
         this.cups = cups;

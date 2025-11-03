@@ -23,6 +23,7 @@ import java.text.MessageFormat;
 
 import com.carboncalc.util.ExcelCsvLoader;
 import com.carboncalc.util.CellUtils;
+import com.carboncalc.util.ValidationUtils;
 
 /**
  * Controller responsible for orchestrating the Fuel import flow.
@@ -438,8 +439,7 @@ public class FuelController {
                 String amtStr = getCellString(row.getCell(mapping.getAmountIndex()), df, eval);
                 if (amtStr == null || amtStr.trim().isEmpty())
                     continue;
-                String normalized = amtStr.replace(',', '.').trim();
-                BigDecimal amt = new BigDecimal(normalized);
+                BigDecimal amt = ValidationUtils.tryParseBigDecimal(amtStr);
                 if (amt != null)
                     processed++;
             } catch (Exception ex) {

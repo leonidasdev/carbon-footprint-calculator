@@ -41,6 +41,13 @@ public class FuelFactorController extends GenericFactorController {
     private final EmissionFactorService emissionFactorService;
     private final FuelFactorService fuelService;
     private EmissionFactorsPanel parentView;
+    /**
+     * Import workflow state: loaded workbook, original file and optional
+     * detected header name (e.g. a Last Modified column).
+     */
+    private org.apache.poi.ss.usermodel.Workbook importWorkbook;
+    private java.io.File importFile;
+    private String importLastModifiedHeaderName;
 
     public FuelFactorController(ResourceBundle messages, EmissionFactorService emissionFactorService,
             FuelFactorService fuelService) {
@@ -128,9 +135,9 @@ public class FuelFactorController extends GenericFactorController {
                         entity = fuelForEntry;
                     }
 
-            FuelEmissionFactor entry = new FuelEmissionFactor(entity, saveYear, factor, fuelForEntry,
-                vehicleForEntry);
-            entry.setPricePerUnit(price);
+                    FuelEmissionFactor entry = new FuelEmissionFactor(entity, saveYear, factor, fuelForEntry,
+                            vehicleForEntry);
+                    entry.setPricePerUnit(price);
                     try {
                         // Persist using fuel-specific service for per-row storage
                         fuelService.saveFuelFactor(entry);
@@ -267,9 +274,9 @@ public class FuelFactorController extends GenericFactorController {
                                 entity = fuelForEntry + " (" + vt + ")";
                         }
 
-            FuelEmissionFactor entry = new FuelEmissionFactor(entity, saveYear, factor,
-                fuelForEntry, vehicleForEntry);
-            entry.setPricePerUnit(price);
+                        FuelEmissionFactor entry = new FuelEmissionFactor(entity, saveYear, factor,
+                                fuelForEntry, vehicleForEntry);
+                        entry.setPricePerUnit(price);
                         try {
                             fuelService.saveFuelFactor(entry);
                             // reload for this year to apply ordering in the UI
@@ -332,6 +339,21 @@ public class FuelFactorController extends GenericFactorController {
                                 messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
                     }
                 });
+
+                // Wire import UI controls: Add File, sheet selector and Import
+                // listeners. These populate the preview and sheet list.
+                try {
+                    panel.getAddFileButton().addActionListener(ev -> handleFileSelection());
+                } catch (Exception ignored) {
+                }
+                try {
+                    panel.getSheetSelector().addActionListener(ev -> handleImportSheetSelection());
+                } catch (Exception ignored) {
+                }
+                try {
+                    panel.getImportButton().addActionListener(ev -> handleImportFromFile());
+                } catch (Exception ignored) {
+                }
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -413,8 +435,8 @@ public class FuelFactorController extends GenericFactorController {
                             if (!vehiclesMap.containsKey(vehKeyLower))
                                 vehiclesMap.put(vehKeyLower, vehicle.trim());
                         }
-            model.addRow(new Object[] { fuelType, vehicle, String.valueOf(f.getBaseFactor()),
-                String.valueOf(f.getPricePerUnit()) });
+                        model.addRow(new Object[] { fuelType, vehicle, String.valueOf(f.getBaseFactor()),
+                                String.valueOf(f.getPricePerUnit()) });
                     }
                 }
 
@@ -460,5 +482,571 @@ public class FuelFactorController extends GenericFactorController {
     @Override
     public boolean save(int year) {
         return true;
+    }
+
+    // -------------------- Import helpers --------------------
+
+    /**
+     * Prompt the user to select a spreadsheet (XLSX/XLS/CSV), load it into
+     * memory and populate the sheet selector and preview table.
+     */
+    private void handleFileSelection() {
+        javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+        fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
+        javax.swing.filechooser.FileNameExtensionFilter filter = new javax.swing.filechooser.FileNameExtensionFilter(
+                messages.getString("file.filter.spreadsheet"), "xlsx", "xls", "csv");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        if (fileChooser.showOpenDialog(panel) == javax.swing.JFileChooser.APPROVE_OPTION) {
+            try {
+                importFile = fileChooser.getSelectedFile();
+                java.io.FileInputStream fis = new java.io.FileInputStream(importFile);
+                String lname = importFile.getName().toLowerCase();
+                if (lname.endsWith(".xlsx")) {
+                    importWorkbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook(fis);
+                } else if (lname.endsWith(".xls")) {
+                    importWorkbook = new org.apache.poi.hssf.usermodel.HSSFWorkbook(fis);
+                } else if (lname.endsWith(".csv")) {
+                    importWorkbook = loadCsvAsWorkbook(importFile);
+                } else {
+                    throw new IllegalArgumentException("Unsupported file format");
+                }
+                updateImportSheetsList();
+                try {
+                    this.importLastModifiedHeaderName = detectLastModifiedHeader(importWorkbook);
+                } catch (Exception ignored) {
+                    this.importLastModifiedHeaderName = null;
+                }
+                fis.close();
+            } catch (Exception e) {
+                javax.swing.JOptionPane.showMessageDialog(panel, messages.getString("error.file.read"),
+                        messages.getString("error.title"), javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    /**
+     * Try to detect a "last modified"-like header name in the workbook
+     * (used to pre-select a completion/last-modified column in the UI).
+     *
+     * @return the header cell text if found, otherwise null
+     */
+    private String detectLastModifiedHeader(org.apache.poi.ss.usermodel.Workbook wb) {
+        if (wb == null)
+            return null;
+        org.apache.poi.ss.usermodel.DataFormatter df = new org.apache.poi.ss.usermodel.DataFormatter();
+        org.apache.poi.ss.usermodel.FormulaEvaluator eval = wb.getCreationHelper().createFormulaEvaluator();
+        for (int s = 0; s < wb.getNumberOfSheets(); s++) {
+            org.apache.poi.ss.usermodel.Sheet sh = wb.getSheetAt(s);
+            if (sh == null)
+                continue;
+            int headerRowIndex = -1;
+            for (int i = sh.getFirstRowNum(); i <= sh.getLastRowNum(); i++) {
+                org.apache.poi.ss.usermodel.Row r = sh.getRow(i);
+                if (r == null)
+                    continue;
+                boolean nonEmpty = false;
+                for (org.apache.poi.ss.usermodel.Cell c : r) {
+                    if (!getCellString(c, df, eval).isEmpty()) {
+                        nonEmpty = true;
+                        break;
+                    }
+                }
+                if (nonEmpty) {
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+            if (headerRowIndex == -1)
+                continue;
+            org.apache.poi.ss.usermodel.Row hdr = sh.getRow(headerRowIndex);
+            for (org.apache.poi.ss.usermodel.Cell c : hdr) {
+                String v = getCellString(c, df, eval);
+                String n = v == null ? "" : v.toLowerCase().replaceAll("[_\\s]+", "");
+                if (n.contains("last") && (n.contains("modif") || n.contains("modified"))) {
+                    return v;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Convert a simple CSV file into an XSSFWorkbook with a single sheet
+     * so the preview & mapping logic can treat spreadsheets and CSVs
+     * uniformly.
+     */
+    private org.apache.poi.xssf.usermodel.XSSFWorkbook loadCsvAsWorkbook(java.io.File csvFile)
+            throws java.io.IOException {
+        org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+        org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet("Sheet1");
+
+        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(csvFile))) {
+            String line;
+            int rowIdx = 0;
+            while ((line = br.readLine()) != null) {
+                java.util.List<String> cells = parseCsvLine(line);
+                org.apache.poi.ss.usermodel.Row r = sheet.createRow(rowIdx++);
+                for (int c = 0; c < cells.size(); c++) {
+                    org.apache.poi.ss.usermodel.Cell cell = r.createCell(c);
+                    cell.setCellValue(cells.get(c));
+                }
+            }
+        }
+        return wb;
+    }
+
+    /**
+     * Very small CSV parser that handles quoted fields and doubled quotes.
+     */
+    private java.util.List<String> parseCsvLine(String line) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (line == null || line.isEmpty()) {
+            out.add("");
+            return out;
+        }
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char ch = line.charAt(i);
+            if (ch == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    cur.append('"');
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (ch == ',' && !inQuotes) {
+                out.add(cur.toString());
+                cur.setLength(0);
+            } else {
+                cur.append(ch);
+            }
+        }
+        out.add(cur.toString());
+        return out;
+    }
+
+    /** Populate the sheet selector with sheet names from the loaded workbook. */
+    private void updateImportSheetsList() {
+        javax.swing.JComboBox<String> sheetSelector = panel.getSheetSelector();
+        sheetSelector.removeAllItems();
+        for (int i = 0; i < importWorkbook.getNumberOfSheets(); i++) {
+            sheetSelector.addItem(importWorkbook.getSheetName(i));
+        }
+        if (sheetSelector.getItemCount() > 0) {
+            sheetSelector.setSelectedIndex(0);
+            handleImportSheetSelection();
+        }
+    }
+
+    /** Update column selectors and preview when a sheet is selected. */
+    private void handleImportSheetSelection() {
+        if (importWorkbook == null)
+            return;
+        javax.swing.JComboBox<String> sheetSelector = panel.getSheetSelector();
+        String selected = (String) sheetSelector.getSelectedItem();
+        if (selected == null)
+            return;
+        org.apache.poi.ss.usermodel.Sheet sheet = importWorkbook.getSheet(selected);
+        updateImportColumnSelectors(sheet);
+        updateImportPreviewTable(sheet);
+    }
+
+    /**
+     * Inspect the sheet for a header row and populate the mapping
+     * dropdowns used by the Fuel import UI.
+     */
+    private void updateImportColumnSelectors(org.apache.poi.ss.usermodel.Sheet sheet) {
+        org.apache.poi.ss.usermodel.DataFormatter df = new org.apache.poi.ss.usermodel.DataFormatter();
+        org.apache.poi.ss.usermodel.FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper()
+                .createFormulaEvaluator();
+
+        int headerRowIndex = -1;
+        for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+            org.apache.poi.ss.usermodel.Row r = sheet.getRow(i);
+            if (r == null)
+                continue;
+            boolean nonEmpty = false;
+            for (org.apache.poi.ss.usermodel.Cell c : r) {
+                if (!getCellString(c, df, eval).isEmpty()) {
+                    nonEmpty = true;
+                    break;
+                }
+            }
+            if (nonEmpty) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+        if (headerRowIndex == -1) {
+            if (sheet.getPhysicalNumberOfRows() > 0)
+                headerRowIndex = sheet.getFirstRowNum();
+            else
+                return;
+        }
+
+        java.util.List<String> columnHeaders = new java.util.ArrayList<>();
+        org.apache.poi.ss.usermodel.Row headerRow = sheet.getRow(headerRowIndex);
+        for (org.apache.poi.ss.usermodel.Cell cell : headerRow) {
+            columnHeaders.add(getCellString(cell, df, eval));
+        }
+
+        javax.swing.JComboBox<String> fuel = panel.getFuelTypeColumnSelector();
+        javax.swing.JComboBox<String> vehicle = panel.getVehicleTypeColumnSelector();
+        javax.swing.JComboBox<String> year = panel.getYearColumnSelector();
+        javax.swing.JComboBox<String> price = panel.getPriceColumnSelector();
+        updateComboBox(fuel, columnHeaders);
+        updateComboBox(vehicle, columnHeaders);
+        updateComboBox(year, columnHeaders);
+        updateComboBox(price, columnHeaders);
+
+        if (this.importLastModifiedHeaderName != null) {
+            javax.swing.JComboBox<String> c = panel.getYearColumnSelector();
+            for (int i = 0; i < c.getItemCount(); i++) {
+                String it = c.getItemAt(i);
+                if (it != null && it.equalsIgnoreCase(this.importLastModifiedHeaderName)) {
+                    c.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+    }
+
+    /** Replace items in a mapping combo with the provided header names. */
+    private void updateComboBox(javax.swing.JComboBox<String> comboBox, java.util.List<String> items) {
+        comboBox.removeAllItems();
+        comboBox.addItem("");
+        for (String item : items) {
+            comboBox.addItem(item);
+        }
+    }
+
+    /**
+     * Build a small read-only preview (header + ~100 rows) for the selected sheet.
+     */
+    private void updateImportPreviewTable(org.apache.poi.ss.usermodel.Sheet sheet) {
+        org.apache.poi.ss.usermodel.DataFormatter df = new org.apache.poi.ss.usermodel.DataFormatter();
+        org.apache.poi.ss.usermodel.FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper()
+                .createFormulaEvaluator();
+
+        int headerRowIndex = -1;
+        for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+            org.apache.poi.ss.usermodel.Row r = sheet.getRow(i);
+            if (r == null)
+                continue;
+            boolean nonEmpty = false;
+            for (org.apache.poi.ss.usermodel.Cell c : r) {
+                if (!getCellString(c, df, eval).isEmpty()) {
+                    nonEmpty = true;
+                    break;
+                }
+            }
+            if (nonEmpty) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+        if (headerRowIndex == -1) {
+            if (sheet.getPhysicalNumberOfRows() > 0)
+                headerRowIndex = sheet.getFirstRowNum();
+            else
+                return;
+        }
+
+        int maxColumns = 0;
+        int scanEnd = Math.min(sheet.getLastRowNum(), headerRowIndex + 100);
+        for (int r = headerRowIndex; r <= scanEnd; r++) {
+            org.apache.poi.ss.usermodel.Row row = sheet.getRow(r);
+            if (row == null)
+                continue;
+            short last = row.getLastCellNum();
+            if (last > maxColumns)
+                maxColumns = last;
+        }
+        if (maxColumns <= 0)
+            return;
+
+        java.util.Vector<String> columnHeaders = new java.util.Vector<>();
+        for (int i = 0; i < maxColumns; i++) {
+            columnHeaders.add(convertToExcelColumn(i));
+        }
+
+        java.util.Vector<java.util.Vector<String>> data = new java.util.Vector<>();
+        java.util.Vector<String> headerData = new java.util.Vector<>();
+        org.apache.poi.ss.usermodel.Row headerRow = sheet.getRow(headerRowIndex);
+        for (int j = 0; j < maxColumns; j++) {
+            org.apache.poi.ss.usermodel.Cell cell = headerRow.getCell(j);
+            headerData.add(getCellString(cell, df, eval));
+        }
+        data.add(headerData);
+
+        int maxRows = Math.min(sheet.getLastRowNum(), headerRowIndex + 100);
+        for (int i = headerRowIndex + 1; i <= maxRows; i++) {
+            org.apache.poi.ss.usermodel.Row row = sheet.getRow(i);
+            if (row == null)
+                continue;
+            java.util.Vector<String> rowData = new java.util.Vector<>();
+            for (int j = 0; j < maxColumns; j++) {
+                org.apache.poi.ss.usermodel.Cell cell = row.getCell(j);
+                rowData.add(getCellString(cell, df, eval));
+            }
+            data.add(rowData);
+        }
+
+        javax.swing.table.DefaultTableModel model = new javax.swing.table.DefaultTableModel(data, columnHeaders) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        panel.getPreviewTable().setModel(model);
+        com.carboncalc.util.UIUtils.setupPreviewTable(panel.getPreviewTable());
+    }
+
+    /**
+     * Safely format a cell value to string, evaluating formulas where present.
+     */
+    private String getCellString(org.apache.poi.ss.usermodel.Cell cell, org.apache.poi.ss.usermodel.DataFormatter df,
+            org.apache.poi.ss.usermodel.FormulaEvaluator eval) {
+        if (cell == null)
+            return "";
+        try {
+            if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.FORMULA) {
+                org.apache.poi.ss.usermodel.CellValue cv = eval.evaluate(cell);
+                if (cv == null)
+                    return "";
+                switch (cv.getCellType()) {
+                    case STRING:
+                        return cv.getStringValue();
+                    case NUMERIC:
+                        return String.valueOf(cv.getNumberValue());
+                    case BOOLEAN:
+                        return String.valueOf(cv.getBooleanValue());
+                    default:
+                        return df.formatCellValue(cell, eval);
+                }
+            }
+            return df.formatCellValue(cell);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** Convert 0-based column index to Excel column name (A, B, ..., AA). */
+    private String convertToExcelColumn(int columnNumber) {
+        StringBuilder result = new StringBuilder();
+        while (columnNumber >= 0) {
+            int remainder = columnNumber % 26;
+            result.insert(0, (char) (65 + remainder));
+            columnNumber = (columnNumber / 26) - 1;
+        }
+        return result.toString();
+    }
+
+    private int getSelectedIndex(javax.swing.JComboBox<String> comboBox) {
+        if (comboBox == null)
+            return -1;
+        int sel = comboBox.getSelectedIndex();
+        if (sel <= 0)
+            return -1;
+        return sel - 1;
+    }
+
+    /**
+     * Perform the actual import: validate mapping, locate the emission factor
+     * column (heuristically), parse rows and persist fuel factor entries.
+     */
+    private void handleImportFromFile() {
+        if (importWorkbook == null || panel.getSheetSelector().getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(panel, messages.getString("error.no.data"),
+                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int fuelIdx = getSelectedIndex(panel.getFuelTypeColumnSelector());
+        int vehicleIdx = getSelectedIndex(panel.getVehicleTypeColumnSelector());
+        int yearIdx = getSelectedIndex(panel.getYearColumnSelector());
+        int priceIdx = getSelectedIndex(panel.getPriceColumnSelector());
+
+        if (fuelIdx < 0) {
+            JOptionPane.showMessageDialog(panel, messages.getString("fuel.error.missingMapping"),
+                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String selectedSheet = (String) panel.getSheetSelector().getSelectedItem();
+        if (selectedSheet == null)
+            return;
+        org.apache.poi.ss.usermodel.Sheet sheet = importWorkbook.getSheet(selectedSheet);
+        if (sheet == null)
+            return;
+
+        org.apache.poi.ss.usermodel.DataFormatter df = new org.apache.poi.ss.usermodel.DataFormatter();
+        org.apache.poi.ss.usermodel.FormulaEvaluator eval = sheet.getWorkbook().getCreationHelper()
+                .createFormulaEvaluator();
+
+        int headerRowIndex = -1;
+        for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+            org.apache.poi.ss.usermodel.Row r = sheet.getRow(i);
+            if (r == null)
+                continue;
+            boolean nonEmpty = false;
+            for (org.apache.poi.ss.usermodel.Cell c : r) {
+                if (!getCellString(c, df, eval).isEmpty()) {
+                    nonEmpty = true;
+                    break;
+                }
+            }
+            if (nonEmpty) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+        if (headerRowIndex == -1) {
+            JOptionPane.showMessageDialog(panel, messages.getString("error.no.data"),
+                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Heuristically find the emission-factor column: prefer headers containing
+        // known keywords, otherwise pick the most-numeric column excluding mapped
+        // identifier columns.
+        org.apache.poi.ss.usermodel.Row headerRow = sheet.getRow(headerRowIndex);
+        int maxCols = headerRow == null ? 0 : headerRow.getLastCellNum();
+        int factorIdx = -1;
+        if (headerRow != null) {
+            for (int c = 0; c < maxCols; c++) {
+                String h = getCellString(headerRow.getCell(c), df, eval);
+                if (h == null)
+                    continue;
+                String n = h.trim().toLowerCase().replaceAll("[_\\s]+", "");
+                if (n.contains("factor") || n.contains("emission") || n.contains("kg") || n.contains("pca")
+                        || n.contains("value")) {
+                    factorIdx = c;
+                    break;
+                }
+            }
+        }
+
+        if (factorIdx < 0) {
+            // Scan a few rows to find the column with the most numeric-looking values
+            int scanEnd = Math.min(sheet.getLastRowNum(), headerRowIndex + 20);
+            int bestCol = -1;
+            int bestCount = 0;
+            for (int c = 0; c < maxCols; c++) {
+                if (c == fuelIdx || c == vehicleIdx || c == yearIdx || c == priceIdx)
+                    continue;
+                int count = 0;
+                for (int r = headerRowIndex + 1; r <= scanEnd; r++) {
+                    org.apache.poi.ss.usermodel.Row row = sheet.getRow(r);
+                    if (row == null)
+                        continue;
+                    org.apache.poi.ss.usermodel.Cell cell = row.getCell(c);
+                    String val = getCellString(cell, df, eval);
+                    if (val == null || val.trim().isEmpty())
+                        continue;
+                    Double d = ValidationUtils.tryParseDouble(val);
+                    if (d != null)
+                        count++;
+                }
+                if (count > bestCount) {
+                    bestCount = count;
+                    bestCol = c;
+                }
+            }
+            if (bestCount > 0)
+                factorIdx = bestCol;
+        }
+
+        if (factorIdx < 0) {
+            JOptionPane.showMessageDialog(panel, messages.getString("fuel.error.missingMapping"),
+                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int processed = 0;
+        int saveYear = Year.now().getValue();
+        if (parentView != null) {
+            JSpinner spinner = parentView.getYearSpinner();
+            if (spinner != null) {
+                try {
+                    if (spinner.getEditor() instanceof JSpinner.DefaultEditor)
+                        spinner.commitEdit();
+                } catch (Exception ignored) {
+                }
+                Object val = spinner.getValue();
+                if (val instanceof Number)
+                    saveYear = ((Number) val).intValue();
+            }
+        }
+
+        for (int r = headerRowIndex + 1; r <= sheet.getLastRowNum(); r++) {
+            org.apache.poi.ss.usermodel.Row row = sheet.getRow(r);
+            if (row == null)
+                continue;
+            try {
+                String fuel = getCellString(row.getCell(fuelIdx), df, eval);
+                String vehicle = vehicleIdx >= 0 ? getCellString(row.getCell(vehicleIdx), df, eval) : "";
+                String factorStr = getCellString(row.getCell(factorIdx), df, eval);
+                if (fuel == null || fuel.trim().isEmpty() || factorStr == null || factorStr.trim().isEmpty())
+                    continue;
+                Double baseFactor = ValidationUtils.tryParseDouble(factorStr);
+                if (baseFactor == null)
+                    continue;
+
+                // Row-level year override if provided and numeric
+                int rowYear = saveYear;
+                if (yearIdx >= 0) {
+                    String y = getCellString(row.getCell(yearIdx), df, eval);
+                    if (y != null && !y.trim().isEmpty()) {
+                        try {
+                            Double yy = ValidationUtils.tryParseDouble(y);
+                            if (yy != null)
+                                rowYear = yy.intValue();
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+
+                Double price = null;
+                if (priceIdx >= 0) {
+                    String ps = getCellString(row.getCell(priceIdx), df, eval);
+                    if (ps != null && !ps.trim().isEmpty())
+                        price = ValidationUtils.tryParseDouble(ps);
+                }
+
+                // Compose entity like manual entry: fuel + (vehicle)
+                String fuelForEntry = fuel.trim();
+                String vehicleForEntry = vehicle == null ? "" : vehicle.trim();
+                String entity;
+                if (vehicleForEntry != null && !vehicleForEntry.isBlank()) {
+                    String vt = vehicleForEntry.trim();
+                    if (vt.contains("(") || vt.contains(")"))
+                        entity = fuelForEntry + " " + vt;
+                    else
+                        entity = fuelForEntry + " (" + vt + ")";
+                } else {
+                    entity = fuelForEntry;
+                }
+
+                FuelEmissionFactor entry = new FuelEmissionFactor(entity, rowYear, baseFactor, fuelForEntry,
+                        vehicleForEntry);
+                if (price != null)
+                    entry.setPricePerUnit(price);
+                fuelService.saveFuelFactor(entry);
+                processed++;
+            } catch (Exception ex) {
+                // skip problematic rows
+            }
+        }
+
+        onActivate(saveYear);
+        String msg = java.text.MessageFormat.format(messages.getString("fuel.success.import"),
+                String.valueOf(processed));
+        JOptionPane.showMessageDialog(panel, msg, messages.getString("message.title.success"),
+                JOptionPane.INFORMATION_MESSAGE);
     }
 }

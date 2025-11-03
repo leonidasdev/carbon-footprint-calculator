@@ -745,8 +745,9 @@ public class RefrigerantFactorController extends GenericFactorController {
                 String pcaStr = getCellString(row.getCell(pcaIdx), df, eval);
                 if (pcaStr == null || pcaStr.trim().isEmpty() || rType == null || rType.trim().isEmpty())
                     continue;
-                String normalized = pcaStr.replace(',', '.').trim();
-                Double pca = Double.parseDouble(normalized);
+                Double pca = ValidationUtils.tryParseDouble(pcaStr);
+                if (pca == null)
+                    continue;
                 RefrigerantEmissionFactor entry = new RefrigerantEmissionFactor(rType.trim(), saveYear, pca, rType.trim());
                 refrigerantService.saveRefrigerantFactor(entry);
                 processed++;

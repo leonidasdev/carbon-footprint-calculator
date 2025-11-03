@@ -170,10 +170,13 @@ public class FuelFactorPanel extends JPanel {
         factorsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         factorsTable.getTableHeader().setReorderingAllowed(false);
         UIUtils.styleTable(factorsTable);
-        JScrollPane scrollPane = new JScrollPane(factorsTable);
-        // Use the compact refrigerant scroll height so the titled box remains compact
-        // and behaves like the Refrigerant panel.
-        scrollPane.setPreferredSize(new Dimension(0, UIUtils.FACTOR_SCROLL_HEIGHT_REFRIGERANT));
+    JScrollPane scrollPane = new JScrollPane(factorsTable);
+    // Allow the fuel types table to expand and fill the factors panel.
+    // Previously a small fixed preferred height was used which limited
+    // vertical space; placing the scroll pane in BorderLayout.CENTER
+    // (below) and removing the forced preferred size lets the layout
+    // grow the table to the available area.
+    scrollPane.setPreferredSize(null);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
@@ -187,9 +190,8 @@ public class FuelFactorPanel extends JPanel {
         JPanel factorsPanel = new JPanel(new BorderLayout(10, 10));
         factorsPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.fuel.types")));
         factorsPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        // Place the table at the top (NORTH) so the titled box keeps a compact height
-        // similar to the refrigerant factors panel.
-        factorsPanel.add(scrollPane, BorderLayout.NORTH);
+    // Add the scroll pane to CENTER so it expands to fill the group's area
+    factorsPanel.add(scrollPane, BorderLayout.CENTER);
         factorsPanel.add(buttonPanel, BorderLayout.SOUTH);
         return factorsPanel;
     }
@@ -264,9 +266,10 @@ public class FuelFactorPanel extends JPanel {
         JPanel mapAndResult = new JPanel(new BorderLayout(5, 5));
         mapAndResult.setBackground(UIUtils.CONTENT_BACKGROUND);
 
-        JPanel mappingPanel = new JPanel(new GridBagLayout());
-        mappingPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
-        mappingPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.column.mapping")));
+    JPanel mappingPanel = new JPanel(new GridBagLayout());
+    mappingPanel.setBackground(UIUtils.CONTENT_BACKGROUND);
+    // Use a fuel-specific mapping title to make the UI clearer to users
+    mappingPanel.setBorder(UIUtils.createLightGroupBorder(messages.getString("label.fuel.data.mapping")));
         GridBagConstraints m = new GridBagConstraints();
         m.fill = GridBagConstraints.HORIZONTAL;
         m.insets = new Insets(5, 5, 5, 5);
@@ -290,9 +293,11 @@ public class FuelFactorPanel extends JPanel {
         m.gridx = 1;
         mappingPanel.add(vehicleTypeColumnSelector, m);
 
-        m.gridx = 0;
-        m.gridy = 2;
-        mappingPanel.add(new JLabel(messages.getString("label.year.short") + ":"), m);
+    m.gridx = 0;
+    m.gridy = 2;
+    // `label.year.short` already contains the trailing colon ("Year:")
+    // so don't append another one which produced "Year::".
+    mappingPanel.add(new JLabel(messages.getString("label.year.short")), m);
         m.gridx = 1;
         mappingPanel.add(yearColumnSelector, m);
 

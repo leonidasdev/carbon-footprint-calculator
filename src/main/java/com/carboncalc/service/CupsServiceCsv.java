@@ -149,14 +149,25 @@ public class CupsServiceCsv implements CupsService {
         }
     }
 
-    private List<CupsCenterMapping> loadCupsDataLenient() throws IOException {
     /**
      * Best-effort CSV parsing for older/irregular cups CSV files.
      *
-     * This parser tolerates a missing header row, optional 'campus'
-     * column, and blank lines. It maps columns by position and will
-     * return an empty list when the file is absent or unparseable.
+     * <p>This parser tolerates real-world CSV variations such as:
+     * <ul>
+     *   <li>Missing header row (it will detect a header when the first cell is "id").</li>
+     *   <li>An optional 'campus' column (older files may omit this column).</li>
+     *   <li>Blank lines and stray whitespace.</li>
+     * </ul>
+     *
+     * <p>The parser maps columns by position and attempts to recover numeric
+     * {@code id} values when present. If the file is absent or contains no
+     * parseable rows, an empty list is returned. On unexpected errors an
+     * {@link IOException} is thrown.
+     *
+     * @return best-effort list of {@link CupsCenterMapping} parsed from CSV
+     * @throws IOException on IO or parse errors
      */
+    private List<CupsCenterMapping> loadCupsDataLenient() throws IOException {
         Path filePath = Paths.get(DATA_DIR, CUPS_DIR, CUPS_FILE);
         if (!Files.exists(filePath))
             return List.of();
@@ -225,6 +236,27 @@ public class CupsServiceCsv implements CupsService {
         return result;
     }
 
+    /**
+     * Persist the provided list of {@link CupsCenterMapping} entries, replacing
+     * the existing cups CSV file. The method performs the following steps:
+     * <ul>
+     *   <li>Ensures the target directory exists.</li>
+     *   <li>Sorts the mappings (by centerName) to provide a stable file order.</li>
+     *   <li>Reassigns sequential numeric IDs starting at 1. These IDs are used
+     *       by the UI edit flow to identify rows for update/delete operations.</li>
+     *   <li>Writes a header row followed by all mappings. Column order is:
+     *       id, cups, marketer, centerName, acronym, campus, energyType, street,
+     *       postalCode, city, province.</li>
+     * </ul>
+     *
+     * <p>The implementation writes the full file in one pass to avoid partial
+     * append semantics that could leave the file in an inconsistent state.
+     *
+     * @param mappings full list of mappings to persist; the supplied list will
+     *                 be normalized (sorted, IDs reassigned) before writing
+     * @throws IOException on IO errors while creating directories or writing
+     *                     the CSV file
+     */
     @Override
     public void saveCupsData(List<CupsCenterMapping> mappings) throws IOException {
         Path filePath = Paths.get(DATA_DIR, CUPS_DIR, CUPS_FILE);
@@ -234,16 +266,6 @@ public class CupsServiceCsv implements CupsService {
             Files.createDirectories(filePath.getParent());
         }
 
-        // Normalize and persist the full mapping list.
-        // Behavior:
-        // - Sorts the mappings by centerName so file ordering is stable.
-        // - Reassigns sequential numeric IDs starting at 1. IDs are used by the
-        // UI edit flow to find and replace existing entries atomically.
-        // - Writes a header row followed by all mappings. The CSV columns are
-        // (in order): id, cups, marketer, centerName, acronym, campus,
-        // energyType, street, postalCode, city, province.
-        // Note: callers should pass a fully-populated list; this method will
-        // overwrite the existing file atomically when complete.
         // Sort by centerName and reassign IDs
         Collections.sort(mappings);
         long id = 1;
@@ -251,7 +273,7 @@ public class CupsServiceCsv implements CupsService {
             m.setId(id++);
         }
 
-        // Write using CSVWriter and force quotes so centerName is always enclosed
+        // Write using CSVWriter and let it quote fields only when needed
         try (Writer writer = Files.newBufferedWriter(filePath);
                 CSVWriter csvWriter = new CSVWriter(writer,
                         CSVWriter.DEFAULT_SEPARATOR,
@@ -279,8 +301,6 @@ public class CupsServiceCsv implements CupsService {
                         m.getCity(),
                         m.getProvince()
                 };
-                // Let CSVWriter decide quoting; do not force-quote all fields. Fields
-                // containing separators, quotes or newlines will be quoted automatically.
                 csvWriter.writeNext(row, false);
             }
             csvWriter.flush();

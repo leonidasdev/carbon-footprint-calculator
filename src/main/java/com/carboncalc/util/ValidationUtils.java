@@ -50,22 +50,101 @@ public final class ValidationUtils {
         String t = text.trim();
         if (t.isEmpty())
             return null;
-        // Try standard parse
+        // Normalize whitespace and non-breaking spaces
+        String s = t.replace('\u00A0', ' ').trim();
+
+        // Heuristic normalization to handle common CSV/Excel numeric formats
+        // coming from different locales (e.g. Spanish MITECO exports).
+        // Goal: interpret "14,600" as 14600 and "21.5" as 21.5, while also
+        // supporting European formats like "1.234,56".
         try {
-            return Double.parseDouble(t);
-        } catch (NumberFormatException e) {
-            // Try replacing comma with dot
-            try {
-                return Double.parseDouble(t.replace(',', '.'));
-            } catch (NumberFormatException ex) {
-                // Last resort: use locale-aware parsing
-                try {
-                    NumberFormat nf = NumberFormat.getInstance();
-                    Number n = nf.parse(t);
-                    return n == null ? null : n.doubleValue();
-                } catch (Exception ex2) {
-                    return null;
+            String candidate = s;
+
+            // If both '.' and ',' are present decide which is decimal by which
+            // appears last in the string (common heuristic).
+            if (candidate.indexOf('.') >= 0 && candidate.indexOf(',') >= 0) {
+                int lastDot = candidate.lastIndexOf('.');
+                int lastComma = candidate.lastIndexOf(',');
+                if (lastDot > lastComma) {
+                    // dot appears after comma -> dot is decimal separator, remove commas
+                    candidate = candidate.replace(",", "");
+                } else {
+                    // comma appears after dot -> comma is decimal separator, remove dots and
+                    // replace comma with dot
+                    candidate = candidate.replace(".", "").replace(',', '.');
                 }
+            } else if (candidate.indexOf(',') >= 0) {
+                // Only comma present. It may be either a decimal separator or a
+                // thousands separator. If it matches the pattern 1,234 or 12,345,678
+                // (groups of three digits) treat as thousands separators and remove
+                // them. Otherwise treat comma as decimal separator and convert to dot.
+                if (candidate.matches("^-?\\d{1,3}(,\\d{3})+(\\,\\d+)?$")) {
+                    candidate = candidate.replace(",", "");
+                } else {
+                    candidate = candidate.replace(',', '.');
+                }
+            }
+
+            // Remove common grouping spaces (regular and NBSP)
+            candidate = candidate.replace(" ", "").replace("\u00A0", "");
+
+            // Strip non-numeric trailing/leading characters except minus and dot
+            candidate = candidate.replaceAll("[^0-9.\\-+eE]", "");
+
+            return Double.parseDouble(candidate);
+        } catch (NumberFormatException e) {
+            // Last resort: try locale-aware parsing
+            try {
+                NumberFormat nf = NumberFormat.getInstance();
+                Number n = nf.parse(s);
+                return n == null ? null : n.doubleValue();
+            } catch (Exception ex2) {
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Try to parse a decimal number into a BigDecimal using the same
+     * normalization heuristics as {@link #tryParseDouble}. Returns null on
+     * failure. Useful when callers need decimal precision instead of double.
+     */
+    public static java.math.BigDecimal tryParseBigDecimal(String text) {
+        if (text == null)
+            return null;
+        String t = text.trim();
+        if (t.isEmpty())
+            return null;
+        String s = t.replace('\u00A0', ' ').trim();
+        try {
+            String candidate = s;
+            if (candidate.indexOf('.') >= 0 && candidate.indexOf(',') >= 0) {
+                int lastDot = candidate.lastIndexOf('.');
+                int lastComma = candidate.lastIndexOf(',');
+                if (lastDot > lastComma) {
+                    candidate = candidate.replace(",", "");
+                } else {
+                    candidate = candidate.replace(".", "").replace(',', '.');
+                }
+            } else if (candidate.indexOf(',') >= 0) {
+                if (candidate.matches("^-?\\d{1,3}(,\\d{3})+(\\,\\d+)?$")) {
+                    candidate = candidate.replace(",", "");
+                } else {
+                    candidate = candidate.replace(',', '.');
+                }
+            }
+            candidate = candidate.replace(" ", "").replace('\u00A0', ' ');
+            candidate = candidate.replaceAll("[^0-9.\\-+eE]", "");
+            return new java.math.BigDecimal(candidate);
+        } catch (Exception e) {
+            try {
+                NumberFormat nf = NumberFormat.getInstance();
+                Number n = nf.parse(s);
+                if (n == null)
+                    return null;
+                return new java.math.BigDecimal(n.toString());
+            } catch (Exception ex2) {
+                return null;
             }
         }
     }

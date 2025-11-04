@@ -20,6 +20,7 @@ import java.time.Year;
 import java.util.*;
 import java.text.MessageFormat;
 import java.math.BigDecimal;
+import com.carboncalc.util.ValidationUtils;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -540,13 +541,12 @@ public class RefrigerantController {
                 if (qtyStr == null || qtyStr.trim().isEmpty())
                     continue;
 
-                // Try to normalize numeric formats and parse
-                String normalized = qtyStr.replace(',', '.').trim();
-                BigDecimal qty = new BigDecimal(normalized);
-
+                // Use centralized parsing utility to support locale leniency
+                BigDecimal qty = ValidationUtils.tryParseBigDecimal(qtyStr);
                 // Count rows that parsed a numeric quantity; exporter wiring comes later
-                if (qty != null)
+                if (qty != null) {
                     processed++;
+                }
             } catch (Exception ex) {
                 // skip rows with parse errors; continue processing
             }

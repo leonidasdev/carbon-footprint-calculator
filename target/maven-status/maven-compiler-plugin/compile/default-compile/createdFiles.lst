@@ -13,6 +13,7 @@ com\carboncalc\controller\factors\GenericFactorController.class
 com\carboncalc\view\EmissionFactorsPanel$2.class
 com\carboncalc\util\excel\ElectricityExcelExporter$1.class
 com\carboncalc\view\GasPanel$1.class
+com\carboncalc\util\excel\CombinedReportExporter$1.class
 com\carboncalc\view\OptionsPanel.class
 com\carboncalc\util\ValidationUtils.class
 com\carboncalc\model\RefrigerantMapping.class
@@ -32,6 +33,7 @@ com\carboncalc\util\UIUtils.class
 com\carboncalc\controller\factors\ElectricityFactorController$1.class
 com\carboncalc\view\factors\ElectricityFactorPanel$1.class
 com\carboncalc\controller\GasController.class
+com\carboncalc\view\GeneralPanel.class
 com\carboncalc\view\CupsConfigPanel$1.class
 com\carboncalc\service\CupsServiceCsv.class
 com\carboncalc\service\GasFactorService.class
@@ -57,6 +59,8 @@ com\carboncalc\view\factors\FuelFactorPanel.class
 com\carboncalc\util\excel\FuelExcelExporter.class
 com\carboncalc\model\Cups.class
 com\carboncalc\view\factors\GasFactorPanel.class
+com\carboncalc\view\GeneralPanel$1.class
+com\carboncalc\controller\factors\FuelFactorController$2.class
 com\carboncalc\model\factors\FuelEmissionFactor.class
 com\carboncalc\util\enums\TotalHeader.class
 com\carboncalc\model\factors\GasFactorEntry.class
@@ -71,6 +75,7 @@ com\carboncalc\util\UIUtils$1.class
 com\carboncalc\service\GasFactorServiceCsv.class
 com\carboncalc\service\EmissionFactorService.class
 com\carboncalc\view\ElectricityPanel.class
+com\carboncalc\controller\factors\RefrigerantFactorController$2.class
 com\carboncalc\controller\FuelController$1.class
 com\carboncalc\util\DataInitializer.class
 com\carboncalc\util\excel\ElectricityExcelExporter.class

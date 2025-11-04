@@ -228,7 +228,16 @@ public class FuelPanel extends BaseModulePanel {
 
         applyAndSaveExcelButton = new JButton(messages.getString("button.apply.save.excel"));
         applyAndSaveExcelButton.setEnabled(false);
-        applyAndSaveExcelButton.addActionListener(e -> controller.handleApplyAndSaveExcel());
+        applyAndSaveExcelButton.addActionListener(e -> {
+            // Ensure any typed value in the year spinner editor is committed
+            try {
+                if (yearSpinner != null) {
+                    yearSpinner.commitEdit();
+                }
+            } catch (Exception ignored) {
+            }
+            controller.handleApplyAndSaveExcel();
+        });
         UIUtils.styleButton(applyAndSaveExcelButton);
 
         resultButtonPanel.add(applyAndSaveExcelButton);

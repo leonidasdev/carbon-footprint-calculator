@@ -171,7 +171,7 @@ public class MainWindow extends JFrame {
         // Add modules (use real panels when implemented)
         contentPanel.add(createFuelPanel(), EnergyType.FUEL.id());
         contentPanel.add(createRefrigerantPanel(), EnergyType.REFRIGERANT.id());
-        contentPanel.add(createPlaceholderPanel("module.general"), "general");
+    contentPanel.add(createGeneralPanel(), "general");
         contentPanel.add(createCupsConfigPanel(), "cups");
         contentPanel.add(createEmissionFactorsPanel(), "factors");
         contentPanel.add(createOptionsPanel(), "options");
@@ -284,6 +284,18 @@ public class MainWindow extends JFrame {
         CupsConfigController panelController = new CupsConfigController(messages);
         CupsConfigPanel panel = new CupsConfigPanel(panelController, messages);
         panelController.setView(panel);
+        return panel;
+    }
+
+    private JPanel createGeneralPanel() {
+        // Create the general combined reporting panel and its controller.
+        // Construct the controller first and then the view to allow the
+        // controller to attach listeners after the view has initialized its
+        // components (BaseModulePanel defers initialization on the EDT).
+        com.carboncalc.controller.GeneralController controller = new com.carboncalc.controller.GeneralController(
+                messages);
+        com.carboncalc.view.GeneralPanel panel = new com.carboncalc.view.GeneralPanel(messages);
+        controller.setView(panel);
         return panel;
     }
 

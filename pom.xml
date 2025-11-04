@@ -6,7 +6,7 @@
     
     <groupId>com.carboncalc</groupId>
     <artifactId>carbon-footprint-calculator</artifactId>
-    <version>1.0.0</version>
+    <version>0.0.1</version>
     
     <properties>
         <java.version>11</java.version>

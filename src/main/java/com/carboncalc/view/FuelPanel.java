@@ -211,6 +211,28 @@ public class FuelPanel extends BaseModulePanel {
         dateLimitField.setAlignmentY(Component.CENTER_ALIGNMENT);
         resultTopPanel.add(dateLimitField);
 
+        // When the date limit text changes, update the Apply button enabled state
+        dateLimitField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void changed() {
+                updateApplyAndSaveButtonState();
+            }
+
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                changed();
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                changed();
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                changed();
+            }
+        });
+
         resultTopPanel.add(Box.createHorizontalStrut(UIUtils.HORIZONTAL_STRUT_SMALL));
         JLabel sheetLabel = new JLabel(messages.getString("label.sheet.short"));
         sheetLabel.setAlignmentY(Component.CENTER_ALIGNMENT);

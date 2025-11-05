@@ -272,15 +272,16 @@ public class FuelPanel extends BaseModulePanel {
         pc.gridy = 0;
         pc.weighty = 1.0;
 
-        // Preview: approx 4/9 of total (preview ≈ 0.444)
+        // Preview: increase to take remaining space after reducing result panel
+        // Result panel will be half its previous width (0.556 -> 0.278)
         pc.gridx = 0;
-        pc.weightx = 0.444;
+        pc.weightx = 0.8; // 1.0 - 0.2
         pc.insets = new Insets(0, 0, 0, 10);
         previewContainer.add(previewPanel, pc);
 
-        // Result: remaining width
+        // Result: reduced to half its previous width
         pc.gridx = 1;
-        pc.weightx = 0.556;
+        pc.weightx = 0.2;
         pc.insets = new Insets(0, 0, 0, 0);
         previewContainer.add(resultPanel, pc);
 

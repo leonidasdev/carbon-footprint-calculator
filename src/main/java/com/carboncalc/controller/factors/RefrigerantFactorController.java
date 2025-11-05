@@ -15,11 +15,10 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import java.awt.*;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
+import com.carboncalc.util.ExcelCsvLoader;
 import java.time.Year;
 import java.util.Vector;
 import java.util.List;
@@ -463,58 +462,11 @@ public class RefrigerantFactorController extends GenericFactorController {
     }
 
     /**
-     * Convert a CSV file into an in-memory XSSFWorkbook so CSVs can be
-     * treated like spreadsheets for preview and mapping.
+     * Delegate CSV -> Workbook conversion to the central ExcelCsvLoader
+     * which handles UTF-8/CP1252 detection and normalization.
      */
     private Workbook loadCsvAsWorkbook(File csvFile) throws IOException {
-        XSSFWorkbook wb = new XSSFWorkbook();
-        Sheet sheet = wb.createSheet("Sheet1");
-
-        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
-            String line;
-            int rowIdx = 0;
-            while ((line = br.readLine()) != null) {
-                List<String> cells = parseCsvLine(line);
-                Row r = sheet.createRow(rowIdx++);
-                for (int c = 0; c < cells.size(); c++) {
-                    Cell cell = r.createCell(c);
-                    cell.setCellValue(cells.get(c));
-                }
-            }
-        }
-        return wb;
-    }
-
-    /**
-     * Naive CSV line parser supporting quoted fields and escaped quotes.
-     * Used only for lightweight CSV preview/import.
-     */
-    private List<String> parseCsvLine(String line) {
-        List<String> out = new java.util.ArrayList<>();
-        if (line == null || line.isEmpty()) {
-            out.add("");
-            return out;
-        }
-        StringBuilder cur = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < line.length(); i++) {
-            char ch = line.charAt(i);
-            if (ch == '"') {
-                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                    cur.append('"');
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
-            } else if (ch == ',' && !inQuotes) {
-                out.add(cur.toString());
-                cur.setLength(0);
-            } else {
-                cur.append(ch);
-            }
-        }
-        out.add(cur.toString());
-        return out;
+        return ExcelCsvLoader.loadCsvAsWorkbookFromPath(csvFile.getAbsolutePath());
     }
 
     /**

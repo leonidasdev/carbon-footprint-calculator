@@ -34,9 +34,8 @@ import org.apache.poi.ss.usermodel.CellValue;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.BufferedReader;
 import java.io.IOException;
+import com.carboncalc.util.ExcelCsvLoader;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Vector;
@@ -629,53 +628,10 @@ public class FuelFactorController extends GenericFactorController {
      * uniformly.
      */
     private XSSFWorkbook loadCsvAsWorkbook(File csvFile) throws IOException {
-        XSSFWorkbook wb = new XSSFWorkbook();
-        Sheet sheet = wb.createSheet("Sheet1");
-
-        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
-            String line;
-            int rowIdx = 0;
-            while ((line = br.readLine()) != null) {
-                java.util.List<String> cells = parseCsvLine(line);
-                org.apache.poi.ss.usermodel.Row r = sheet.createRow(rowIdx++);
-                for (int c = 0; c < cells.size(); c++) {
-                    org.apache.poi.ss.usermodel.Cell cell = r.createCell(c);
-                    cell.setCellValue(cells.get(c));
-                }
-            }
-        }
-        return wb;
-    }
-
-    /**
-     * Very small CSV parser that handles quoted fields and doubled quotes.
-     */
-    private List<String> parseCsvLine(String line) {
-        List<String> out = new ArrayList<>();
-        if (line == null || line.isEmpty()) {
-            out.add("");
-            return out;
-        }
-        StringBuilder cur = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < line.length(); i++) {
-            char ch = line.charAt(i);
-            if (ch == '"') {
-                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                    cur.append('"');
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
-            } else if (ch == ',' && !inQuotes) {
-                out.add(cur.toString());
-                cur.setLength(0);
-            } else {
-                cur.append(ch);
-            }
-        }
-        out.add(cur.toString());
-        return out;
+        // ExcelCsvLoader returns a generic Workbook; for callers expecting
+        // XSSFWorkbook we'll coerce when possible (CSV loader produces
+        // XSSFWorkbook instances).
+        return (XSSFWorkbook) ExcelCsvLoader.loadCsvAsWorkbookFromPath(csvFile.getAbsolutePath());
     }
 
     /**

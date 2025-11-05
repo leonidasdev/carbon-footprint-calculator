@@ -104,7 +104,10 @@ public class RefrigerantExcelExporter {
                 }
 
                 if (providerPath != null && providerSheet != null) {
-                    Sheet detailed = workbook.createSheet("Extendido");
+                    String sheetExtended = spanish.containsKey("result.sheet.extended")
+                            ? spanish.getString("result.sheet.extended")
+                            : "Extendido";
+                    Sheet detailed = workbook.createSheet(sheetExtended);
                     CellStyle header = createHeaderStyle(workbook);
                     createDetailedHeader(detailed, header, spanish);
 
@@ -130,9 +133,15 @@ public class RefrigerantExcelExporter {
                                 if (aggregates == null || aggregates.isEmpty()) {
                                     aggregates = computeAggregatesFromDetailed(detailed, wbEval);
                                 }
-                                Sheet perCenter = workbook.createSheet("Por centro");
+                                String perCenterName = spanish.containsKey("result.sheet.per_center")
+                                        ? spanish.getString("result.sheet.per_center")
+                                        : "Por centro";
+                                Sheet perCenter = workbook.createSheet(perCenterName);
                                 createPerCenterSheet(perCenter, header, aggregates, spanish);
-                                Sheet total = workbook.createSheet("Total");
+                                String totalName = spanish.containsKey("result.sheet.total")
+                                        ? spanish.getString("result.sheet.total")
+                                        : "Total";
+                                Sheet total = workbook.createSheet(totalName);
                                 createTotalSheetFromAggregates(total, header, aggregates, spanish);
                             } else {
                                 // provider sheet not found -> emit diagnostics
@@ -238,6 +247,7 @@ public class RefrigerantExcelExporter {
         Row h = sheet.createRow(0);
         // Build labels from Spanish resource bundle for the requested columns
         String[] labels = new String[] {
+                spanish.getString("detailed.header.ID"),
                 spanish.getString("refrigerant.mapping.centro"),
                 spanish.getString("refrigerant.mapping.person"),
                 spanish.getString("refrigerant.mapping.invoiceNumber"),
@@ -348,6 +358,7 @@ public class RefrigerantExcelExporter {
         }
 
         int outRow = target.getLastRowNum() + 1;
+        int idCounter = 1;
 
         // Create/get the Diagnostics sheet to append mapping and parsing diagnostics
         Sheet diag = target.getWorkbook().getSheet("Diagnostics");
@@ -570,6 +581,7 @@ public class RefrigerantExcelExporter {
             agg[1] += emissionsT;
             Row out = target.createRow(outRow++);
             int col = 0;
+            out.createCell(col++).setCellValue(idCounter++);
             // Columns: Centro, Responsable de Centro, Número de Factura, Proveedor,
             // Fecha de la Factura, Tipo de Refrigerante, Cantidad (kg), Factor de emision
             // (kgCO2e/PCA), Emisiones tCO2
@@ -688,10 +700,10 @@ public class RefrigerantExcelExporter {
     private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates,
             ResourceBundle spanish) {
         Row h = sheet.createRow(0);
-        // As requested: Centro Consumo kg Emisiones tCO2
+        // Localized headers: Centro, Consumo (kg), Emisiones (tCO2e)
         h.createCell(0).setCellValue(spanish.getString("refrigerant.mapping.centro"));
-        h.createCell(1).setCellValue("Consumo kg");
-        h.createCell(2).setCellValue(spanish.getString("refrigerant.mapping.emissions"));
+        h.createCell(1).setCellValue(spanish.getString("refrigerant.export.consumption"));
+        h.createCell(2).setCellValue(spanish.getString("refrigerant.export.emissions_per_center"));
         if (headerStyle != null) {
             for (int i = 0; i <= 2; i++)
                 h.getCell(i).setCellStyle(headerStyle);
@@ -714,9 +726,9 @@ public class RefrigerantExcelExporter {
     private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
             Map<String, double[]> aggregates, ResourceBundle spanish) {
         Row h = sheet.createRow(0);
-        // As requested: Total Consumo kWh Total Emisiones tCO2 Market Based
-        h.createCell(0).setCellValue("Total Consumo kWh");
-        h.createCell(1).setCellValue("Total Emisiones tCO2 Market Based");
+        // Localized total labels
+        h.createCell(0).setCellValue(spanish.getString("refrigerant.export.total.consumption"));
+        h.createCell(1).setCellValue(spanish.getString("refrigerant.export.total.emissions"));
         if (headerStyle != null) {
             h.getCell(0).setCellStyle(headerStyle);
             h.getCell(1).setCellStyle(headerStyle);
@@ -778,25 +790,25 @@ public class RefrigerantExcelExporter {
             Row row = detailed.getRow(r);
             if (row == null)
                 continue;
-            // Columns based on exporter layout:
-            // 0: Centro, 1: Responsable, 2: Número Factura, 3: Proveedor, 4: Fecha, 5:
-            // Tipo, 6: Cantidad, 7: Factor, 8: Emisiones
+            // Columns based on exporter layout with ID at column 0:
+            // 0: ID, 1: Centro, 2: Responsable, 3: Número Factura, 4: Proveedor, 5: Fecha,
+            // 6: Tipo, 7: Cantidad, 8: Factor, 9: Emisiones
             String center = "";
             try {
-                Cell c0 = row.getCell(0);
-                center = c0 != null ? (c0.getCellType() == CellType.STRING ? c0.getStringCellValue()
-                        : String.valueOf(CellUtils.getNumericCellValue(c0, eval))) : "";
+                Cell c1 = row.getCell(1);
+                center = c1 != null ? (c1.getCellType() == CellType.STRING ? c1.getStringCellValue()
+                        : String.valueOf(CellUtils.getNumericCellValue(c1, eval))) : "";
             } catch (Exception ignored) {
             }
             double qty = 0.0;
             double em = 0.0;
             try {
-                Cell qtyCell = row.getCell(6);
+                Cell qtyCell = row.getCell(7);
                 qty = CellUtils.getNumericCellValue(qtyCell, eval);
             } catch (Exception ignored) {
             }
             try {
-                Cell emCell = row.getCell(8);
+                Cell emCell = row.getCell(9);
                 em = CellUtils.getNumericCellValue(emCell, eval);
             } catch (Exception ignored) {
             }

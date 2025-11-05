@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.Collections;
 
@@ -46,6 +47,12 @@ import java.util.regex.Matcher;
  * </p>
  *
  * <p>
+ * Note: header labels for exported Excel files are read from the Spanish
+ * resource bundle (Messages_es) to guarantee consistent Spanish wording in
+ * exported workbooks regardless of the application's current UI locale.
+ * </p>
+ *
+ * <p>
  * Design notes:
  * <ul>
  * <li>The class delegates work to small helper methods to keep responsibilities
@@ -74,9 +81,13 @@ public class ElectricityExcelExporter {
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
             // Create sheets based on mode
             if ("extended".equalsIgnoreCase(sheetMode)) {
-                Sheet detailedSheet = workbook.createSheet("Extendido");
+                ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
+                String sheetExtended = spanish.containsKey("result.sheet.extended")
+                        ? spanish.getString("result.sheet.extended")
+                        : "Extendido";
+                Sheet detailedSheet = workbook.createSheet(sheetExtended);
                 CellStyle headerStyle = createHeaderStyle(workbook);
-                createDetailedSheet(detailedSheet, headerStyle);
+                createDetailedSheet(detailedSheet, headerStyle, spanish);
 
                 // If provider data is available, try to open and read rows
                 if (providerPath != null && providerSheet != null) {
@@ -99,11 +110,17 @@ public class ElectricityExcelExporter {
                             Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
                                     validInvoices, locationFactor);
                             // create per-center sheet from aggregates
-                            Sheet perCenter = workbook.createSheet("Por centro");
-                            createPerCenterSheet(perCenter, headerStyle, aggregates);
+                            String perCenterName = spanish.containsKey("result.sheet.per_center")
+                                    ? spanish.getString("result.sheet.per_center")
+                                    : "Por centro";
+                            Sheet perCenter = workbook.createSheet(perCenterName);
+                            createPerCenterSheet(perCenter, headerStyle, aggregates, spanish);
                             // create total sheet summarizing per-center aggregates
-                            Sheet total = workbook.createSheet("Total");
-                            createTotalSheetFromAggregates(total, headerStyle, aggregates);
+                            String totalName = spanish.containsKey("result.sheet.total")
+                                    ? spanish.getString("result.sheet.total")
+                                    : "Total";
+                            Sheet total = workbook.createSheet(totalName);
+                            createTotalSheetFromAggregates(total, headerStyle, aggregates, spanish);
                         }
                         src.close();
                     } catch (Exception e) {
@@ -115,8 +132,9 @@ public class ElectricityExcelExporter {
                 Sheet detailedSheet = workbook.createSheet("Extendido");
                 Sheet totalSheet = workbook.createSheet("Total");
                 CellStyle headerStyle = createHeaderStyle(workbook);
-                createDetailedSheet(detailedSheet, headerStyle);
-                createTotalSheet(totalSheet, headerStyle);
+                ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
+                createDetailedSheet(detailedSheet, headerStyle, spanish);
+                createTotalSheet(totalSheet, headerStyle, spanish);
             }
 
             // Write the workbook to file
@@ -126,25 +144,30 @@ public class ElectricityExcelExporter {
         }
     }
 
-    private static void createDetailedSheet(Sheet sheet, CellStyle headerStyle) {
+    private static void createDetailedSheet(Sheet sheet, CellStyle headerStyle, ResourceBundle spanish) {
         Row headerRow = sheet.createRow(0);
         DetailedHeader[] values = DetailedHeader.values();
         for (int i = 0; i < values.length; i++) {
             Cell cell = headerRow.createCell(i);
-            cell.setCellValue(values[i].label());
-            cell.setCellStyle(headerStyle);
+            String key = values[i].key();
+            String label = spanish.containsKey(key) ? spanish.getString(key) : values[i].label();
+            cell.setCellValue(label);
+            if (headerStyle != null)
+                cell.setCellStyle(headerStyle);
             sheet.autoSizeColumn(i);
         }
         // Append factor columns at the right-most side for market/location factors
         int next = values.length;
         Cell fm = headerRow.createCell(next++);
-        fm.setCellValue("Factor de emision market based (kgCO2e/kWh)");
-        fm.setCellStyle(headerStyle);
+        fm.setCellValue(spanish.getString("electricity.factor.market"));
+        if (headerStyle != null)
+            fm.setCellStyle(headerStyle);
         sheet.autoSizeColumn(next - 1);
 
         Cell fl = headerRow.createCell(next++);
-        fl.setCellValue("Factor de emision location based (kgCO2e/kWh)");
-        fl.setCellStyle(headerStyle);
+        fl.setCellValue(spanish.getString("electricity.factor.location"));
+        if (headerStyle != null)
+            fl.setCellStyle(headerStyle);
         sheet.autoSizeColumn(next - 1);
     }
 
@@ -485,13 +508,14 @@ public class ElectricityExcelExporter {
         return perCenterAgg;
     }
 
-    private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates) {
+    private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates,
+            ResourceBundle spanish) {
         // Header
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("Centro");
-        header.createCell(1).setCellValue("Consumo kWh");
-        header.createCell(2).setCellValue("Emisiones tCO2 market based");
-        header.createCell(3).setCellValue("Emisiones tCO2 location based");
+        header.createCell(0).setCellValue(spanish.getString("electricity.percenter.centro"));
+        header.createCell(1).setCellValue(spanish.getString("electricity.percenter.consumption"));
+        header.createCell(2).setCellValue(spanish.getString("electricity.percenter.emissions.market"));
+        header.createCell(3).setCellValue(spanish.getString("electricity.percenter.emissions.location"));
         if (headerStyle != null) {
             for (int i = 0; i < 4; i++)
                 header.getCell(i).setCellStyle(headerStyle);
@@ -512,12 +536,12 @@ public class ElectricityExcelExporter {
     }
 
     private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
-            Map<String, double[]> aggregates) {
+            Map<String, double[]> aggregates, ResourceBundle spanish) {
         // Header
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("Total Consumo kWh");
-        header.createCell(1).setCellValue("Total Emisiones tCO2 Market Based");
-        header.createCell(2).setCellValue("Total Emisiones tCO2 Location Based");
+        header.createCell(0).setCellValue(spanish.getString("electricity.total.consumption"));
+        header.createCell(1).setCellValue(spanish.getString("electricity.total.emissions.market"));
+        header.createCell(2).setCellValue(spanish.getString("electricity.total.emissions.location"));
         if (headerStyle != null) {
             for (int i = 0; i < 3; i++)
                 header.getCell(i).setCellStyle(headerStyle);
@@ -722,13 +746,16 @@ public class ElectricityExcelExporter {
         return LocalDate.now().getYear();
     }
 
-    private static void createTotalSheet(Sheet sheet, CellStyle headerStyle) {
+    private static void createTotalSheet(Sheet sheet, CellStyle headerStyle, ResourceBundle spanish) {
         Row headerRow = sheet.createRow(0);
         TotalHeader[] values = TotalHeader.values();
         for (int i = 0; i < values.length; i++) {
             Cell cell = headerRow.createCell(i);
-            cell.setCellValue(values[i].label());
-            cell.setCellStyle(headerStyle);
+            String key = values[i].key();
+            String label = spanish.containsKey(key) ? spanish.getString(key) : values[i].label();
+            cell.setCellValue(label);
+            if (headerStyle != null)
+                cell.setCellStyle(headerStyle);
             sheet.autoSizeColumn(i);
         }
     }

@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.ResourceBundle;
 
 /**
  * Gas Excel exporter.
@@ -51,11 +52,12 @@ import java.util.Locale;
  * </p>
  *
  * <p>
- * Notes on localization: the exporter currently writes Spanish labels and
- * sheet names (for backward compatibility). When full localization is added,
- * apply resource-bundle lookups for header titles and sheet names at the
- * point where the exporter writes the workbook; avoid changing the exported
- * column ordering to preserve compatibility with any downstream processing.
+ * Notes on localization: header labels for exported Excel files are read
+ * from the Spanish resource bundle (Messages_es) to guarantee consistent
+ * Spanish wording in exported workbooks regardless of the application's
+ * current UI locale. Exporters perform resource-bundle lookups at write-time
+ * and avoid changing column ordering so downstream consumers remain
+ * compatible.
  * </p>
  *
  * @since 1.0.0
@@ -73,38 +75,33 @@ public class GasExcelExporter {
     // a GAS_TYPE column after FACTURA. We reuse the enum labels for consistency.
     private static final String[] DETAILED_HEADERS;
     static {
+        // Use resource keys for headers; exporters will lookup the Spanish bundle
         DetailedHeader[] dh = DetailedHeader.values();
-        // For gas we want to adjust the emissions/factor columns:
-        // - Rename EMISIONES_MARKET -> "Emisiones tCO2"
-        // - Remove EMISIONES_LOCATION
-        // - Place "Tipo de gas" after the (single) Emisiones column
-        // - Keep a single factor column renamed to "Factor de emision (kgCO2e/kWh)"
         java.util.List<String> tmp = new java.util.ArrayList<>();
         for (DetailedHeader h : dh) {
             if (h == DetailedHeader.EMISIONES_MARKET) {
-                tmp.add("Emisiones tCO2");
-                // skip adding EMISIONES_LOCATION when it comes
+                tmp.add(h.key());
+                // skip EMISIONES_LOCATION for gas
             } else if (h == DetailedHeader.EMISIONES_LOCATION) {
-                // skip location-based emissions for gas (Scope 1)
                 continue;
             } else {
-                tmp.add(h.label());
+                tmp.add(h.key());
             }
         }
-        // Insert Tipo de gas right after the Emisiones column
-        int emisIndex = tmp.indexOf("Emisiones tCO2");
+        // Insert gas type key right after the emissions key
+        int emisIndex = tmp.indexOf(DetailedHeader.EMISIONES_MARKET.key());
         if (emisIndex < 0)
             emisIndex = tmp.size();
-        tmp.add(emisIndex + 1, "Tipo de gas");
-        // Append single factor column (market renamed)
-        tmp.add("Factor de emision (kgCO2e/kWh)");
+        tmp.add(emisIndex + 1, "gas.mapping.gasType");
+        // Append single factor column key
+        tmp.add("gas.factor.market");
 
         DETAILED_HEADERS = tmp.toArray(new String[0]);
     }
 
     private static final String[] TOTAL_HEADERS = {
-            "Total Consumo kWh",
-            "Total Emisiones tCO2"
+        "gas.total.consumption",
+        "gas.total.emissions"
     };
 
     public static void exportGasData(String filePath) throws IOException {
@@ -118,9 +115,12 @@ public class GasExcelExporter {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
             if ("extended".equalsIgnoreCase(sheetMode)) {
-                Sheet detailedSheet = workbook.createSheet("Extendido");
-                CellStyle headerStyle = createHeaderStyle(workbook);
-                createDetailedSheet(detailedSheet, headerStyle);
+        ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
+        String sheetExtended = spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
+            : "Extendido";
+        Sheet detailedSheet = workbook.createSheet(sheetExtended);
+        CellStyle headerStyle = createHeaderStyle(workbook);
+        createDetailedSheet(detailedSheet, headerStyle, spanish);
 
                 if (providerPath != null && providerSheet != null) {
                     try (FileInputStream fis = new FileInputStream(providerPath)) {
@@ -132,12 +132,17 @@ public class GasExcelExporter {
                             // Load per-year gas-type emission factors (map gasType -> GasFactorEntry)
                             Map<String, GasFactorEntry> gasTypeToFactor = loadGasFactorsForYear(year);
 
-                            Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
-                                    validInvoices, gasTypeToFactor);
-                            Sheet perCenter = workbook.createSheet("Por centro");
-                            createPerCenterSheet(perCenter, headerStyle, aggregates);
-                            Sheet total = workbook.createSheet("Total");
-                            createTotalSheetFromAggregates(total, headerStyle, aggregates);
+                Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
+                    validInvoices, gasTypeToFactor);
+                String perCenterName = spanish.containsKey("result.sheet.per_center")
+                    ? spanish.getString("result.sheet.per_center")
+                    : "Por centro";
+                Sheet perCenter = workbook.createSheet(perCenterName);
+                createPerCenterSheet(perCenter, headerStyle, aggregates, spanish);
+                String totalName = spanish.containsKey("result.sheet.total") ? spanish.getString("result.sheet.total")
+                    : "Total";
+                Sheet total = workbook.createSheet(totalName);
+                createTotalSheetFromAggregates(total, headerStyle, aggregates, spanish);
                         }
                         src.close();
                     } catch (Exception e) {
@@ -149,8 +154,9 @@ public class GasExcelExporter {
                 Sheet detailedSheet = workbook.createSheet("Extendido");
                 Sheet totalSheet = workbook.createSheet("Total");
                 CellStyle headerStyle = createHeaderStyle(workbook);
-                createDetailedSheet(detailedSheet, headerStyle);
-                createTotalSheet(totalSheet, headerStyle);
+                ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
+                createDetailedSheet(detailedSheet, headerStyle, spanish);
+                createTotalSheet(totalSheet, headerStyle, spanish);
             }
 
             try (FileOutputStream fos = new FileOutputStream(filePath)) {
@@ -159,12 +165,15 @@ public class GasExcelExporter {
         }
     }
 
-    private static void createDetailedSheet(Sheet sheet, CellStyle headerStyle) {
+    private static void createDetailedSheet(Sheet sheet, CellStyle headerStyle, ResourceBundle spanish) {
         Row headerRow = sheet.createRow(0);
         for (int i = 0; i < DETAILED_HEADERS.length; i++) {
             Cell cell = headerRow.createCell(i);
-            cell.setCellValue(DETAILED_HEADERS[i]);
-            cell.setCellStyle(headerStyle);
+            String key = DETAILED_HEADERS[i];
+            String label = spanish.containsKey(key) ? spanish.getString(key) : key;
+            cell.setCellValue(label);
+            if (headerStyle != null)
+                cell.setCellStyle(headerStyle);
             sheet.autoSizeColumn(i);
         }
     }
@@ -442,63 +451,121 @@ public class GasExcelExporter {
         return perCenterAgg;
     }
 
-    private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates) {
+    /**
+     * Create the per-center aggregation sheet for gas.
+     *
+     * @param sheet       target sheet where per-center rows will be written
+     * @param headerStyle optional header style to apply
+     * @param aggregates  map keyed by center name -> [consumption, emissions]
+     * @param spanish     resource bundle to localize column headers
+     */
+    private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates,
+        ResourceBundle spanish) {
         // Header
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("Centro");
-        header.createCell(1).setCellValue("Consumo kWh");
-        header.createCell(2).setCellValue("Emisiones tCO2");
+        header.createCell(0).setCellValue(spanish.containsKey("gas.percenter.centro") ? spanish.getString("gas.percenter.centro") : "Centro");
+        header.createCell(1).setCellValue(spanish.containsKey("gas.percenter.consumption") ? spanish.getString("gas.percenter.consumption") : "Consumo (kWh)");
+        header.createCell(2).setCellValue(spanish.containsKey("gas.percenter.emissions") ? spanish.getString("gas.percenter.emissions") : "Emisiones (tCO2e)");
         if (headerStyle != null) {
             for (int i = 0; i < 3; i++)
                 header.getCell(i).setCellStyle(headerStyle);
         }
 
+        // Prepare numeric styles for the values
+        Workbook wb = sheet.getWorkbook();
+        CellStyle numberStyle = wb.createCellStyle();
+        numberStyle.setDataFormat(wb.createDataFormat().getFormat("0.00"));
+
+        CellStyle emissionsStyle = wb.createCellStyle();
+        emissionsStyle.setDataFormat(wb.createDataFormat().getFormat("0.000000"));
+
         int r = 1;
-        for (Map.Entry<String, double[]> e : aggregates.entrySet()) {
-            Row row = sheet.createRow(r++);
-            row.createCell(0).setCellValue(e.getKey());
-            double[] v = e.getValue();
-            row.createCell(1).setCellValue(v[0]);
-            row.createCell(2).setCellValue(v[1]);
+        if (aggregates == null || aggregates.isEmpty()) {
+            // Produce an empty row to make it clear the sheet contains no aggregates
+            Row empty = sheet.createRow(r++);
+            empty.createCell(0).setCellValue("-");
+            Cell c1 = empty.createCell(1);
+            c1.setCellValue(0.0);
+            c1.setCellStyle(numberStyle);
+            Cell c2 = empty.createCell(2);
+            c2.setCellValue(0.0);
+            c2.setCellStyle(emissionsStyle);
+        } else {
+            for (Map.Entry<String, double[]> e : aggregates.entrySet()) {
+                Row row = sheet.createRow(r++);
+                row.createCell(0).setCellValue(e.getKey());
+                double[] v = e.getValue();
+                Cell cCons = row.createCell(1);
+                cCons.setCellValue(v != null && v.length > 0 ? v[0] : 0.0);
+                cCons.setCellStyle(numberStyle);
+                Cell cEm = row.createCell(2);
+                cEm.setCellValue(v != null && v.length > 1 ? v[1] : 0.0);
+                cEm.setCellStyle(emissionsStyle);
+            }
         }
+
         // Autosize
         for (int i = 0; i < 3; i++)
             sheet.autoSizeColumn(i);
     }
 
-    private static void createTotalSheet(Sheet sheet, CellStyle headerStyle) {
+    private static void createTotalSheet(Sheet sheet, CellStyle headerStyle, ResourceBundle spanish) {
         Row headerRow = sheet.createRow(0);
         for (int i = 0; i < TOTAL_HEADERS.length; i++) {
             Cell cell = headerRow.createCell(i);
-            cell.setCellValue(TOTAL_HEADERS[i]);
-            cell.setCellStyle(headerStyle);
+            String key = TOTAL_HEADERS[i];
+            String label = spanish.containsKey(key) ? spanish.getString(key) : key;
+            cell.setCellValue(label);
+            if (headerStyle != null)
+                cell.setCellStyle(headerStyle);
             sheet.autoSizeColumn(i);
         }
     }
 
+    /**
+     * Write a small Total sheet summarizing all per-center aggregates.
+     *
+     * @param sheet       target sheet
+     * @param headerStyle optional header style
+     * @param aggregates  map of per-center aggregates used to compute totals
+     * @param spanish     resource bundle for localized labels
+     */
     private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
-            Map<String, double[]> aggregates) {
+        Map<String, double[]> aggregates, ResourceBundle spanish) {
         // Header
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("Total Consumo kWh");
-        header.createCell(1).setCellValue("Total Emisiones tCO2");
+        header.createCell(0).setCellValue(spanish.containsKey("gas.total.consumption") ? spanish.getString("gas.total.consumption") : "Total Consumo (kWh)");
+        header.createCell(1).setCellValue(spanish.containsKey("gas.total.emissions") ? spanish.getString("gas.total.emissions") : "Total Emisiones (tCO2e)");
         if (headerStyle != null) {
             for (int i = 0; i < 2; i++)
                 header.getCell(i).setCellStyle(headerStyle);
         }
 
+        Workbook wb = sheet.getWorkbook();
+        CellStyle numberStyle = wb.createCellStyle();
+        numberStyle.setDataFormat(wb.createDataFormat().getFormat("0.00"));
+
+        CellStyle emissionsStyle = wb.createCellStyle();
+        emissionsStyle.setDataFormat(wb.createDataFormat().getFormat("0.000000"));
+
         double totalConsumo = 0.0;
         double totalEmisiones = 0.0;
-        for (double[] v : aggregates.values()) {
-            if (v == null || v.length < 2)
-                continue;
-            totalConsumo += v[0];
-            totalEmisiones += v[1];
+        if (aggregates != null && !aggregates.isEmpty()) {
+            for (double[] v : aggregates.values()) {
+                if (v == null || v.length < 2)
+                    continue;
+                totalConsumo += v[0];
+                totalEmisiones += v[1];
+            }
         }
 
         Row row = sheet.createRow(1);
-        row.createCell(0).setCellValue(totalConsumo);
-        row.createCell(1).setCellValue(totalEmisiones);
+        Cell c0 = row.createCell(0);
+        c0.setCellValue(totalConsumo);
+        c0.setCellStyle(numberStyle);
+        Cell c1 = row.createCell(1);
+        c1.setCellValue(totalEmisiones);
+        c1.setCellStyle(emissionsStyle);
 
         for (int i = 0; i < 2; i++)
             sheet.autoSizeColumn(i);

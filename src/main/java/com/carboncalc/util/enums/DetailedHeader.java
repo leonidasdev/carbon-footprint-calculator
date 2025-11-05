@@ -20,13 +20,13 @@ public enum DetailedHeader {
     FACTURA("Factura"),
     FECHA_INICIO("Fecha inicio suministro"),
     FECHA_FIN("Fecha fin suministro"),
-    CONSUMO_KWH("Consumo kWh"),
-    PCT_CONSUMO_APLICABLE_ANO("Porcentaje consumo aplicable al año"),
-    CONSUMO_APLICABLE_ANO("Consumo kWh aplicable por año"),
-    PCT_CONSUMO_APLICABLE_CENTRO("Porcentaje consumo aplicable al centro"),
-    CONSUMO_APLICABLE_CENTRO("Consumo kWh aplicable por año al centro"),
-    EMISIONES_MARKET("Emisiones tCO2 market based"),
-    EMISIONES_LOCATION("Emisiones tCO2 location based");
+    CONSUMO_KWH("Consumo (kWh)"),
+    PCT_CONSUMO_APLICABLE_ANO("Consumo aplicable al año (%)"),
+    CONSUMO_APLICABLE_ANO("Consumo aplicable por año (kWh)"),
+    PCT_CONSUMO_APLICABLE_CENTRO("Consumo aplicable al centro (%)"),
+    CONSUMO_APLICABLE_CENTRO("Consumo aplicable por año al centro (kWh)"),
+    EMISIONES_MARKET("Emisiones Market-based (tCO2e)"),
+    EMISIONES_LOCATION("Emisiones Location-based (tCO2e)");
 
     private final String label;
 
@@ -36,5 +36,13 @@ public enum DetailedHeader {
 
     public String label() {
         return label;
+    }
+
+    /**
+     * Return the resource bundle key for this header. Exporters should use the
+     * Spanish resource bundle and lookup this key to produce the display label.
+     */
+    public String key() {
+        return "detailed.header." + this.name();
     }
 }

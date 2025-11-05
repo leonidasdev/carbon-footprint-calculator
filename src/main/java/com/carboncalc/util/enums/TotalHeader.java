@@ -23,4 +23,11 @@ public enum TotalHeader {
     public String label() {
         return label;
     }
+
+    /**
+     * Resource bundle key for this total header.
+     */
+    public String key() {
+        return "total.header." + this.name();
+    }
 }

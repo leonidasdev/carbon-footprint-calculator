@@ -214,24 +214,9 @@ public class FuelController {
         updateComboBox(view.getFuelTypeSelector(), columnHeaders);
         updateComboBox(view.getVehicleTypeSelector(), columnHeaders);
         updateComboBox(view.getAmountSelector(), columnHeaders);
-        // populate completion time mapping and attempt to pre-select a likely "Last
-        // Modified" header
+        // populate completion time mapping. Do not auto-select any value; leave blank
+        // so the user can deliberately choose the completion/last-modified column.
         updateComboBox(view.getCompletionTimeSelector(), columnHeaders);
-        try {
-            JComboBox<String> completion = view.getCompletionTimeSelector();
-            if (completion != null && completion.getItemCount() > 0) {
-                for (int i = 0; i < completion.getItemCount(); i++) {
-                    String h = completion.getItemAt(i);
-                    String n = CellUtils.normalizeKey(h);
-                    if (n.contains("last") && (n.contains("modif") || n.contains("modified")
-                            || n.contains("lastmodified") || n.contains("last_modified"))) {
-                        completion.setSelectedIndex(i);
-                        break;
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-        }
     }
 
     private void updateComboBox(JComboBox<String> comboBox, List<String> items) {

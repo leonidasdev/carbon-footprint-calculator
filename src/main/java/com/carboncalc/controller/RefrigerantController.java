@@ -21,8 +21,7 @@ import java.util.*;
 import java.text.MessageFormat;
 import java.math.BigDecimal;
 import com.carboncalc.util.ValidationUtils;
-import java.io.BufferedReader;
-import java.io.FileReader;
+import com.carboncalc.util.ExcelCsvLoader;
 import java.io.IOException;
 
 /**
@@ -57,59 +56,11 @@ public class RefrigerantController {
     }
 
     /**
-     * Read a CSV file and produce an in-memory XSSFWorkbook with a single
-     * sheet containing the parsed rows. This is used to provide a unified
-     * preview/mapping flow that expects a Workbook.
+     * Delegate CSV -> Workbook conversion to the central ExcelCsvLoader
+     * which handles UTF-8/CP1252 detection and normalization.
      */
     private Workbook loadCsvAsWorkbook(File csvFile) throws IOException {
-        XSSFWorkbook wb = new XSSFWorkbook();
-        Sheet sheet = wb.createSheet("Sheet1");
-
-        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
-            String line;
-            int rowIdx = 0;
-            while ((line = br.readLine()) != null) {
-                List<String> cells = parseCsvLine(line);
-                Row r = sheet.createRow(rowIdx++);
-                for (int c = 0; c < cells.size(); c++) {
-                    Cell cell = r.createCell(c);
-                    cell.setCellValue(cells.get(c));
-                }
-            }
-        }
-        return wb;
-    }
-
-    /**
-     * Lightweight CSV line parser that handles quoted fields and commas.
-     */
-    private List<String> parseCsvLine(String line) {
-        List<String> out = new ArrayList<>();
-        if (line == null || line.isEmpty()) {
-            out.add("");
-            return out;
-        }
-        StringBuilder cur = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < line.length(); i++) {
-            char ch = line.charAt(i);
-            if (ch == '"') {
-                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                    // escaped quote
-                    cur.append('"');
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
-            } else if (ch == ',' && !inQuotes) {
-                out.add(cur.toString());
-                cur.setLength(0);
-            } else {
-                cur.append(ch);
-            }
-        }
-        out.add(cur.toString());
-        return out;
+        return ExcelCsvLoader.loadCsvAsWorkbookFromPath(csvFile.getAbsolutePath());
     }
 
     public void setView(RefrigerantPanel view) {

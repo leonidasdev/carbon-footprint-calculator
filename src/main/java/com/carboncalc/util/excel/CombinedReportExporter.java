@@ -66,12 +66,17 @@ public class CombinedReportExporter {
                 c.setCellValue(headers[i]);
             }
 
-            // Determine the names of the "Por centro" sheets for each module (moduleLabel +
-            // " Por centro")
-            String elPorCentro = elLabel + " Por centro";
-            String gasPorCentro = gasLabel + " Por centro";
-            String fuelPorCentro = fuelLabel + " Por centro";
-            String refPorCentro = refLabel + " Por centro";
+            // Determine the names of the per-center sheets for each module by joining the
+            // localized module label and the localized per-center suffix. This keeps
+            // sheet naming consistent with how module exporters name their individual
+            // sheets.
+            String perCenterSuffix = spanish.containsKey("result.sheet.per_center")
+                    ? spanish.getString("result.sheet.per_center")
+                    : "Por centro";
+            String elPorCentro = elLabel + " " + perCenterSuffix;
+            String gasPorCentro = gasLabel + " " + perCenterSuffix;
+            String fuelPorCentro = fuelLabel + " " + perCenterSuffix;
+            String refPorCentro = refLabel + " " + perCenterSuffix;
 
             // Collect center names: start with electricity order (if present), then add
             // others

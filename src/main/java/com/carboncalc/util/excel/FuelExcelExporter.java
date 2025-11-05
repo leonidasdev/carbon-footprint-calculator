@@ -58,11 +58,41 @@ public class FuelExcelExporter {
             } catch (Exception ignored) {
                 diagSheet = workbook.getSheet("Diagnostics");
             }
+            // Populate initial diagnostics metadata (timestamp, inputs)
+            try {
+                if (diagSheet != null) {
+                    int diagIdx = diagSheet.getLastRowNum() + 1;
+                    Row t = diagSheet.createRow(diagIdx++);
+                    t.createCell(0).setCellValue("timestamp");
+                    t.createCell(1).setCellValue(java.time.Instant.now().toString());
+                    Row p = diagSheet.createRow(diagIdx++);
+                    p.createCell(0).setCellValue("providerPath");
+                    p.createCell(1).setCellValue(providerPath != null ? providerPath : "null");
+                    Row ps = diagSheet.createRow(diagIdx++);
+                    ps.createCell(0).setCellValue("providerSheetRequested");
+                    ps.createCell(1).setCellValue(providerSheet != null ? providerSheet : "null");
+                    Row dest = diagSheet.createRow(diagIdx++);
+                    dest.createCell(0).setCellValue("destinationPath");
+                    dest.createCell(1).setCellValue(filePath != null ? filePath : "null");
+                    Row y = diagSheet.createRow(diagIdx++);
+                    y.createCell(0).setCellValue("yearParam");
+                    y.createCell(1).setCellValue(year);
+                    Row dl = diagSheet.createRow(diagIdx++);
+                    dl.createCell(0).setCellValue("dateLimitParam");
+                    dl.createCell(1).setCellValue(dateLimit != null ? dateLimit : "null");
+                    Row lmh = diagSheet.createRow(diagIdx++);
+                    lmh.createCell(0).setCellValue("lastModifiedHeaderProvided");
+                    lmh.createCell(1).setCellValue(lastModifiedHeader != null ? lastModifiedHeader : "null");
+                }
+            } catch (Exception ignored) {
+            }
 
-            // Create main sheets
-            Sheet detailed = workbook.createSheet("Extendido");
-            CellStyle header = createHeaderStyle(workbook);
-            createDetailedHeader(detailed, header, spanish);
+        // Create main sheets (localized names)
+        String sheetExtended = spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
+            : "Extendido";
+        Sheet detailed = workbook.createSheet(sheetExtended);
+        CellStyle header = createHeaderStyle(workbook);
+        createDetailedHeader(detailed, header, spanish);
 
             // Attempt to read provider workbook (CSV support)
             Workbook src = null;
@@ -86,10 +116,15 @@ public class FuelExcelExporter {
                             if (aggregates == null || aggregates.isEmpty()) {
                                 aggregates = computeAggregatesFromDetailed(detailed, wbEval);
                             }
-                            Sheet perCenter = workbook.createSheet("Por centro");
-                            createPerCenterSheet(perCenter, header, aggregates, spanish);
-                            Sheet total = workbook.createSheet("Total");
-                            createTotalSheetFromAggregates(total, header, aggregates, spanish);
+                String perCenterName = spanish.containsKey("result.sheet.per_center")
+                    ? spanish.getString("result.sheet.per_center")
+                    : "Por centro";
+                Sheet perCenter = workbook.createSheet(perCenterName);
+                createPerCenterSheet(perCenter, header, aggregates, spanish);
+                String totalName = spanish.containsKey("result.sheet.total") ? spanish.getString("result.sheet.total")
+                    : "Total";
+                Sheet total = workbook.createSheet(totalName);
+                createTotalSheetFromAggregates(total, header, aggregates, spanish);
                         } else {
                             // provider sheet not found -> write diagnostics
                             if (diagSheet == null)
@@ -147,13 +182,18 @@ public class FuelExcelExporter {
      */
     private static void createDetailedHeader(Sheet sheet, CellStyle headerStyle, ResourceBundle spanish) {
         Row h = sheet.createRow(0);
-        String[] labels = new String[] { spanish.getString("fuel.mapping.id"),
-                spanish.getString("fuel.mapping.centro"), spanish.getString("fuel.mapping.person"),
-                spanish.getString("fuel.mapping.invoiceNumber"), spanish.getString("fuel.mapping.provider"),
-                spanish.getString("fuel.mapping.invoiceDate"), spanish.getString("fuel.mapping.fuelType"),
-                spanish.getString("fuel.mapping.vehicleType"), // amount
-                spanish.getString("fuel.mapping.amount") + " (L)", spanish.getString("fuel.mapping.emissionFactor"),
-                spanish.getString("fuel.mapping.emissions") };
+    String[] labels = new String[] { spanish.getString("detailed.header.ID"), spanish.getString("fuel.mapping.centro"),
+        spanish.getString("fuel.mapping.responsable"), spanish.getString("fuel.mapping.invoiceNumber"),
+        spanish.getString("fuel.mapping.provider"), spanish.getString("fuel.mapping.invoiceDate"),
+        spanish.getString("fuel.mapping.fuelType"), spanish.getString("fuel.mapping.vehicleType"),
+        // Importe with unit from messages
+        spanish.getString("fuel.mapping.amount_with_unit"),
+        // emission factor label with unit from messages
+        spanish.getString("fuel.mapping.emissionFactor_with_unit"),
+        // emissions label
+        spanish.getString("fuel.mapping.emissions"),
+        // completion / last modified time as last column
+        spanish.getString("fuel.mapping.completionTime") };
         for (int i = 0; i < labels.length; i++) {
             Cell c = h.createCell(i);
             c.setCellValue(labels[i]);
@@ -210,11 +250,17 @@ public class FuelExcelExporter {
         if (headerRowIndex == -1)
             return perCenter;
 
-        int outRow = target.getLastRowNum() + 1;
+    int outRow = target.getLastRowNum() + 1;
+    int idCounter = 1;
         Sheet diag = target.getWorkbook().getSheet("Diagnostics");
-        if (diag == null)
-            diag = target.getWorkbook().createSheet("Diagnostics");
-        int diagRow = diag.getLastRowNum() + 1;
+        if (diag == null) {
+            try {
+                diag = target.getWorkbook().createSheet("Diagnostics");
+            } catch (Exception ignored) {
+                diag = target.getWorkbook().getSheet("Diagnostics");
+            }
+        }
+        int diagRow = diag == null ? 0 : diag.getLastRowNum() + 1;
 
         int processed = 0;
         int skippedByLastModified = 0;
@@ -298,55 +344,61 @@ public class FuelExcelExporter {
             }
 
             // Apply Last Modified upper-bound filtering: if the row has a last-modified and
-            // it's AFTER the dateLimit -> skip
+            // it's AFTER the dateLimit -> skip. If not skipped, write the detailed output row.
+            boolean skipDueToLastModified = false;
+            String lmRaw = null;
+            String parsedLmText = "";
             if (lastModifiedIndexLocal >= 0 && dateLimitInstant != null) {
-                String lmStr = CellUtils.getCellStringByIndex(src, lastModifiedIndexLocal, df, eval);
-                if (lmStr != null && !lmStr.trim().isEmpty()) {
-                    boolean parsedAndAfter = false;
-                    String parsedLmText = "";
+                try {
+                    lmRaw = CellUtils.getCellStringByIndex(src, lastModifiedIndexLocal, df, eval);
+                } catch (Exception ignored) {
+                }
+                if (lmRaw != null && !lmRaw.trim().isEmpty()) {
                     try {
-                        java.time.Instant lmInstant = DateUtils.parseInstantLenient(lmStr.trim());
+                        java.time.Instant lmInstant = DateUtils.parseInstantLenient(lmRaw.trim());
                         if (lmInstant != null) {
                             parsedLmText = lmInstant.toString();
                             if (lmInstant.isAfter(dateLimitInstant))
-                                parsedAndAfter = true;
+                                skipDueToLastModified = true;
                         }
                     } catch (Exception ignored) {
                     }
-                    if (parsedAndAfter) {
-                        skippedByLastModified++;
-                        try {
-                            Row dr = diag.createRow(diagRow++);
-                            dr.createCell(0).setCellValue(i);
-                            dr.createCell(1).setCellValue(invoice != null ? invoice : "");
-                            dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
-                            dr.createCell(3).setCellValue(parsedDate != null ? parsedDate.toString() : "");
-                            dr.createCell(4).setCellValue(lmStr != null ? lmStr : "");
-                            dr.createCell(5).setCellValue(parsedLmText);
-                            dr.createCell(6).setCellValue(amount);
-                            dr.createCell(7).setCellValue("SKIPPED_LAST_MODIFIED_AFTER_LIMIT");
-                        } catch (Exception ignored) {
-                        }
-                        continue;
+                }
+            }
+
+            if (skipDueToLastModified) {
+                skippedByLastModified++;
+                // diagnostics: skipped by last-modified
+                if (diag != null) {
+                    try {
+                        Row dr = diag.createRow(diagRow++);
+                        dr.createCell(0).setCellValue(i);
+                        dr.createCell(1).setCellValue(invoice != null ? invoice : "");
+                        dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
+                        dr.createCell(3).setCellValue(parsedDate != null ? parsedDate.toString() : "");
+                        dr.createCell(4).setCellValue(lmRaw != null ? lmRaw : "");
+                        dr.createCell(5).setCellValue(parsedLmText);
+                        dr.createCell(6).setCellValue(amount);
+                        dr.createCell(7).setCellValue("SKIPPED_LAST_MODIFIED_AFTER_LIMIT");
+                    } catch (Exception ignored) {
                     }
                 }
+                continue;
             }
 
-            // lookup factor: prefer fuel|vehicle, then fuel
+            // Determine emission factor: prefer combined key fuel|vehicle, otherwise fuel key
             double factor = 0.0;
             if (fuelType != null && !fuelType.trim().isEmpty()) {
-                String fk = CellUtils.normalizeKey(fuelType);
-                if (vehicleType != null && !vehicleType.trim().isEmpty()) {
-                    String vk = CellUtils.normalizeKey(vehicleType);
-                    factor = fuelToFactor.getOrDefault(fk + "|" + vk, fuelToFactor.getOrDefault(fk, 0.0));
+                String key = CellUtils.normalizeKey(fuelType);
+                String vt = vehicleType != null ? CellUtils.normalizeKey(vehicleType) : "";
+                if (!vt.isEmpty() && fuelToFactor.containsKey(key + "|" + vt)) {
+                    factor = fuelToFactor.getOrDefault(key + "|" + vt, 0.0);
                 } else {
-                    factor = fuelToFactor.getOrDefault(fk, 0.0);
+                    factor = fuelToFactor.getOrDefault(key, 0.0);
                 }
             }
 
-            double emissionsT = (amount * factor) / 1000.0;
-
-            // aggregate
+            // Build a per-center key and update aggregates
             String centerKey = (center == null || center.trim().isEmpty()) ? (invoice != null ? invoice : "SIN_CENTRO")
                     : center;
             double[] agg = perCenter.get(centerKey);
@@ -354,23 +406,30 @@ public class FuelExcelExporter {
                 agg = new double[2];
                 perCenter.put(centerKey, agg);
             }
+            // amount is in litres
             agg[0] += amount;
+            double emissionsT = (amount * factor) / 1000.0;
             agg[1] += emissionsT;
 
-            // write row
+            // Write detailed output row following header layout: Centro, Responsable, Nº Factura,
+            // Proveedor, Fecha, Tipo Combustible, Tipo Vehículo, Importe (€), Factor, Emisiones (tCO2e), Tiempo de Finalizacion
             Row out = target.createRow(outRow++);
             int col = 0;
-            out.createCell(col++).setCellValue(i);
+            out.createCell(col++).setCellValue(idCounter++);
             out.createCell(col++).setCellValue(centerKey);
             out.createCell(col++).setCellValue(person != null ? person : "");
             out.createCell(col++).setCellValue(invoice != null ? invoice : "");
             out.createCell(col++).setCellValue(provider != null ? provider : "");
 
             Cell dateCell = out.createCell(col++);
-            if (parsedDate != null) {
-                dateCell.setCellValue(Date.valueOf(parsedDate));
-                dateCell.setCellStyle(createDateStyle(target.getWorkbook()));
-            } else {
+            try {
+                if (parsedDate != null) {
+                    dateCell.setCellValue(Date.valueOf(parsedDate));
+                    dateCell.setCellStyle(createDateStyle(target.getWorkbook()));
+                } else {
+                    dateCell.setCellValue(invoiceDate != null ? invoiceDate : "");
+                }
+            } catch (Exception ex) {
                 dateCell.setCellValue(invoiceDate != null ? invoiceDate : "");
             }
 
@@ -386,13 +445,44 @@ public class FuelExcelExporter {
             String facRef = CellReference.convertNumToColString(factorCol) + Integer.toString(out.getRowNum() + 1);
             formulaCell.setCellFormula(amtRef + "*" + facRef + "/1000");
 
+            // Tiempo de Finalizacion (completion / last modified) as last column
+            Cell completionCell = out.createCell(col++);
+            if (lmRaw != null && !lmRaw.trim().isEmpty()) {
+                try {
+                    java.time.Instant inst = DateUtils.parseInstantLenient(lmRaw.trim());
+                    if (inst != null) {
+                        completionCell.setCellValue(lmRaw.trim());
+                    } else {
+                        LocalDate ld = DateUtils.parseDateLenient(lmRaw.trim());
+                        if (ld != null) {
+                            completionCell.setCellValue(Date.valueOf(ld));
+                            completionCell.setCellStyle(createDateStyle(target.getWorkbook()));
+                        } else {
+                            completionCell.setCellValue(lmRaw);
+                        }
+                    }
+                } catch (Exception ex) {
+                    completionCell.setCellValue(lmRaw);
+                }
+            } else {
+                completionCell.setCellValue("");
+            }
+
             // diagnostics accepted
-            Row dr = diag.createRow(diagRow++);
-            dr.createCell(0).setCellValue(i);
-            dr.createCell(1).setCellValue(invoice != null ? invoice : "");
-            dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
-            dr.createCell(3).setCellValue(amount);
-            dr.createCell(4).setCellValue("ACCEPTED");
+            if (diag != null) {
+                try {
+                    Row dr = diag.createRow(diagRow++);
+                    dr.createCell(0).setCellValue(i);
+                    dr.createCell(1).setCellValue(invoice != null ? invoice : "");
+                    dr.createCell(2).setCellValue(invoiceDate != null ? invoiceDate : "");
+                    dr.createCell(3).setCellValue(parsedDate != null ? parsedDate.toString() : "");
+                    dr.createCell(4).setCellValue(lmRaw != null ? lmRaw : "");
+                    dr.createCell(5).setCellValue(parsedLmText);
+                    dr.createCell(6).setCellValue(amount);
+                    dr.createCell(7).setCellValue("ACCEPTED");
+                } catch (Exception ignored) {
+                }
+            }
 
             processed++;
         }
@@ -517,19 +607,22 @@ public class FuelExcelExporter {
                 continue;
             String center = "";
             try {
-                Cell c0 = row.getCell(1);
-                center = c0 != null ? (c0.getCellType() == CellType.STRING ? c0.getStringCellValue()
-                        : String.valueOf(CellUtils.getNumericCellValue(c0, eval))) : "";
+                // With ID as the first column, Centro is at column 1
+                Cell c1 = row.getCell(1);
+                center = c1 != null ? (c1.getCellType() == CellType.STRING ? c1.getStringCellValue()
+                        : String.valueOf(CellUtils.getNumericCellValue(c1, eval))) : "";
             } catch (Exception ignored) {
             }
             double amt = 0.0;
             double em = 0.0;
             try {
+                // Amount (Importe) is now at column 8 (shifted by +1 due to ID)
                 Cell amtCell = row.getCell(8);
                 amt = CellUtils.getNumericCellValue(amtCell, eval);
             } catch (Exception ignored) {
             }
             try {
+                // Emissions column is now at index 10 (shifted by +1 due to ID)
                 Cell emCell = row.getCell(10);
                 em = CellUtils.getNumericCellValue(emCell, eval);
             } catch (Exception ignored) {

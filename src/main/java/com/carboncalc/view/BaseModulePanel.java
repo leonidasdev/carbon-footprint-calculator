@@ -44,7 +44,8 @@ public abstract class BaseModulePanel extends JPanel {
         UIUtils.stylePanel(this);
         UIUtils.stylePanel(contentPanel);
 
-        // Defer initialization to avoid init-order coupling between controller/view wiring.
+        // Defer initialization to avoid init-order coupling between controller/view
+        // wiring.
         // Also allow controllers to register post-init callbacks that will be
         // executed immediately after initializeComponents() completes. This
         // avoids races where both the view and controller schedule work on the

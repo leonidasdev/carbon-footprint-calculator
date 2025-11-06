@@ -100,8 +100,8 @@ public class GasExcelExporter {
     }
 
     private static final String[] TOTAL_HEADERS = {
-        "gas.total.consumption",
-        "gas.total.emissions"
+            "gas.total.consumption",
+            "gas.total.emissions"
     };
 
     public static void exportGasData(String filePath) throws IOException {
@@ -115,12 +115,13 @@ public class GasExcelExporter {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
             if ("extended".equalsIgnoreCase(sheetMode)) {
-        ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
-        String sheetExtended = spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
-            : "Extendido";
-        Sheet detailedSheet = workbook.createSheet(sheetExtended);
-        CellStyle headerStyle = createHeaderStyle(workbook);
-        createDetailedSheet(detailedSheet, headerStyle, spanish);
+                ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
+                String sheetExtended = spanish.containsKey("result.sheet.extended")
+                        ? spanish.getString("result.sheet.extended")
+                        : "Extendido";
+                Sheet detailedSheet = workbook.createSheet(sheetExtended);
+                CellStyle headerStyle = createHeaderStyle(workbook);
+                createDetailedSheet(detailedSheet, headerStyle, spanish);
 
                 if (providerPath != null && providerSheet != null) {
                     try (FileInputStream fis = new FileInputStream(providerPath)) {
@@ -132,17 +133,18 @@ public class GasExcelExporter {
                             // Load per-year gas-type emission factors (map gasType -> GasFactorEntry)
                             Map<String, GasFactorEntry> gasTypeToFactor = loadGasFactorsForYear(year);
 
-                Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
-                    validInvoices, gasTypeToFactor);
-                String perCenterName = spanish.containsKey("result.sheet.per_center")
-                    ? spanish.getString("result.sheet.per_center")
-                    : "Por centro";
-                Sheet perCenter = workbook.createSheet(perCenterName);
-                createPerCenterSheet(perCenter, headerStyle, aggregates, spanish);
-                String totalName = spanish.containsKey("result.sheet.total") ? spanish.getString("result.sheet.total")
-                    : "Total";
-                Sheet total = workbook.createSheet(totalName);
-                createTotalSheetFromAggregates(total, headerStyle, aggregates, spanish);
+                            Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
+                                    validInvoices, gasTypeToFactor);
+                            String perCenterName = spanish.containsKey("result.sheet.per_center")
+                                    ? spanish.getString("result.sheet.per_center")
+                                    : "Por centro";
+                            Sheet perCenter = workbook.createSheet(perCenterName);
+                            createPerCenterSheet(perCenter, headerStyle, aggregates, spanish);
+                            String totalName = spanish.containsKey("result.sheet.total")
+                                    ? spanish.getString("result.sheet.total")
+                                    : "Total";
+                            Sheet total = workbook.createSheet(totalName);
+                            createTotalSheetFromAggregates(total, headerStyle, aggregates, spanish);
                         }
                         src.close();
                     } catch (Exception e) {
@@ -171,7 +173,8 @@ public class GasExcelExporter {
             Cell cell = headerRow.createCell(i);
             String key = DETAILED_HEADERS[i];
             String label;
-            // For gas exporter we want the generic emissions column to read "Emisiones (tCO2e)"
+            // For gas exporter we want the generic emissions column to read "Emisiones
+            // (tCO2e)"
             if (key != null && key.equals("detailed.header.EMISIONES_MARKET")) {
                 label = spanish.containsKey("gas.detailed.emissions") ? spanish.getString("gas.detailed.emissions")
                         : (spanish.containsKey(key) ? spanish.getString(key) : key);
@@ -467,12 +470,18 @@ public class GasExcelExporter {
      * @param spanish     resource bundle to localize column headers
      */
     private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates,
-        ResourceBundle spanish) {
+            ResourceBundle spanish) {
         // Header
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue(spanish.containsKey("gas.percenter.centro") ? spanish.getString("gas.percenter.centro") : "Centro");
-        header.createCell(1).setCellValue(spanish.containsKey("gas.percenter.consumption") ? spanish.getString("gas.percenter.consumption") : "Consumo (kWh)");
-        header.createCell(2).setCellValue(spanish.containsKey("gas.percenter.emissions") ? spanish.getString("gas.percenter.emissions") : "Emisiones (tCO2e)");
+        header.createCell(0).setCellValue(
+                spanish.containsKey("gas.percenter.centro") ? spanish.getString("gas.percenter.centro") : "Centro");
+        header.createCell(1)
+                .setCellValue(spanish.containsKey("gas.percenter.consumption")
+                        ? spanish.getString("gas.percenter.consumption")
+                        : "Consumo (kWh)");
+        header.createCell(2).setCellValue(
+                spanish.containsKey("gas.percenter.emissions") ? spanish.getString("gas.percenter.emissions")
+                        : "Emisiones (tCO2e)");
         if (headerStyle != null) {
             for (int i = 0; i < 3; i++)
                 header.getCell(i).setCellStyle(headerStyle);
@@ -538,11 +547,15 @@ public class GasExcelExporter {
      * @param spanish     resource bundle for localized labels
      */
     private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
-        Map<String, double[]> aggregates, ResourceBundle spanish) {
+            Map<String, double[]> aggregates, ResourceBundle spanish) {
         // Header
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue(spanish.containsKey("gas.total.consumption") ? spanish.getString("gas.total.consumption") : "Total Consumo (kWh)");
-        header.createCell(1).setCellValue(spanish.containsKey("gas.total.emissions") ? spanish.getString("gas.total.emissions") : "Total Emisiones (tCO2e)");
+        header.createCell(0)
+                .setCellValue(spanish.containsKey("gas.total.consumption") ? spanish.getString("gas.total.consumption")
+                        : "Total Consumo (kWh)");
+        header.createCell(1)
+                .setCellValue(spanish.containsKey("gas.total.emissions") ? spanish.getString("gas.total.emissions")
+                        : "Total Emisiones (tCO2e)");
         if (headerStyle != null) {
             for (int i = 0; i < 2; i++)
                 header.getCell(i).setCellStyle(headerStyle);

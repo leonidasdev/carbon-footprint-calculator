@@ -87,12 +87,13 @@ public class FuelExcelExporter {
             } catch (Exception ignored) {
             }
 
-        // Create main sheets (localized names)
-        String sheetExtended = spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
-            : "Extendido";
-        Sheet detailed = workbook.createSheet(sheetExtended);
-        CellStyle header = createHeaderStyle(workbook);
-        createDetailedHeader(detailed, header, spanish);
+            // Create main sheets (localized names)
+            String sheetExtended = spanish.containsKey("result.sheet.extended")
+                    ? spanish.getString("result.sheet.extended")
+                    : "Extendido";
+            Sheet detailed = workbook.createSheet(sheetExtended);
+            CellStyle header = createHeaderStyle(workbook);
+            createDetailedHeader(detailed, header, spanish);
 
             // Attempt to read provider workbook (CSV support)
             Workbook src = null;
@@ -116,15 +117,16 @@ public class FuelExcelExporter {
                             if (aggregates == null || aggregates.isEmpty()) {
                                 aggregates = computeAggregatesFromDetailed(detailed, wbEval);
                             }
-                String perCenterName = spanish.containsKey("result.sheet.per_center")
-                    ? spanish.getString("result.sheet.per_center")
-                    : "Por centro";
-                Sheet perCenter = workbook.createSheet(perCenterName);
-                createPerCenterSheet(perCenter, header, aggregates, spanish);
-                String totalName = spanish.containsKey("result.sheet.total") ? spanish.getString("result.sheet.total")
-                    : "Total";
-                Sheet total = workbook.createSheet(totalName);
-                createTotalSheetFromAggregates(total, header, aggregates, spanish);
+                            String perCenterName = spanish.containsKey("result.sheet.per_center")
+                                    ? spanish.getString("result.sheet.per_center")
+                                    : "Por centro";
+                            Sheet perCenter = workbook.createSheet(perCenterName);
+                            createPerCenterSheet(perCenter, header, aggregates, spanish);
+                            String totalName = spanish.containsKey("result.sheet.total")
+                                    ? spanish.getString("result.sheet.total")
+                                    : "Total";
+                            Sheet total = workbook.createSheet(totalName);
+                            createTotalSheetFromAggregates(total, header, aggregates, spanish);
                         } else {
                             // provider sheet not found -> write diagnostics
                             if (diagSheet == null)
@@ -182,18 +184,19 @@ public class FuelExcelExporter {
      */
     private static void createDetailedHeader(Sheet sheet, CellStyle headerStyle, ResourceBundle spanish) {
         Row h = sheet.createRow(0);
-    String[] labels = new String[] { spanish.getString("detailed.header.ID"), spanish.getString("fuel.mapping.centro"),
-        spanish.getString("fuel.mapping.responsable"), spanish.getString("fuel.mapping.invoiceNumber"),
-        spanish.getString("fuel.mapping.provider"), spanish.getString("fuel.mapping.invoiceDate"),
-        spanish.getString("fuel.mapping.fuelType"), spanish.getString("fuel.mapping.vehicleType"),
-        // Importe with unit from messages
-        spanish.getString("fuel.mapping.amount_with_unit"),
-        // emission factor label with unit from messages
-        spanish.getString("fuel.mapping.emissionFactor_with_unit"),
-        // emissions label
-        spanish.getString("fuel.mapping.emissions"),
-        // completion / last modified time as last column
-        spanish.getString("fuel.mapping.completionTime") };
+        String[] labels = new String[] { spanish.getString("detailed.header.ID"),
+                spanish.getString("fuel.mapping.centro"),
+                spanish.getString("fuel.mapping.responsable"), spanish.getString("fuel.mapping.invoiceNumber"),
+                spanish.getString("fuel.mapping.provider"), spanish.getString("fuel.mapping.invoiceDate"),
+                spanish.getString("fuel.mapping.fuelType"), spanish.getString("fuel.mapping.vehicleType"),
+                // Importe with unit from messages
+                spanish.getString("fuel.mapping.amount_with_unit"),
+                // emission factor label with unit from messages
+                spanish.getString("fuel.mapping.emissionFactor_with_unit"),
+                // emissions label
+                spanish.getString("fuel.mapping.emissions"),
+                // completion / last modified time as last column
+                spanish.getString("fuel.mapping.completionTime") };
         for (int i = 0; i < labels.length; i++) {
             Cell c = h.createCell(i);
             c.setCellValue(labels[i]);
@@ -250,8 +253,8 @@ public class FuelExcelExporter {
         if (headerRowIndex == -1)
             return perCenter;
 
-    int outRow = target.getLastRowNum() + 1;
-    int idCounter = 1;
+        int outRow = target.getLastRowNum() + 1;
+        int idCounter = 1;
         Sheet diag = target.getWorkbook().getSheet("Diagnostics");
         if (diag == null) {
             try {
@@ -344,7 +347,8 @@ public class FuelExcelExporter {
             }
 
             // Apply Last Modified upper-bound filtering: if the row has a last-modified and
-            // it's AFTER the dateLimit -> skip. If not skipped, write the detailed output row.
+            // it's AFTER the dateLimit -> skip. If not skipped, write the detailed output
+            // row.
             boolean skipDueToLastModified = false;
             String lmRaw = null;
             String parsedLmText = "";
@@ -386,7 +390,8 @@ public class FuelExcelExporter {
                 continue;
             }
 
-            // Determine emission factor: prefer combined key fuel|vehicle, otherwise fuel key
+            // Determine emission factor: prefer combined key fuel|vehicle, otherwise fuel
+            // key
             double factor = 0.0;
             if (fuelType != null && !fuelType.trim().isEmpty()) {
                 String key = CellUtils.normalizeKey(fuelType);
@@ -411,8 +416,10 @@ public class FuelExcelExporter {
             double emissionsT = (amount * factor) / 1000.0;
             agg[1] += emissionsT;
 
-            // Write detailed output row following header layout: Centro, Responsable, Nº Factura,
-            // Proveedor, Fecha, Tipo Combustible, Tipo Vehículo, Importe (€), Factor, Emisiones (tCO2e), Tiempo de Finalizacion
+            // Write detailed output row following header layout: Centro, Responsable, Nº
+            // Factura,
+            // Proveedor, Fecha, Tipo Combustible, Tipo Vehículo, Importe (€), Factor,
+            // Emisiones (tCO2e), Tiempo de Finalizacion
             Row out = target.createRow(outRow++);
             int col = 0;
             out.createCell(col++).setCellValue(idCounter++);

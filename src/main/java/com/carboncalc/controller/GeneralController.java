@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.ResourceBundle;
 import java.util.Vector;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import com.carboncalc.util.excel.CombinedReportExporter;
+import com.carboncalc.util.excel.GeneralExcelExporter;
 
 /**
  * Controller for the GeneralPanel. Responsible for responding to file
@@ -46,7 +46,8 @@ public class GeneralController {
                 view.getAddElectricityFileButton().addActionListener(e -> {
                     JFileChooser fileChooser = new JFileChooser();
                     fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx", "xls", "csv"));
+                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"),
+                            "xlsx", "xls", "csv"));
                     if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                         File f = fileChooser.getSelectedFile();
                         view.setSelectedElectricityFile(f);
@@ -57,7 +58,8 @@ public class GeneralController {
                 view.getAddGasFileButton().addActionListener(e -> {
                     JFileChooser fileChooser = new JFileChooser();
                     fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx", "xls", "csv"));
+                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"),
+                            "xlsx", "xls", "csv"));
                     if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                         File f = fileChooser.getSelectedFile();
                         view.setSelectedGasFile(f);
@@ -68,7 +70,8 @@ public class GeneralController {
                 view.getAddFuelFileButton().addActionListener(e -> {
                     JFileChooser fileChooser = new JFileChooser();
                     fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx", "xls", "csv"));
+                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"),
+                            "xlsx", "xls", "csv"));
                     if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                         File f = fileChooser.getSelectedFile();
                         view.setSelectedFuelFile(f);
@@ -79,7 +82,8 @@ public class GeneralController {
                 view.getAddRefrigerantFileButton().addActionListener(e -> {
                     JFileChooser fileChooser = new JFileChooser();
                     fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx", "xls", "csv"));
+                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"),
+                            "xlsx", "xls", "csv"));
                     if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                         File f = fileChooser.getSelectedFile();
                         view.setSelectedRefrigerantFile(f);
@@ -162,7 +166,7 @@ public class GeneralController {
             out = new File(out.getAbsolutePath() + ".xlsx");
         }
         try {
-            CombinedReportExporter.exportResultsReport(out.getAbsolutePath(), view.getSelectedElectricityFile(),
+            GeneralExcelExporter.exportResultsReport(out.getAbsolutePath(), view.getSelectedElectricityFile(),
                     view.getSelectedGasFile(), view.getSelectedFuelFile(), view.getSelectedRefrigerantFile(),
                     includeModuleSheets);
             JOptionPane.showMessageDialog(null, messages.getString("excel.save.success"),

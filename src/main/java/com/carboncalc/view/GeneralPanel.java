@@ -67,8 +67,8 @@ public class GeneralPanel extends BaseModulePanel {
         fgb.gridy = 0;
         fgb.anchor = GridBagConstraints.WEST;
 
-    addElectricityFileButton = new JButton(messages.getString("button.file.add.electricity"));
-    UIUtils.styleButton(addElectricityFileButton);
+        addElectricityFileButton = new JButton(messages.getString("button.file.add.electricity"));
+        UIUtils.styleButton(addElectricityFileButton);
         fileGroup.add(addElectricityFileButton, fgb);
 
         fgb.gridx = 1;
@@ -78,8 +78,8 @@ public class GeneralPanel extends BaseModulePanel {
 
         fgb.gridx = 0;
         fgb.gridy++;
-    addGasFileButton = new JButton(messages.getString("button.file.add.gas"));
-    UIUtils.styleButton(addGasFileButton);
+        addGasFileButton = new JButton(messages.getString("button.file.add.gas"));
+        UIUtils.styleButton(addGasFileButton);
         fileGroup.add(addGasFileButton, fgb);
 
         fgb.gridx = 1;
@@ -89,8 +89,8 @@ public class GeneralPanel extends BaseModulePanel {
 
         fgb.gridx = 0;
         fgb.gridy++;
-    addFuelFileButton = new JButton(messages.getString("button.file.add.fuel"));
-    UIUtils.styleButton(addFuelFileButton);
+        addFuelFileButton = new JButton(messages.getString("button.file.add.fuel"));
+        UIUtils.styleButton(addFuelFileButton);
         fileGroup.add(addFuelFileButton, fgb);
 
         fgb.gridx = 1;
@@ -100,8 +100,8 @@ public class GeneralPanel extends BaseModulePanel {
 
         fgb.gridx = 0;
         fgb.gridy++;
-    addRefrigerantFileButton = new JButton(messages.getString("button.file.add.refrigerant"));
-    UIUtils.styleButton(addRefrigerantFileButton);
+        addRefrigerantFileButton = new JButton(messages.getString("button.file.add.refrigerant"));
+        UIUtils.styleButton(addRefrigerantFileButton);
         fileGroup.add(addRefrigerantFileButton, fgb);
 
         fgb.gridx = 1;
@@ -134,12 +134,12 @@ public class GeneralPanel extends BaseModulePanel {
                 .setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH * 2, UIUtils.PREVIEW_SCROLL_HEIGHT));
         resultGroup.add(previewScrollPane, BorderLayout.CENTER);
 
-    JPanel resultButtons = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JPanel resultButtons = new JPanel(new FlowLayout(FlowLayout.CENTER));
         resultButtons.setBackground(UIUtils.CONTENT_BACKGROUND);
-    saveResultsButton = new JButton(messages.getString("button.save.results"));
-    UIUtils.styleButton(saveResultsButton);
-    saveResultsButton.setEnabled(false);
-    resultButtons.add(saveResultsButton);
+        saveResultsButton = new JButton(messages.getString("button.save.results"));
+        UIUtils.styleButton(saveResultsButton);
+        saveResultsButton.setEnabled(false);
+        resultButtons.add(saveResultsButton);
         resultGroup.add(resultButtons, BorderLayout.SOUTH);
 
         // Add fileGroup and resultGroup vertically
@@ -153,8 +153,6 @@ public class GeneralPanel extends BaseModulePanel {
 
         contentPanel.add(main, BorderLayout.CENTER);
     }
-
-    
 
     // Expose selected files for controller use
     public File getSelectedElectricityFile() {

@@ -4,6 +4,8 @@ import com.carboncalc.util.UIUtils;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ResourceBundle;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * BaseModulePanel
@@ -28,6 +30,10 @@ public abstract class BaseModulePanel extends JPanel {
     public BaseModulePanel(ResourceBundle messages) {
         this.messages = messages;
         this.contentPanel = new JPanel(new BorderLayout());
+        // Also allow controllers to register post-init callbacks that will be
+        // executed immediately after initializeComponents() completes. This
+        // avoids races where both the view and controller schedule work on the
+        // EDT via invokeLater and the ordering becomes fragile.
 
         // Use BorderLayout to hold a single content area that modules fill.
         setLayout(new BorderLayout());
@@ -38,10 +44,15 @@ public abstract class BaseModulePanel extends JPanel {
         UIUtils.stylePanel(this);
         UIUtils.stylePanel(contentPanel);
 
-        // Defer initialization to allow controllers to wire the view first.
-        // This avoids NPEs or partially-constructed UI state during
-        // initializeComponents() in subclasses.
-        SwingUtilities.invokeLater(this::initializeComponents);
+        // Defer initialization to avoid init-order coupling between controller/view wiring.
+        // Also allow controllers to register post-init callbacks that will be
+        // executed immediately after initializeComponents() completes. This
+        // avoids races where both the view and controller schedule work on the
+        // EDT via invokeLater and the ordering becomes fragile.
+        SwingUtilities.invokeLater(() -> {
+            initializeComponents();
+            runPostInitCallbacks();
+        });
     }
 
     /**
@@ -72,5 +83,45 @@ public abstract class BaseModulePanel extends JPanel {
         String title = titleKey == null ? "" : messages.getString(titleKey);
         panel.setBorder(UIUtils.createLightGroupBorder(title));
         return panel;
+    }
+
+    // Post-initialization callbacks to allow controllers to run wiring after
+    // the view has completed initializeComponents(). Callbacks are executed on
+    // the EDT immediately after initializeComponents() finishes.
+    private final List<Runnable> postInitCallbacks = new ArrayList<>();
+    // Whether initializeComponents() + post-init callbacks have already run
+    private volatile boolean initCompleted = false;
+
+    /**
+     * Register a runnable to be executed after initializeComponents() has
+     * completed. If called after initialization, the runnable will be
+     * executed asynchronously on the EDT.
+     */
+    public void runAfterInit(Runnable r) {
+        if (r == null)
+            return;
+        synchronized (postInitCallbacks) {
+            if (initCompleted) {
+                // initialization already done: schedule runnable on EDT
+                SwingUtilities.invokeLater(r);
+                return;
+            }
+            postInitCallbacks.add(r);
+        }
+    }
+
+    private void runPostInitCallbacks() {
+        List<Runnable> toRun;
+        synchronized (postInitCallbacks) {
+            toRun = new ArrayList<>(postInitCallbacks);
+            postInitCallbacks.clear();
+            initCompleted = true;
+        }
+        for (Runnable r : toRun) {
+            try {
+                r.run();
+            } catch (Exception ignored) {
+            }
+        }
     }
 }

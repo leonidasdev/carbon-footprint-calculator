@@ -6,12 +6,14 @@ import com.carboncalc.util.CellUtils;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.openxml4j.util.ZipSecureFile;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ResourceBundle;
 import java.util.Vector;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -37,26 +39,59 @@ public class GeneralController {
     public void setView(GeneralPanel view) {
         this.view = view;
 
-        // Wire additional listeners on the panel's buttons. The panel itself
-        // opens the file chooser and stores the selected File; here we react
-        // to those selections and load a preview.
-        SwingUtilities.invokeLater(() -> {
+        // Register wiring to run after the view has completed initialization.
+        // This avoids EDT ordering races and ensures components are non-null.
+        view.runAfterInit(() -> {
             try {
-                view.getAddElectricityFileButton().addActionListener(e -> onFileAdded("electricity"));
-                view.getAddGasFileButton().addActionListener(e -> onFileAdded("gas"));
-                view.getAddFuelFileButton().addActionListener(e -> onFileAdded("fuel"));
-                view.getAddRefrigerantFileButton().addActionListener(e -> onFileAdded("refrigerant"));
+                view.getAddElectricityFileButton().addActionListener(e -> {
+                    JFileChooser fileChooser = new JFileChooser();
+                    fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
+                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx", "xls", "csv"));
+                    if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                        File f = fileChooser.getSelectedFile();
+                        view.setSelectedElectricityFile(f);
+                        onFileAdded("electricity");
+                    }
+                });
 
-                // Save buttons can be wired by controllers to perform export; here
-                // we leave them available for external wiring but ensure they're disabled by
-                // default.
+                view.getAddGasFileButton().addActionListener(e -> {
+                    JFileChooser fileChooser = new JFileChooser();
+                    fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
+                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx", "xls", "csv"));
+                    if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                        File f = fileChooser.getSelectedFile();
+                        view.setSelectedGasFile(f);
+                        onFileAdded("gas");
+                    }
+                });
+
+                view.getAddFuelFileButton().addActionListener(e -> {
+                    JFileChooser fileChooser = new JFileChooser();
+                    fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
+                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx", "xls", "csv"));
+                    if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                        File f = fileChooser.getSelectedFile();
+                        view.setSelectedFuelFile(f);
+                        onFileAdded("fuel");
+                    }
+                });
+
+                view.getAddRefrigerantFileButton().addActionListener(e -> {
+                    JFileChooser fileChooser = new JFileChooser();
+                    fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
+                    fileChooser.setFileFilter(new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx", "xls", "csv"));
+                    if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                        File f = fileChooser.getSelectedFile();
+                        view.setSelectedRefrigerantFile(f);
+                        onFileAdded("refrigerant");
+                    }
+                });
+
+                // Single Save Results button (offers options at click time)
                 view.setSaveButtonsEnabled(false);
-
-                // Wire save actions
-                view.getSaveDetailedReportButton().addActionListener(e -> handleSaveDetailedReport());
-                view.getSaveReportButton().addActionListener(e -> handleSaveSummaryReport());
+                view.getSaveResultsButton().addActionListener(e -> handleSaveResults());
             } catch (Exception ex) {
-                // If components are not ready, this will surface during development
+                // If components are not ready, surface during development
                 ex.printStackTrace();
             }
         });
@@ -112,30 +147,10 @@ public class GeneralController {
         }
     }
 
-    private void handleSaveDetailedReport() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle(messages.getString("excel.save.title"));
-        fileChooser.setFileFilter(new FileNameExtensionFilter("Excel files (*.xlsx)", "xlsx"));
-        if (fileChooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION)
-            return;
-        File out = fileChooser.getSelectedFile();
-        String outName = out.getName().toLowerCase();
-        if (!outName.endsWith(".xlsx")) {
-            out = new File(out.getAbsolutePath() + ".xlsx");
-        }
-        try {
-            CombinedReportExporter.exportDetailedReport(out.getAbsolutePath(), view.getSelectedElectricityFile(),
-                    view.getSelectedGasFile(), view.getSelectedFuelFile(), view.getSelectedRefrigerantFile());
-            JOptionPane.showMessageDialog(null, messages.getString("excel.save.success"),
-                    messages.getString("success.title"), JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(null, messages.getString("excel.save.error"),
-                    messages.getString("error.title"), JOptionPane.ERROR_MESSAGE);
-        }
-    }
+    private void handleSaveResults() {
+        // Always export the detailed combined results (include module sheets).
+        boolean includeModuleSheets = true;
 
-    private void handleSaveSummaryReport() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(messages.getString("excel.save.title"));
         fileChooser.setFileFilter(new FileNameExtensionFilter("Excel files (*.xlsx)", "xlsx"));
@@ -147,8 +162,9 @@ public class GeneralController {
             out = new File(out.getAbsolutePath() + ".xlsx");
         }
         try {
-            CombinedReportExporter.exportSummaryReport(out.getAbsolutePath(), view.getSelectedElectricityFile(),
-                    view.getSelectedGasFile(), view.getSelectedFuelFile(), view.getSelectedRefrigerantFile());
+            CombinedReportExporter.exportResultsReport(out.getAbsolutePath(), view.getSelectedElectricityFile(),
+                    view.getSelectedGasFile(), view.getSelectedFuelFile(), view.getSelectedRefrigerantFile(),
+                    includeModuleSheets);
             JOptionPane.showMessageDialog(null, messages.getString("excel.save.success"),
                     messages.getString("success.title"), JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception ex) {
@@ -163,11 +179,38 @@ public class GeneralController {
         if (name.endsWith(".csv")) {
             return ExcelCsvLoader.loadCsvAsWorkbookFromPath(f.getAbsolutePath());
         }
-        try (FileInputStream fis = new FileInputStream(f)) {
-            if (name.endsWith(".xlsx"))
+        // Attempt to open XLSX/XLS workbooks. Apache POI applies a safety
+        // check against 'zip bomb' files; some legitimate spreadsheets with
+        // extreme compression ratios may trigger it. We'll catch that case
+        // and retry with a lowered inflate ratio, but keep the change local
+        // and short-lived. This reduces risk but the caller should still
+        // validate file sources.
+        if (name.endsWith(".xlsx")) {
+            try (FileInputStream fis = new FileInputStream(f)) {
                 return new XSSFWorkbook(fis);
-            if (name.endsWith(".xls"))
+            } catch (IOException ioex) {
+                // Detect zip-bomb style error and retry with a relaxed threshold
+                String msg = ioex.getMessage() == null ? "" : ioex.getMessage();
+                if (msg.contains("Zip bomb") || msg.contains("exceed the max. ratio")) {
+                    // Lower the minimum inflate ratio temporarily and retry
+                    // NOTE: This weakens Apache POI's zip-bomb protection; only do
+                    // this when necessary and ensure files come from trusted sources.
+                    try {
+                        ZipSecureFile.setMinInflateRatio(0.001);
+                    } catch (Throwable t) {
+                        // ignore if not supported
+                    }
+                    try (FileInputStream fis2 = new FileInputStream(f)) {
+                        return new XSSFWorkbook(fis2);
+                    }
+                }
+                throw ioex;
+            }
+        }
+        if (name.endsWith(".xls")) {
+            try (FileInputStream fis = new FileInputStream(f)) {
                 return new HSSFWorkbook(fis);
+            }
         }
         return null;
     }

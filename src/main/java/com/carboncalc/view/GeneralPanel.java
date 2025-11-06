@@ -3,7 +3,6 @@ package com.carboncalc.view;
 import com.carboncalc.util.UIUtils;
 
 import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
@@ -42,8 +41,7 @@ public class GeneralPanel extends BaseModulePanel {
     // Result box controls
     private JTable previewTable;
     private JScrollPane previewScrollPane;
-    private JButton saveDetailedReportButton;
-    private JButton saveReportButton;
+    private JButton saveResultsButton;
 
     public GeneralPanel(ResourceBundle messages) {
         super(messages);
@@ -69,9 +67,8 @@ public class GeneralPanel extends BaseModulePanel {
         fgb.gridy = 0;
         fgb.anchor = GridBagConstraints.WEST;
 
-        addElectricityFileButton = new JButton(messages.getString("button.file.add.electricity"));
-        UIUtils.styleButton(addElectricityFileButton);
-        addElectricityFileButton.addActionListener(e -> chooseFileAndSetLabel(addElectricityFileButton, "electricity"));
+    addElectricityFileButton = new JButton(messages.getString("button.file.add.electricity"));
+    UIUtils.styleButton(addElectricityFileButton);
         fileGroup.add(addElectricityFileButton, fgb);
 
         fgb.gridx = 1;
@@ -81,9 +78,8 @@ public class GeneralPanel extends BaseModulePanel {
 
         fgb.gridx = 0;
         fgb.gridy++;
-        addGasFileButton = new JButton(messages.getString("button.file.add.gas"));
-        UIUtils.styleButton(addGasFileButton);
-        addGasFileButton.addActionListener(e -> chooseFileAndSetLabel(addGasFileButton, "gas"));
+    addGasFileButton = new JButton(messages.getString("button.file.add.gas"));
+    UIUtils.styleButton(addGasFileButton);
         fileGroup.add(addGasFileButton, fgb);
 
         fgb.gridx = 1;
@@ -93,9 +89,8 @@ public class GeneralPanel extends BaseModulePanel {
 
         fgb.gridx = 0;
         fgb.gridy++;
-        addFuelFileButton = new JButton(messages.getString("button.file.add.fuel"));
-        UIUtils.styleButton(addFuelFileButton);
-        addFuelFileButton.addActionListener(e -> chooseFileAndSetLabel(addFuelFileButton, "fuel"));
+    addFuelFileButton = new JButton(messages.getString("button.file.add.fuel"));
+    UIUtils.styleButton(addFuelFileButton);
         fileGroup.add(addFuelFileButton, fgb);
 
         fgb.gridx = 1;
@@ -105,9 +100,8 @@ public class GeneralPanel extends BaseModulePanel {
 
         fgb.gridx = 0;
         fgb.gridy++;
-        addRefrigerantFileButton = new JButton(messages.getString("button.file.add.refrigerant"));
-        UIUtils.styleButton(addRefrigerantFileButton);
-        addRefrigerantFileButton.addActionListener(e -> chooseFileAndSetLabel(addRefrigerantFileButton, "refrigerant"));
+    addRefrigerantFileButton = new JButton(messages.getString("button.file.add.refrigerant"));
+    UIUtils.styleButton(addRefrigerantFileButton);
         fileGroup.add(addRefrigerantFileButton, fgb);
 
         fgb.gridx = 1;
@@ -140,17 +134,12 @@ public class GeneralPanel extends BaseModulePanel {
                 .setPreferredSize(new Dimension(UIUtils.PREVIEW_SCROLL_WIDTH * 2, UIUtils.PREVIEW_SCROLL_HEIGHT));
         resultGroup.add(previewScrollPane, BorderLayout.CENTER);
 
-        JPanel resultButtons = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    JPanel resultButtons = new JPanel(new FlowLayout(FlowLayout.CENTER));
         resultButtons.setBackground(UIUtils.CONTENT_BACKGROUND);
-        saveDetailedReportButton = new JButton(messages.getString("button.save.detailed.report"));
-        UIUtils.styleButton(saveDetailedReportButton);
-        saveDetailedReportButton.setEnabled(false);
-        resultButtons.add(saveDetailedReportButton);
-
-        saveReportButton = new JButton(messages.getString("button.save.report"));
-        UIUtils.styleButton(saveReportButton);
-        saveReportButton.setEnabled(false);
-        resultButtons.add(saveReportButton);
+    saveResultsButton = new JButton(messages.getString("button.save.results"));
+    UIUtils.styleButton(saveResultsButton);
+    saveResultsButton.setEnabled(false);
+    resultButtons.add(saveResultsButton);
         resultGroup.add(resultButtons, BorderLayout.SOUTH);
 
         // Add fileGroup and resultGroup vertically
@@ -165,35 +154,7 @@ public class GeneralPanel extends BaseModulePanel {
         contentPanel.add(main, BorderLayout.CENTER);
     }
 
-    private void chooseFileAndSetLabel(Component parent, String type) {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle(messages.getString("dialog.file.select"));
-        fileChooser.setFileFilter(
-                new FileNameExtensionFilter(messages.getString("file.filter.spreadsheet"), "xlsx", "xls", "csv"));
-        int res = fileChooser.showOpenDialog(this);
-        if (res == JFileChooser.APPROVE_OPTION) {
-            File f = fileChooser.getSelectedFile();
-            String name = f.getName();
-            switch (type) {
-                case "electricity":
-                    setLabelTextWithEllipsis(electricityFileLabel, name, 30);
-                    selectedElectricityFile = f;
-                    break;
-                case "gas":
-                    setLabelTextWithEllipsis(gasFileLabel, name, 30);
-                    selectedGasFile = f;
-                    break;
-                case "fuel":
-                    setLabelTextWithEllipsis(fuelFileLabel, name, 30);
-                    selectedFuelFile = f;
-                    break;
-                case "refrigerant":
-                    setLabelTextWithEllipsis(refrigerantFileLabel, name, 30);
-                    selectedRefrigerantFile = f;
-                    break;
-            }
-        }
-    }
+    
 
     // Expose selected files for controller use
     public File getSelectedElectricityFile() {
@@ -212,6 +173,27 @@ public class GeneralPanel extends BaseModulePanel {
         return selectedRefrigerantFile;
     }
 
+    // Allow controllers to set selected files programmatically and update labels
+    public void setSelectedElectricityFile(File f) {
+        this.selectedElectricityFile = f;
+        setLabelTextWithEllipsis(electricityFileLabel, f != null ? f.getName() : null, 30);
+    }
+
+    public void setSelectedGasFile(File f) {
+        this.selectedGasFile = f;
+        setLabelTextWithEllipsis(gasFileLabel, f != null ? f.getName() : null, 30);
+    }
+
+    public void setSelectedFuelFile(File f) {
+        this.selectedFuelFile = f;
+        setLabelTextWithEllipsis(fuelFileLabel, f != null ? f.getName() : null, 30);
+    }
+
+    public void setSelectedRefrigerantFile(File f) {
+        this.selectedRefrigerantFile = f;
+        setLabelTextWithEllipsis(refrigerantFileLabel, f != null ? f.getName() : null, 30);
+    }
+
     /** Replace preview table model with provided model and apply styling */
     public void setPreviewModel(javax.swing.table.TableModel model) {
         if (previewTable != null) {
@@ -222,10 +204,8 @@ public class GeneralPanel extends BaseModulePanel {
 
     /** Enable/disable both save buttons. */
     public void setSaveButtonsEnabled(boolean enabled) {
-        if (saveDetailedReportButton != null)
-            saveDetailedReportButton.setEnabled(enabled);
-        if (saveReportButton != null)
-            saveReportButton.setEnabled(enabled);
+        if (saveResultsButton != null)
+            saveResultsButton.setEnabled(enabled);
     }
 
     private void setLabelTextWithEllipsis(JLabel label, String fullName, int maxLen) {
@@ -270,19 +250,15 @@ public class GeneralPanel extends BaseModulePanel {
         return previewScrollPane;
     }
 
-    public JButton getSaveDetailedReportButton() {
-        return saveDetailedReportButton;
-    }
-
-    public JButton getSaveReportButton() {
-        return saveReportButton;
+    public JButton getSaveResultsButton() {
+        return saveResultsButton;
     }
 
     @Override
     protected void onSave() {
-        // Delegate saved action to the detailed report button if enabled
-        if (saveDetailedReportButton != null && saveDetailedReportButton.isEnabled()) {
-            saveDetailedReportButton.doClick();
+        // Delegate saved action to the Save Results button if enabled
+        if (saveResultsButton != null && saveResultsButton.isEnabled()) {
+            saveResultsButton.doClick();
         }
     }
 }

@@ -170,7 +170,14 @@ public class GasExcelExporter {
         for (int i = 0; i < DETAILED_HEADERS.length; i++) {
             Cell cell = headerRow.createCell(i);
             String key = DETAILED_HEADERS[i];
-            String label = spanish.containsKey(key) ? spanish.getString(key) : key;
+            String label;
+            // For gas exporter we want the generic emissions column to read "Emisiones (tCO2e)"
+            if (key != null && key.equals("detailed.header.EMISIONES_MARKET")) {
+                label = spanish.containsKey("gas.detailed.emissions") ? spanish.getString("gas.detailed.emissions")
+                        : (spanish.containsKey(key) ? spanish.getString(key) : key);
+            } else {
+                label = spanish.containsKey(key) ? spanish.getString(key) : key;
+            }
             cell.setCellValue(label);
             if (headerStyle != null)
                 cell.setCellStyle(headerStyle);

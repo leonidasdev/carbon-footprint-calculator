@@ -1,12 +1,22 @@
 package com.carboncalc.util.enums;
 
 /**
- * Column headers for the total/summarized export sheet.
+ * TotalHeader
  *
  * <p>
- * These labels are exposed to exported spreadsheets. They are currently
- * provided in Spanish; exporters should apply localization (resource bundle
- * lookup) if a different language is required.
+ * Enum representing column headers used in total/summarized export sheets.
+ * Exporters should resolve the displayed text using resource-bundle lookups
+ * when localization is required.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ *   <li>The {@link #key()} method returns the resource bundle key associated
+ *   with each header; prefer using the bundle lookup at write-time.</li>
+ *   <li>Maintaining the enum values keeps a consistent mapping across
+ *   exporters and summary builders.</li>
+ * </ul>
  * </p>
  */
 public enum TotalHeader {

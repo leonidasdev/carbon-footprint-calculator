@@ -28,15 +28,25 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Controller for the CUPS configuration panel.
+ * CupsConfigController
  *
- * Responsibilities:
- * - Load and persist CUPS->Center mappings and provide import/edit/delete
- * operations driven by the CSV-backed service.
+ * <p>
+ * Controller that manages CUPS -> Center mappings. It loads persisted
+ * mappings via {@link CupsService}, provides import,
+ * edit and delete operations and populates the view model for the
+ * {@link CupsConfigPanel}.
+ * </p>
  *
- * Notes:
- * - UI initialization can occur before Swing components exist; the
- * controller schedules a short retry on the EDT to wait for the view.
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: import files or user edits via the Cups configuration UI.</li>
+ * <li>Outputs: persisted CSV mappings and refreshed table models in the
+ * view.</li>
+ * <li>Behavior: the controller tolerates asynchronous view initialization by
+ * scheduling retries on the Event Dispatch Thread.</li>
+ * </ul>
+ * </p>
  */
 public class CupsConfigController {
     private final ResourceBundle messages;

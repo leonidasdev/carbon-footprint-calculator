@@ -7,10 +7,23 @@ import java.util.*;
 import java.time.Year;
 
 /**
- * CSV-backed implementation of {@link FuelFactorService}.
+ * FuelFactorServiceCsv
  *
- * Stores per-year fuel factor files under {@code data/emission_factors/{year}/}
- * using a simple CSV with header: fuelType,vehicleType,emissionFactor
+ * <p>
+ * CSV-backed implementation of {@link FuelFactorService}. This class reads
+ * and writes fuel factor CSV files stored under the configured year
+ * directory (e.g. {@code data/emission_factors/2023/fuel_factors.csv}).
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Reading is resilient: malformed lines are skipped and logged via
+ * runtime exceptions propagated to callers.</li>
+ * <li>Writes are atomic at the file level — a temp file is written and
+ * renamed into place to reduce risk of partial updates.</li>
+ * </ul>
+ * </p>
  */
 public class FuelFactorServiceCsv implements FuelFactorService {
     private static final String BASE_PATH = "data/emission_factors";

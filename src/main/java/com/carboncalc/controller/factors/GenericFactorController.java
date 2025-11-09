@@ -11,24 +11,24 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 /**
- * Minimal generic controller for non-electricity factor types.
+ * GenericFactorController
  *
- * Responsibilities:
- * - Load emission factors for the configured energy type and year using
- * {@link EmissionFactorService} and populate the shared factors table in
- * {@link EmissionFactorsPanel}.
- * - Provide a simple, well-documented integration point for specialized
- * subcontrollers that require row-level editing or additional persistence
- * behavior.
+ * <p>
+ * A minimal reusable controller for non-electricity factor types. It loads
+ * emission factors for a configured energy type and year and populates the
+ * shared factors table in {@link EmissionFactorsPanel}.
+ * </p>
  *
- * Behavior and error handling:
- * - UI updates are applied to the shared table model; callers should activate
- * this controller from the EDT. The controller will attempt to show
- * localized error messages via the injected {@code messages} bundle but
- * does not surface raw exception details to the user.
- * - This class intentionally keeps a small surface area: it does not track
- * unsaved changes or perform writes. Subclasses can override save() when
- * needed.
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: year selection from the parent panel.</li>
+ * <li>Outputs: table model populated with loaded emission factors.</li>
+ * <li>Behavior: keeps a small surface area — does not track unsaved changes
+ * or perform writes; subclasses may override save() and provide additional
+ * persistence behavior.</li>
+ * </ul>
+ * </p>
  */
 public class GenericFactorController implements FactorSubController {
     private final ResourceBundle messages;

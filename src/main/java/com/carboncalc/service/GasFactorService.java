@@ -5,11 +5,24 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service contract for managing gas-factor rows persisted by year.
+ * GasFactorService
+ *
  * <p>
- * Implementations typically store a per-year CSV (market/location factors)
- * but the interface remains storage-agnostic. Clients should treat the
- * returned lists as snapshots of the persisted data.
+ * Service contract for managing gas-factor rows persisted by year. The
+ * interface is storage-agnostic but implementations typically persist
+ * gas factors as per-year CSV files containing market and location values.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Implementations should tolerate both legacy (2-column)
+ * and newer (3-column) CSV formats where applicable for backward
+ * compatibility.</li>
+ * <li>Returned lists are immutable snapshots of persisted data; callers
+ * should not rely on in-place modification of returned collections.</li>
+ * <li>{@link #getDefaultYear()} provides an optional fallback year.</li>
+ * </ul>
  * </p>
  */
 public interface GasFactorService {

@@ -37,34 +37,27 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 /**
- * Electricity Excel exporter.
+ * ElectricityExcelExporter
  *
  * <p>
  * Creates Excel reports for electricity consumption. The exporter reads
- * provider sheets, loads supporting lookups (CUPS mappings, marketer factors),
- * and writes three main sheets: detailed (Extendido), per-center (Por centro)
- * and total (Total).
+ * provider sheets, loads supporting lookups (CUPS mappings and marketer
+ * factors), and writes localized sheets such as the detailed ("Extendido"),
+ * per-center ("Por centro") and total ("Total") views. The exporter writes
+ * formulas so the resulting workbook remains editable and easy to audit.
  * </p>
  *
  * <p>
- * Note: header labels for exported Excel files are read from the Spanish
- * resource bundle (Messages_es) to guarantee consistent Spanish wording in
- * exported workbooks regardless of the application's current UI locale.
- * </p>
- *
- * <p>
- * Design notes:
+ * Contract and notes:
  * <ul>
- * <li>The class delegates work to small helper methods to keep responsibilities
- * focused and testable.</li>
- * <li>Header labels and sheet names are currently written in Spanish for
- * backward compatibility. When adding localization, perform resource-bundle
- * lookups at write-time and avoid changing column ordering to preserve
- * compatibility with downstream consumers.</li>
+ * <li>Inputs: destination path and optional provider workbook/sheet, mapping,
+ * reporting year and invoice filters.</li>
+ * <li>Outputs: a written workbook at the provided path containing the
+ * exported sheets; diagnostics may be appended into a "Diagnostics" sheet.</li>
+ * <li>Error handling: the exporter is resilient and returns empty aggregates
+ * on read errors; diagnostics are written when possible to aid debugging.</li>
  * </ul>
  * </p>
- *
- * @since 1.0.0
  */
 public class ElectricityExcelExporter {
 

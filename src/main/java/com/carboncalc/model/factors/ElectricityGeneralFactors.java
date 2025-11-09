@@ -4,16 +4,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Container for electricity general factors used by the application.
+ * ElectricityGeneralFactors
  *
+ * <p>
+ * Container for electricity general factors used by the application.
  * This class aggregates the per-year electricity general factors (mix,
  * GDO breakdowns and an optional location-based factor) and a list of
  * trading companies with their specific emission factors. It is used by
  * controllers and services to load/save the canonical representation of
  * electricity general factors for a given year.
+ * </p>
  *
- * Note: validation (range checks, non-negative constraints) is performed by
- * higher layers; this class is a simple data carrier.
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>This is a plain data container; validation (range checks,
+ * non-negative constraints) must be performed by higher-level services
+ * and controllers.</li>
+ * <li>The nested {@code TradingCompany} class is a lightweight POJO used
+ * for UI tables and CSV persistence and should remain free of business
+ * logic.</li>
+ * <li>Maintain stable field names and ordering to preserve CSV compatibility
+ * and avoid unnecessary diffs when serializing to disk.</li>
+ * </ul>
+ * </p>
  */
 public class ElectricityGeneralFactors {
     private double mixSinGdo;

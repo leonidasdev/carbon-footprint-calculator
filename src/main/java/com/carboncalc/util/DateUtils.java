@@ -8,17 +8,24 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Utility helpers for lenient date/time parsing used across import and export
- * flows.
+ * Date/time parsing helpers.
  *
  * <p>
- * These helpers accept a variety of common date representations (ISO,
- * dd/MM/yyyy,
- * d-M-yy, yyyyMMdd, etc.) and attempt to return a sensible {@link LocalDate} or
- * {@link Instant}. They are conservative: if parsing fails they return
+ * Lenient parsing utilities used across import and export flows. These
+ * helpers accept a variety of common date representations (ISO,
+ * dd/MM/yyyy, d-M-yy, yyyyMMdd, etc.) and attempt to return a sensible
+ * {@link LocalDate} or {@link Instant}. When parsing fails they return
  * {@code null}
- * rather than throwing, so callers can decide how to handle missing/invalid
- * values.
+ * rather than throwing so callers can choose how to handle invalid inputs.
+ *
+ * <h3>Contract and notes</h3>
+ * <ul>
+ * <li>Parsing is forgiving but callers must handle {@code null} results.</li>
+ * <li>The helpers favour returning a best-effort value over throwing an
+ * exception.</li>
+ * <li>Keep imports at the top of the file; do not introduce inline
+ * imports.</li>
+ * </ul>
  */
 public final class DateUtils {
 

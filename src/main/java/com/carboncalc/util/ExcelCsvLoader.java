@@ -15,15 +15,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Simple CSV -> Workbook loader used to convert provider CSV files into an
- * in-memory Apache POI {@link Workbook}. The implementation intentionally is
- * small and dependency-free: it supports quoted fields and doubled-quote
- * escaping and writes all rows into a single sheet named "Sheet1".
+ * CSV -> Workbook loader.
  *
  * <p>
- * This utility exists to reuse CSV loading in a single place. It is not a
- * fully featured CSV library; for more advanced parsing consider using
- * OpenCSV or Apache Commons CSV.
+ * Simple CSV -> {@link Workbook} loader used to
+ * convert provider CSV files into an in-memory Apache POI workbook. The
+ * implementation is intentionally small and dependency-free: it supports
+ * quoted fields and doubled-quote escaping and writes all rows into a single
+ * sheet named "Sheet1".
+ * </p>
+ *
+ * <h3>Contract and notes</h3>
+ * <ul>
+ * <li>Attempts UTF-8 first then retries using Windows-1252 when mojibake is
+ * detected.</li>
+ * <li>Not a full CSV library; use OpenCSV or Apache Commons CSV for complex
+ * needs.</li>
+ * <li>Keep imports at the top of the file; do not introduce inline
+ * imports.</li>
+ * </ul>
  */
 public final class ExcelCsvLoader {
     private ExcelCsvLoader() {

@@ -20,9 +20,27 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import com.carboncalc.util.excel.GeneralExcelExporter;
 
 /**
- * Controller for the GeneralPanel. Responsible for responding to file
- * selections, loading a small preview into the panel and enabling the
- * Apply button when a preview is available.
+ * GeneralController
+ *
+ * <p>
+ * Controller for the General panel which coordinates file selection,
+ * lightweight previewing and the final export action. The controller loads
+ * workbooks for preview, builds a short sample table and delegates the
+ * combined results export to
+ * {@link GeneralExcelExporter}.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: user-selected spreadsheet files via JFileChooser.</li>
+ * <li>Outputs: preview table models and calls to the exporter to write XLSX
+ * files.</li>
+ * <li>Error handling: file/POI errors are presented in dialogs; preview is
+ * resilient
+ * and non-fatal when files are malformed.</li>
+ * </ul>
+ * </p>
  */
 public class GeneralController {
     private final ResourceBundle messages;

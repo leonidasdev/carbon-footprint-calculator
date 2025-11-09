@@ -9,15 +9,22 @@ import java.awt.Dimension;
 import java.util.ResourceBundle;
 
 /**
- * Small collection of higher-level UI component factories that compose
- * existing {@link UIUtils} helpers.
+ * Higher-level UI component factories.
  *
  * <p>
- * Keep these helpers tiny and focused so callers can create consistently
- * styled components with a single call. Many factories accept a
- * {@link ResourceBundle} key and therefore integrate cleanly with
- * the project's localization strategy.
+ * Small collection of higher-level UI component factories that compose
+ * existing {@link UIUtils} helpers. These helpers keep component creation
+ * consistent across the application and integrate with localization via
+ * ResourceBundle keys where appropriate.
  * </p>
+ *
+ * <h3>Contract and notes</h3>
+ * <ul>
+ * <li>Factories return fully styled components; callers can further compose
+ * them but should avoid re-introducing styling duplication.</li>
+ * <li>Keep imports at the top of the file; do not introduce inline
+ * imports.</li>
+ * </ul>
  *
  * @since 0.0.1
  */

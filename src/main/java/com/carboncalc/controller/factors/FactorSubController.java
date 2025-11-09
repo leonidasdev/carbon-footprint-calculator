@@ -5,14 +5,27 @@ import javax.swing.JComponent;
 import java.io.IOException;
 
 /**
- * Contract for subcontrollers that manage a specific energy type within the
- * Emission Factors module.
+ * FactorSubController
  *
- * A subcontroller is responsible for:
- * - Providing its own Swing panel via {@link #getPanel()} which will be added
- * to the parent panel's CardLayout by the top-level controller.
- * - Loading and saving per-year data (onActivate/onYearChanged/save).
- * - Indicating whether it has unsaved changes so navigation can be vetoed.
+ * <p>
+ * Interface contract for subcontrollers that manage a specific energy type
+ * within the Emission Factors module. A subcontroller provides its own Swing
+ * panel and implements lifecycle methods for loading, saving and year changes.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: parent {@link EmissionFactorsPanel} and year
+ * changes.</li>
+ * <li>Outputs: UI panel returned by {@link #getPanel()} and persisted data via
+ * {@link #save(int)}.</li>
+ * <li>Behavior: implementations should marshal UI updates to the EDT and
+ * return meaningful values from {@link #onDeactivate()} and
+ * {@link #hasUnsavedChanges()} to
+ * allow the top-level controller to handle navigation safely.</li>
+ * </ul>
+ * </p>
  */
 public interface FactorSubController {
     void setView(EmissionFactorsPanel view);

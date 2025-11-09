@@ -6,13 +6,24 @@ import java.util.Locale;
 import java.math.BigDecimal;
 
 /**
- * Small collection of input validation helpers used by UI controllers.
+ * Input validation helpers.
  *
  * <p>
- * Utilities are intentionally conservative: parsing is forgiving (accepts
- * both comma and dot as decimal separators) but validation ranges are strict
- * to avoid saving obviously incorrect data.
+ * Small collection of input validation helpers used by UI controllers.
+ * Utilities are intentionally conservative: parsing is forgiving (accepts both
+ * comma and dot as decimal separators) while validation ranges are strict to
+ * avoid saving obviously incorrect data.
  * </p>
+ *
+ * <h3>Contract and notes</h3>
+ * <ul>
+ * <li>Parsing helpers attempt to normalize common locale numeric formats but
+ * may return {@code null} or safe defaults on failure.</li>
+ * <li>Validation methods throw or return boolean as documented; controllers
+ * should present localized messages when needed.</li>
+ * <li>Keep imports at the top of the file; do not introduce inline
+ * imports.</li>
+ * </ul>
  */
 public final class ValidationUtils {
     private ValidationUtils() {

@@ -12,31 +12,30 @@ import java.util.ResourceBundle;
 import com.carboncalc.util.ExcelCsvLoader;
 
 /**
- * Utility to create combined Excel reports containing multiple module
- * sheets (electricity, gas, fuel, refrigerants) into a single workbook.
+ * GeneralExcelExporter
  *
  * <p>
- * This class centralizes the logic used by the UI to export the
- * application's consolidated reports. It writes three kinds of reports:
+ * Creates consolidated Excel workbooks that combine multiple module outputs
+ * (electricity, gas, fuel, refrigerants) into a single, localized report.
+ * The class produces three main forms of output: a detailed combined report
+ * (module sheets + per-center summary), a compact summary-only workbook, and
+ * the UI-oriented "Resultados" workbook that contains Spanish-labelled
+ * "Resultados generales" and "Resultados por alcance" sheets.
+ * </p>
  *
+ * <p>
+ * Contract and notes:
  * <ul>
- * <li>Detailed report (multiple module sheets + a summary)</li>
- * <li>Summary-only report (single sheet placeholder)</li>
- * <li>Results report used by the UI which contains the Spanish-labelled
- * "Resultados generales" and "Resultados por alcance" sheets plus
- * optional copied module sheets.</li>
+ * <li>Inputs: optional module files for each domain, and an output path.</li>
+ * <li>Outputs: an .xlsx workbook written to the destination path. When
+ * possible the exporter copies module sheets into the workbook and writes
+ * VLOOKUP-based formulas so the summary sheets remain dynamic and
+ * auditable.</li>
+ * <li>Error handling: the exporter is intentionally resilient; missing
+ * modules or sheet-name mismatches are recorded in a "Diagnostics" sheet
+ * rather than causing a hard failure.</li>
  * </ul>
- *
- * <p>
- * The exporter attempts to be resilient: it tolerates missing module
- * files, tries several per-center sheet name variants ("Module - Por centro",
- * "Module Por centro", and "Por centro"), and writes diagnostic information
- * into a "Diagnostics" sheet to help troubleshoot column-detection and
- * sheet-naming mismatches.
- *
- * <p>
- * All public methods are static convenience methods; callers are
- * responsible for passing the input files and the desired output path.
+ * </p>
  */
 public class GeneralExcelExporter {
 
@@ -815,10 +814,6 @@ public class GeneralExcelExporter {
         }
     }
 
-    private static String getExcelColumnLetter(int idx) {
-        return String.valueOf((char) ('A' + idx));
-    }
-
     /**
      * Convert a zero-based column index into an Excel column letter (A..Z).
      *
@@ -827,10 +822,14 @@ public class GeneralExcelExporter {
      * letter columns (A..Z) which is sufficient for the small column ranges
      * used by the reports. If larger ranges are needed in the future this
      * should be extended to support multi-letter columns (AA, AB, ...).
+     * </p>
      *
      * @param idx zero-based column index (0 -> A)
      * @return single-letter Excel column name
      */
+    private static String getExcelColumnLetter(int idx) {
+        return String.valueOf((char) ('A' + idx));
+    }
 
     /**
      * Return the sheet name to use in formulas for a per-center sheet. Prefer
@@ -853,21 +852,6 @@ public class GeneralExcelExporter {
         // default to dash style (will match copyModuleSheetsWithDash naming)
         return moduleLabel + " - " + perCenterSuffix;
     }
-
-    /**
-     * Return the sheet name to use in formulas for a per-center sheet by
-     * preferring an existing sheet in the output workbook. This helper checks
-     * common naming variants ("Module - Por centro", "Module Por centro",
-     * and "Por centro") and returns the first match. If no sheet is found it
-     * returns a canonical dash-style name which matches how copied sheets are
-     * named by {@link #copyModuleSheetsWithDash}.
-     *
-     * @param outWb           workbook that will contain copied module sheets (may
-     *                        be null)
-     * @param moduleLabel     localized module label (e.g. "Electricidad")
-     * @param perCenterSuffix localized per-center suffix (e.g. "Por centro")
-     * @return sheet name to use in Excel formulas (never null)
-     */
 
     /**
      * Resolve a per-center sheet for a module by trying several naming variants.
@@ -926,6 +910,24 @@ public class GeneralExcelExporter {
      * @return the resolved Sheet instance or null when not found
      */
 
+    /**
+     * Load a sheet by name from a provided file.
+     *
+     * <p>
+     * Supports .xlsx and .xls files via Apache POI; other file extensions
+     * are attempted to be loaded as CSV using the project's CSV loader which
+     * returns a small workbook representation. The method returns the Sheet
+     * from the freshly opened workbook or {@code null} if the sheet is not
+     * present or an error occurs.
+     *
+     * <strong>Important:</strong> the returned {@link Sheet} references a
+     * workbook that is created inside this method; the caller should treat the
+     * returned sheet as read-only and not attempt to close the workbook here.
+     *
+     * @param f         source file to open
+     * @param sheetName name of the sheet to locate inside the file
+     * @return the located Sheet instance or null if not found
+     */
     private static Sheet loadSheetFromFile(File f, String sheetName) {
         if (f == null)
             return null;
@@ -950,24 +952,22 @@ public class GeneralExcelExporter {
     }
 
     /**
-     * Load a sheet by name from a provided file.
+     * Copy all sheets from a module workbook into the output workbook,
+     * prefixing copied sheet names with the localized module label and a dash
+     * ("<Module> - <SheetName>").
      *
      * <p>
-     * Supports .xlsx and .xls files via Apache POI; other file extensions
-     * are attempted to be loaded as CSV using the project's CSV loader which
-     * returns a small workbook representation. The method returns the Sheet
-     * from the freshly opened workbook or {@code null} if the sheet is not
-     * present or an error occurs.
+     * This variant mirrors {@link #copyModuleSheets} but deliberately uses a
+     * dash separator to match the naming convention requested by the UI when
+     * generating the combined Spanish report. The method preserves cell
+     * values, formulas, merged regions and attempts to clone commonly used
+     * cell styles; diagnostic or debug sheets are filtered out.
+     * </p>
      *
-     * <strong>Important:</strong> the returned {@link Sheet} references a
-     * workbook that is created inside this method; the caller should treat the
-     * returned sheet as read-only and not attempt to close the workbook here.
-     *
-     * @param f         source file to open
-     * @param sheetName name of the sheet to locate inside the file
-     * @return the located Sheet instance or null if not found
+     * @param outWb       destination workbook to receive copied sheets
+     * @param srcFile     source module file to read (may be .xlsx, .xls, or CSV)
+     * @param moduleLabel localized module label used as a prefix for copied sheets
      */
-
     private static void copyModuleSheetsWithDash(Workbook outWb, File srcFile, String moduleLabel) {
         if (srcFile == null)
             return;
@@ -1019,17 +1019,20 @@ public class GeneralExcelExporter {
 
     /**
      * Copy all sheets from a module workbook into the output workbook,
-     * prefixing the sheet name with the localized module label and a dash
+     * prefixing copied sheet names with the localized module label and a dash
      * ("<Module> - <SheetName>").
      *
      * <p>
-     * The method attempts to preserve cell contents, styles, merged regions,
-     * and column widths. Diagnostic or debug sheets are filtered out using
-     * {@link #isDiagnosticSheetName}.
+     * This variant mirrors {@link #copyModuleSheets} but deliberately uses a
+     * dash separator to match the naming convention requested by the UI when
+     * generating the combined Spanish report. The method preserves cell
+     * values, formulas, merged regions and attempts to clone commonly used
+     * cell styles; diagnostic or debug sheets are filtered out.
+     * </p>
      *
      * @param outWb       destination workbook to receive copied sheets
-     * @param srcFile     source module file to read
-     * @param moduleLabel localized label to prefix copied sheet names
+     * @param srcFile     source module file to read (may be .xlsx, .xls, or CSV)
+     * @param moduleLabel localized module label used as a prefix for copied sheets
      */
 
     private static void copyModuleSheets(Workbook outWb, File srcFile, String moduleLabel) {
@@ -1083,18 +1086,6 @@ public class GeneralExcelExporter {
         }
     }
 
-    /**
-     * Alternative copy that uses a space-separated naming convention
-     * ("<Module> <SheetName>") when copying module sheets into the output
-     * workbook. The implementation matches {@link #copyModuleSheetsWithDash}
-     * in behavior and is provided for compatibility with existing naming
-     * conventions in module exporters.
-     *
-     * @param outWb       destination workbook
-     * @param srcFile     source file to read
-     * @param moduleLabel localized module label
-     */
-
     private static String makeUniqueSheetName(Workbook wb, String base) {
         String name = base;
         int idx = 1;
@@ -1116,9 +1107,22 @@ public class GeneralExcelExporter {
      */
 
     /**
+     * Ensure a sheet name is unique within the workbook by appending
+     * a numeric suffix when necessary. Returns the original base name when
+     * it does not collide.
+     *
+     * @param wb   workbook to check
+     * @param base desired base sheet name
+     * @return unique sheet name safe to use in the workbook
+     */
+
+    /**
      * Heuristic to detect diagnostic/debug sheets from module workbooks.
      * Filters common patterns like "diagn", "diagnostic", "diagnostico",
      * or "debug". Comparison is case-insensitive.
+     *
+     * @param sheetName sheet name to test
+     * @return true when the name likely represents a diagnostics/debug sheet
      */
     private static boolean isDiagnosticSheetName(String sheetName) {
         if (sheetName == null)
@@ -1134,15 +1138,6 @@ public class GeneralExcelExporter {
             return true;
         return false;
     }
-
-    /**
-     * Heuristic to determine whether a sheet name looks like a diagnostic or
-     * debug worksheet coming from a module exporter. This is used to filter
-     * such sheets when copying module workbooks into the combined report.
-     *
-     * @param sheetName sheet name to test
-     * @return true when the name likely represents a diagnostics/debug sheet
-     */
 
     /**
      * Find the 1-based column index in the sheet header row that matches all
@@ -1203,6 +1198,12 @@ public class GeneralExcelExporter {
     }
 
     private static CellStyle createHeaderCellStyle(Workbook wb) {
+        /**
+         * Create a bold, gray header cell style used for exported headers.
+         *
+         * @param wb workbook to create the style in
+         * @return a CellStyle with bold font and gray background fill
+         */
         CellStyle headerGray = wb.createCellStyle();
         headerGray.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         headerGray.setFillPattern(FillPatternType.SOLID_FOREGROUND);

@@ -1,14 +1,23 @@
 package com.carboncalc.model.factors;
 
 /**
- * POJO representing a refrigerant emission factor (PCA) row.
+ * RefrigerantEmissionFactor
  *
  * <p>
- * This class provides a small, well-documented data container used by
- * controllers and CSV-backed services. It intentionally keeps no business
- * logic and offers compatibility helpers (for example {@link #setBaseFactor})
- * so generic code that expects an {@code EmissionFactor} can operate on
- * refrigerant entries as well.
+ * POJO representing a refrigerant emission factor (PCA) row. This class is
+ * used by CSV-backed services and the UI to display and persist per-year
+ * refrigerant PCA values and related metadata.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>The class is a simple data container without business logic; callers
+ * are responsible for validation and unit consistency.</li>
+ * <li>Provides compatibility helpers (for example {@link #setBaseFactor})
+ * so code operating on the {@code EmissionFactor} abstraction can handle
+ * refrigerant entries uniformly.</li>
+ * </ul>
  * </p>
  */
 public class RefrigerantEmissionFactor implements EmissionFactor {

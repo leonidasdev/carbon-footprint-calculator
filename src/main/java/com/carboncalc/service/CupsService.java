@@ -6,26 +6,26 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Service interface for working with stored CUPS and center mappings.
+ * CupsService
  *
  * <p>
- * Implementations provide load/save/append/delete operations for the
- * CUPS and CUPS-center mapping domain objects. The current project includes
- * a CSV-backed implementation ({@code CupsServiceCsv}) but other storage
- * backends (database, remote API) may be provided in future.
+ * Contract for working with CUPS entries and the CUPS-to-center mapping
+ * domain. Implementations provide persistence operations (load, save,
+ * append, delete) and are responsible for keeping storage consistent and
+ * readable by the UI and import/export flows.
+ * </p>
  *
  * <p>
- * Important semantics callers rely on:
+ * Contract and notes:
  * <ul>
- * <li>Persistence operations that replace storage (e.g. {@link #saveCupsData})
- * should be atomic from the caller's perspective: partial writes are not
- * acceptable.</li>
- * <li>When appending new mappings via {@link #appendCupsCenter} implementations
- * should avoid creating duplicates; equality is typically defined by the
- * (cups, centerName) pair or an assigned numeric id.</li>
- * <li>Implementations should tolerate legacy file formats where possible and
- * provide a lenient loader (see {@code CupsServiceCsv}) to ease upgrades.</li>
+ * <li>Implementations should provide atomic replace semantics when writing
+ * files to avoid partial writes visible to readers.</li>
+ * <li>Append/upsert operations must avoid creating duplicates; equality is
+ * typically defined by the (cups, centerName) pair or a stable id.</li>
+ * <li>Implementations should be lenient when reading legacy CSV variants
+ * and record parsing diagnostics when helpful.</li>
  * </ul>
+ * </p>
  */
 public interface CupsService {
 

@@ -1,12 +1,23 @@
 package com.carboncalc.model.factors;
 
 /**
- * Contract for a per-entity emission factor entry.
+ * EmissionFactor
  *
- * Implementations represent a single emission factor row for a given
- * entity and year. Controllers and services treat implementations
- * polymorphically via this interface when loading and displaying
- * per-year emission factor tables.
+ * <p>
+ * Contract for a per-entity emission factor entry. Implementations represent
+ * a single emission factor row for an entity and year and are used
+ * polymorphically by controllers and CSV-backed services.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ *   <li>Implementations should provide unit and base-factor semantics used
+ *   by conversion and export code.</li>
+ *   <li>The interface is intentionally small to keep factor types easy to
+ *   serialize and to allow backward-compatible extensions in concrete classes.</li>
+ * </ul>
+ * </p>
  */
 public interface EmissionFactor {
     /**

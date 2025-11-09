@@ -7,13 +7,27 @@ import java.util.*;
 import java.time.Year;
 
 /**
- * CSV-backed implementation of {@link ElectricityGeneralfactorService}.
+ * EmissionFactorServiceCsv
  *
- * Stores per-year CSV files under {@code data/emission_factors/{year}/}.
- * The implementation uses simple line-based CSV parsing/writing to avoid
- * introducing an additional heavy dependency for the data layer. It is
- * intentionally conservative: parsing tolerates blank lines and malformed
- * rows and preserves existing files when performing upserts.
+ * <p>
+ * CSV-backed implementation of {@link EmissionFactorService}. Persists
+ * per-year emission factor CSV files under
+ * {@code data/emission_factors/{year}/}
+ * and provides basic upsert, delete and listing semantics.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>The implementation uses conservative, line-based CSV parsing that
+ * tolerates blank lines and malformed rows and performs best-effort
+ * recovery.</li>
+ * <li>Upserts are performed in-memory and written back as full-file
+ * replacements to maintain a stable on-disk format.</li>
+ * <li>CSV quoting is used for textual fields when writing to preserve
+ * commas inside entity names.</li>
+ * </ul>
+ * </p>
  */
 public class EmissionFactorServiceCsv implements EmissionFactorService {
     private static final String BASE_PATH = "data/emission_factors";

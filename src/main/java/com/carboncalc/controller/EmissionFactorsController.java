@@ -35,25 +35,27 @@ import com.carboncalc.service.ElectricityFactorService;
 import com.carboncalc.util.ValidationUtils;
 
 /**
- * Controller for the Emission Factors module.
+ * EmissionFactorsController
  *
- * Responsibilities:
- * - Orchestrate the top-level {@link EmissionFactorsPanel} (type and year
- * selectors) and coordinate per-energy subcontrollers.
- * - Lazily create and manage per-energy subcontrollers (electricity, gas,
- * fuel, ...) using an injected factory.
- * - Coordinate year selection, dirty-checks and delegate per-energy
- * load/save operations to the active subcontroller.
+ * <p>
+ * Top-level controller for the Emission Factors module. It manages the main
+ * {@link EmissionFactorsPanel}, coordinates per-energy
+ * subcontrollers and handles year selection, activation and persistence
+ * concerns.
+ * </p>
  *
- * Implementation notes related to the electricity startup fix:
- * - Subcontroller activation and card showing are performed in a single EDT
- * task (see {@link #handleTypeSelection}) so showCard(), shared-table
- * loading and subcontroller.onActivate(...) occur in a deterministic order
- * and reduce visibility timing races.
- * - We track the last activation year per-subcontroller in
- * {@link #lastActivatedYear}
- * to avoid wiping a freshly-populated table when startup activation and
- * spinner-change handlers run in close succession.
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: user actions in the Emission Factors UI and an injected
+ * {@link Function} factory for subcontrollers.</li>
+ * <li>Outputs: per-year factor loads/saves delegated to subcontrollers and
+ * UI updates to the shared factors table.</li>
+ * <li>Behavior: activation and year-change flows are coordinated on the EDT
+ * to minimize visibility races; subcontrollers implement the actual
+ * persistence logic.</li>
+ * </ul>
+ * </p>
  */
 public class EmissionFactorsController {
     private final ResourceBundle messages;

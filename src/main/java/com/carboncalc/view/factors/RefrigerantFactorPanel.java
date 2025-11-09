@@ -9,10 +9,25 @@ import java.awt.*;
 import java.util.ResourceBundle;
 
 /**
- * Panel used to manage refrigerant PCA factors.
+ * RefrigerantFactorPanel
+ *
  * <p>
- * This panel provides refrigerant-specific UI for entering refrigerant
- * types and associated PCA values.
+ * Panel used to manage refrigerant PCA factors. The panel provides a
+ * manual-entry form for refrigerant types and PCA values, plus an Excel
+ * import tab that allows mapping refrigerant type and PCA columns and
+ * previewing the results before import.
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>The view accepts a localized {@link ResourceBundle} and exposes
+ * getters for controller wiring; controllers are responsible for
+ * validation and persistence.</li>
+ * <li>UI components are constructed on the EDT as per application
+ * conventions; avoid performing blocking IO in this class.</li>
+ * <li>All imports are declared at the top of the file; do not introduce
+ * inline imports inside methods or blocks.</li>
+ * </ul>
  */
 public class RefrigerantFactorPanel extends JPanel {
     private final ResourceBundle messages;

@@ -26,23 +26,25 @@ import com.carboncalc.util.CellUtils;
 import com.carboncalc.util.ValidationUtils;
 
 /**
- * Controller responsible for orchestrating the Fuel import flow.
+ * FuelController
  *
  * <p>
- * The controller performs the following responsibilities:
+ * Controller that manages the Fuel import flow: file selection (Teams Forms
+ * sheets), header mapping, preview and delegation to
+ * {@link FuelExcelExporter} for creating export
+ * workbooks.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
  * <ul>
- * <li>Show a file chooser and load the selected Teams Forms Excel file.</li>
- * <li>Enumerate sheets and populate mapping dropdowns with header values.</li>
- * <li>Provide a preview of the source sheet and validate the user's
- * mapping selections.</li>
- * <li>Delegate export tasks to
- * {@link com.carboncalc.util.excel.FuelExcelExporter}.</li>
+ * <li>Inputs: user-selected provider/Teams files and mapping choices from the
+ * UI.</li>
+ * <li>Outputs: generated Excel exports and preview table updates.</li>
+ * <li>Behavior: parsing and export are currently synchronous; consider
+ * moving heavy tasks to background threads to keep the UI responsive.</li>
  * </ul>
- *
- * <p>
- * Long-running operations (large exports) are performed synchronously
- * for simplicity; if needed these should be moved off the EDT using a
- * {@code SwingWorker} to avoid blocking the UI thread.
+ * </p>
  */
 public class FuelController {
     private final ResourceBundle messages;

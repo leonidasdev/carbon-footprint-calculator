@@ -25,20 +25,28 @@ import com.carboncalc.util.ExcelCsvLoader;
 import java.io.IOException;
 
 /**
- * Controller for the refrigerant import panel.
+ * RefrigerantController
  *
  * <p>
- * Responsibilities:
+ * Controller that handles refrigerant imports: selecting provider (Teams Forms)
+ * spreadsheets, detecting sheets, populating mapping controls, previewing data
+ * and delegating validated imports/exports to
+ * {@link RefrigerantExcelExporter}.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
  * <ul>
- * <li>Handle Teams Forms Excel selection and sheet enumeration.</li>
- * <li>Populate column mapping combos and update a preview table.</li>
- * <li>Validate mapping and delegate export operations to the exporter.</li>
+ * <li>Inputs: Teams Forms spreadsheets (XLSX/XLS/CSV) and mapping choices from
+ * the UI.</li>
+ * <li>Outputs: import results, preview updates and exported reports when
+ * requested.</li>
+ * <li>Behavior: controller currently performs parsing synchronously; for large
+ * files
+ * consider running import on a background thread to avoid blocking the
+ * EDT.</li>
  * </ul>
- *
- * <p>
- * Long-running operations (large files, exports) should be executed off
- * the EDT by the caller; this controller keeps parsing synchronous and
- * lightweight so it can be moved to a background worker later if required.
+ * </p>
  */
 public class RefrigerantController {
     private final ResourceBundle messages;

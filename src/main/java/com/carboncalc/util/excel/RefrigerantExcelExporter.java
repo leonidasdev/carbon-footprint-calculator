@@ -32,18 +32,26 @@ import com.carboncalc.util.DateUtils;
 import java.sql.Date;
 
 /**
- * Minimal Excel exporter for refrigerant import results.
+ * RefrigerantExcelExporter
  *
  * <p>
- * This exporter creates an Excel workbook containing up to three sheets:
+ * Exports refrigerant-related consumption and emissions into Excel. The
+ * exporter writes a detailed "Extendido" sheet (per-row with formulas), a
+ * per-center summary ("Por centro") and a totals sheet. Per-year PCA factors
+ * are loaded to compute emissions when available.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
  * <ul>
- * <li>Extendido: detailed rows with computed emissions</li>
- * <li>Por centro: per-center aggregates</li>
- * <li>Total: total quantities and emissions</li>
+ * <li>Inputs: destination path, optional provider workbook/sheet, mapping,
+ * reporting year and optional filters.</li>
+ * <li>Outputs: an Excel workbook at the given location and a "Diagnostics"
+ * sheet containing parsing and row-level information to help debugging.</li>
+ * <li>Behavior: exporter tolerates missing or malformed data and records
+ * details into diagnostics instead of failing the entire operation.</li>
  * </ul>
- *
- * <p>
- * Per-year PCA factors are loaded through {@link RefrigerantFactorServiceCsv}.
+ * </p>
  */
 public class RefrigerantExcelExporter {
 

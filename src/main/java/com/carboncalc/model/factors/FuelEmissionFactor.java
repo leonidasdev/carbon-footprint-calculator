@@ -1,11 +1,26 @@
 package com.carboncalc.model.factors;
 
 /**
- * Represents an emission factor for liquid fuels (e.g., diesel, gasoline).
+ * FuelEmissionFactor
+ *
  * <p>
- * Stores the baseline CO2 intensity (kgCO2 per liter) together with
- * fuel-specific attributes such as density and energy content. This class
- * implements {@link EmissionFactor} and acts as a plain data container.
+ * Represents an emission factor for liquid fuels (e.g., diesel, gasoline).
+ * Stores the baseline CO2 intensity together with fuel-specific attributes
+ * such as density, energy content and optional pricing metadata. This class
+ * implements {@link EmissionFactor} and acts as a plain data container used
+ * by import/export and persistence services.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>The class is intentionally lightweight — validation (e.g. non-negative
+ * values) should be performed by the service layer before persistence.</li>
+ * <li>Fields like {@code fuelType} and {@code vehicleType} are informational
+ * and used for matching/upserts by CSV-backed services.</li>
+ * <li>Maintain stability of field names and ordering to preserve CSV
+ * compatibility.</li>
+ * </ul>
  * </p>
  */
 public class FuelEmissionFactor implements EmissionFactor {

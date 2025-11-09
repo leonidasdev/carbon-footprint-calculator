@@ -42,14 +42,26 @@ import java.util.Vector;
 import java.util.Optional;
 
 /**
- * Controller for fuel emission factors.
+ * FuelFactorController
  *
  * <p>
- * Wires the {@link FuelFactorPanel} UI to persistence provided by
- * {@link FuelFactorService}. Responsible for input
- * validation, composing the model entity, and delegating add/edit/delete
- * operations to the service layer. UI text is resolved from the provided
- * {@link ResourceBundle}.
+ * Subcontroller that wires the
+ * {@link FuelFactorPanel}
+ * UI to persistence provided by {@link FuelFactorService}. Responsible for
+ * validation, composing model entities and delegating add/edit/delete
+ * operations.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: panel edits, import spreadsheets and year selection.</li>
+ * <li>Outputs: persisted fuel emission factors and refreshed UI
+ * lists/tables.</li>
+ * <li>Behavior: imports support CSV/XLS/XLSX and controller persists entries
+ * immediately; long-running imports may be run on background threads if
+ * needed.</li>
+ * </ul>
  * </p>
  */
 public class FuelFactorController extends GenericFactorController {

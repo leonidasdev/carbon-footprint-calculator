@@ -5,12 +5,25 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 
 /**
- * Top-level application controller responsible for wiring the main window.
+ * MainController
  *
- * Responsibilities:
- * - Create and show the main application window.
- * - Provide lightweight handlers for global actions (language change,
- * about dialog). Heavy lifting is delegated to specialized controllers.
+ * <p>
+ * Top-level application controller that wires the main window and exposes
+ * lightweight handlers for global actions such as language changes and the
+ * About dialog. Heavy operations are delegated to specialized controllers.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: construction with a localized
+ * {@link ResourceBundle}.</li>
+ * <li>Outputs: a visible {@link MainWindow} instance and
+ * method hooks for global UI actions.</li>
+ * <li>Error handling: this class performs minimal work and avoids throwing
+ * runtime exceptions for UI wiring operations.</li>
+ * </ul>
+ * </p>
  */
 public class MainController {
     private final MainWindow view;

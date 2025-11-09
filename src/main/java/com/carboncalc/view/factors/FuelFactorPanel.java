@@ -9,11 +9,24 @@ import java.awt.*;
 import java.util.ResourceBundle;
 
 /**
- * Panel containing controls to manage fuel emission factors.
+ * FuelFactorPanel
  *
- * This panel mirrors the refrigerant factors panel layout and provides
- * two modes: Manual input and Excel import. The Excel import requires mapping
- * of Fuel Type, Vehicle Type, Year and Price per unit columns.
+ * <p>
+ * Panel containing controls to manage fuel emission factors. The panel
+ * supports both manual entry and Excel import workflows. The import tab
+ * provides column mapping controls (fuel type, vehicle type, year and
+ * price) and a preview area to validate mapping before importing.
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>The constructor accepts a localized {@link ResourceBundle} with UI
+ * strings and the view delegates parsing/persistence to its controller.</li>
+ * <li>Manual input and table editing should be handled by the controller;
+ * this class focuses on wiring UI components and exposing getters.</li>
+ * <li>All imports are declared at the top of the file; do not add inline
+ * imports inside methods or blocks to keep code consistent.</li>
+ * </ul>
  */
 public class FuelFactorPanel extends JPanel {
     private final ResourceBundle messages;

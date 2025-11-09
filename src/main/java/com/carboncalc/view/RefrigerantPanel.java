@@ -12,9 +12,25 @@ import java.util.ResourceBundle;
 import java.text.DecimalFormat;
 
 /**
- * View panel for refrigerant imports. Minimal UI that follows the same
- * patterns as the ElectricityPanel but focused on a single Teams Forms file
- * import with column mapping and preview.
+ * RefrigerantPanel
+ *
+ * <p>
+ * View panel for refrigerant imports. The panel follows the same layout and
+ * interaction patterns as other module panels (e.g. {@link ElectricityPanel}):
+ * file selection, column mapping, sheet preview and a small result area with
+ * year and export controls.
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>The constructor receives a
+ * {@link com.carboncalc.controller.RefrigerantController}
+ * and a localized {@link ResourceBundle} used for UI strings.</li>
+ * <li>UI construction is performed on the Event Dispatch Thread (EDT).
+ * Controllers should perform long-running work off the EDT.</li>
+ * <li>The panel delegates parsing, validation and persistence to the
+ * controller; this class focuses on building and exposing the view.</li>
+ * </ul>
  */
 public class RefrigerantPanel extends BaseModulePanel {
     private final RefrigerantController controller;

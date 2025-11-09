@@ -5,10 +5,27 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service contract for managing fuel-factor rows persisted by year.
+ * FuelFactorService
+ *
  * <p>
- * Similar to {@code GasFactorService} but focused on liquid fuels. Implementors
- * should persist per-year CSV files and provide stable upsert/delete semantics.
+ * Service contract for managing fuel-factor rows persisted by year.
+ * Implementations
+ * should persist per-year CSV files and provide stable upsert and delete
+ * semantics
+ * suitable for editor-like workflows.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Operations are year-scoped: callers pass the target year for
+ * read/write.</li>
+ * <li>Implementations should make save/upsert idempotent and preserve a
+ * predictable ordering when writing CSV files.</li>
+ * <li>Clients may rely on {@link #getDefaultYear()} to obtain a fallback
+ * year when none is explicitly provided.</li>
+ * </ul>
+ * </p>
  */
 public interface FuelFactorService {
     /** Persist or upsert a single fuel factor entry. */

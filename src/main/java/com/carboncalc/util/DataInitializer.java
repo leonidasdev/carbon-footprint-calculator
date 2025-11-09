@@ -6,21 +6,24 @@ import java.nio.file.Path;
 import java.time.Year;
 
 /**
- * Helper for ensuring the repository's lightweight data workspace exists.
+ * Data workspace initializer.
  *
  * <p>
- * This utility centralizes creation of the top-level {@code data} folder and
- * a small set of subfolders used by the application (language, cups_center,
- * emission_factors, year). Calling {@link #ensureDataFolders()} is safe to do
- * repeatedly (it is idempotent) and is intended to run on application startup
- * before any code tries to read or write files in {@code data/}.
+ * Helper for ensuring the repository's lightweight {@code data} workspace
+ * exists. Centralizes creation of the top-level {@code data} folder and a
+ * small set of subfolders used by the application (language, cups_center,
+ * emission_factors, year). The initializer is idempotent and safe to call on
+ * startup.
  * </p>
  *
- * <p>
- * No existing files are modified; the method will only create missing
- * directories and will create a minimal {@code current_year.txt} file if it
- * does not exist (populated with the current system year).
- * </p>
+ * <h3>Contract and notes</h3>
+ * <ul>
+ * <li>Creates directories and a minimal {@code current_year.txt} when
+ * missing.</li>
+ * <li>Does not modify existing files; callers may rely on idempotence.</li>
+ * <li>May throw IOException on filesystem errors; callers should handle it
+ * (typically on application startup).</li>
+ * </ul>
  *
  * @since 0.0.1
  */

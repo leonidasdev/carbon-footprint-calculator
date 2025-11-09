@@ -1,13 +1,25 @@
 package com.carboncalc.model.factors;
 
 /**
- * Represents a stored gas emission factor row.
+ * GasFactorEntry
+ *
  * <p>
- * This POJO supports both a legacy single-factor representation (via
- * {@code emissionFactor}) and a newer, explicit representation using
- * {@code marketFactor} and {@code locationFactor}. Controllers and
- * services should prefer the explicit market/location fields, while the
- * legacy accessors remain for backward compatibility with older data.
+ * Represents a stored gas emission factor row. This POJO supports both a
+ * legacy single-factor representation (via {@code emissionFactor}) and a
+ * newer explicit representation using {@code marketFactor} and
+ * {@code locationFactor} so services can support both older and newer data
+ * formats.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Controllers and services should prefer the explicit
+ * {@code marketFactor}/{@code locationFactor} fields for correctness.</li>
+ * <li>Legacy getters/setters remain to maintain compatibility with older
+ * CSV files and code paths; newer code should use the market/location
+ * accessors.</li>
+ * </ul>
  * </p>
  */
 public class GasFactorEntry {

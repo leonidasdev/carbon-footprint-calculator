@@ -1,15 +1,23 @@
 package com.carboncalc.util.enums;
 
 /**
- * Column headers for the detailed ("Extendido") electricity/gas export sheet.
+ * DetailedHeader
  *
  * <p>
- * These labels are the user-facing column titles used when generating the
- * detailed export sheet. They are currently provided in Spanish; they are
- * declared in a dedicated enum so multiple exporters (electricity, gas)
- * reuse a single canonical ordering. Localization of these labels is planned
- * (resource-bundle based) and should be applied at the point where the
- * exporter writes the sheet.
+ * Enum representing canonical column headers for the detailed ("Extendido")
+ * export sheet used by electricity and gas exporters. Each enum constant
+ * provides a human-friendly label and a resource-bundle key that exporters
+ * can use to localize the visible header.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Use {@link #key()} to obtain the resource bundle key for localization
+ * at write-time.</li>
+ * <li>The declared ordering is the canonical column order expected by
+ * summary/aggregate helpers; changing the enum order may affect exporters.</li>
+ * </ul>
  * </p>
  */
 public enum DetailedHeader {

@@ -7,14 +7,25 @@ import java.util.*;
 import java.time.Year;
 
 /**
- * CSV-backed implementation of {@link GasFactorService}.
+ * GasFactorServiceCsv
  *
- * Stores per-year gas factor files under {@code data/emission_factors/{year}/}.
- * The CSV format supports both a legacy 2-column representation
- * {@code gasType,emissionFactor} and a newer 3-column format
- * {@code gasType,marketFactor,locationFactor}. The implementation normalizes
- * gas type names to uppercase for stable upserts and tolerates minor CSV
- * variations for backward compatibility.
+ * <p>
+ * CSV-backed implementation of {@link GasFactorService}. Persists per-year
+ * gas factor CSV files under {@code data/emission_factors/{year}/}. The
+ * implementation normalizes gas-type names and supports both legacy and
+ * extended CSV representations (market/location factors) for compatibility.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Files are written in a canonical 3-column format when possible:
+ * {@code gasType,marketFactor,locationFactor}.</li>
+ * <li>Legacy 2-column rows are accepted when loading and normalized so
+ * that locationFactor falls back to marketFactor.</li>
+ * <li>Writes use per-file replacement to keep the on-disk format stable.</li>
+ * </ul>
+ * </p>
  */
 public class GasFactorServiceCsv implements GasFactorService {
     private static final String BASE_PATH = "data/emission_factors";

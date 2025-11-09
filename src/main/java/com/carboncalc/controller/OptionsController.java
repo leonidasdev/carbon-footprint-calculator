@@ -9,18 +9,24 @@ import java.io.IOException;
 import java.util.ResourceBundle;
 
 /**
- * Controller for {@link OptionsPanel}.
+ * OptionsController
  *
- * Responsibilities:
- * - React to user interactions in the Options panel (language change,
- * about request, save).
- * - Keep controller logic minimal and delegate I/O to the Settings helper.
+ * <p>
+ * Controller responsible for the application's Options panel. It reacts to
+ * user-driven settings changes (language, theme, about/save requests) and
+ * delegates persistent I/O to the {@link Settings} helper.
+ * </p>
  *
- * Design notes:
- * - The controller intentionally avoids performing UI construction. It
- * translates the localized display strings into internal codes (e.g. "en",
- * "es")
- * and persists them using {@link Settings}.
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: UI events originating from {@link OptionsPanel}.</li>
+ * <li>Outputs: persisted settings and informational dialogs.</li>
+ * <li>Error modes: I/O failures are presented to the user via dialogs; the
+ * controller preserves a minimal responsibility and avoids heavy I/O
+ * logic.</li>
+ * </ul>
+ * </p>
  */
 
 public class OptionsController {

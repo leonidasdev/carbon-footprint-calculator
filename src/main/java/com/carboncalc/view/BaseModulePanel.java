@@ -10,10 +10,23 @@ import java.util.ArrayList;
 /**
  * BaseModulePanel
  *
+ * <p>
  * Common base class for all module view panels. Provides a consistent
- * content panel, resource bundle access and shared styling via UIUtils.
- * Subclasses must implement initializeComponents() to build their UI and
- * onSave() to react to save actions.
+ * content panel, access to the localized {@link ResourceBundle} and
+ * shared styling helpers via {@link UIUtils}.
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Subclasses must implement {@link #initializeComponents()} to construct
+ * their UI and {@link #onSave()} to react to save requests.</li>
+ * <li>Initialization is deferred to the Event Dispatch Thread (EDT) using
+ * {@link SwingUtilities#invokeLater(Runnable)} to avoid
+ * init-order coupling between controller and view wiring.</li>
+ * <li>Controllers may register post-init callbacks via
+ * {@link #runAfterInit(Runnable)}
+ * which are executed immediately after initialization completes.</li>
+ * </ul>
  */
 public abstract class BaseModulePanel extends JPanel {
     protected final ResourceBundle messages;

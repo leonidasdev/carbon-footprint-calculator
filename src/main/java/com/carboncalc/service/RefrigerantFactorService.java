@@ -5,12 +5,23 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service contract for refrigerant PCA factors persisted on a per-year basis.
+ * RefrigerantFactorService
  *
  * <p>
+ * Service contract for refrigerant PCA factors persisted on a per-year basis.
  * Implementations are expected to provide stable upsert semantics and to
  * read/write CSV files under {@code data/emission_factors/{year}} following
  * the application's conventions for other factor types.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Implementations should preserve alphabetic ordering of refrigerant
+ * types to keep diffs stable when files are edited by users.</li>
+ * <li>Loading functions should be tolerant to missing files and return an
+ * empty list when data is not present.</li>
+ * </ul>
  * </p>
  */
 public interface RefrigerantFactorService {

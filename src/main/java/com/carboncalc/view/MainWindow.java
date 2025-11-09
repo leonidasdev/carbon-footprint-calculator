@@ -171,7 +171,7 @@ public class MainWindow extends JFrame {
         // Add modules (use real panels when implemented)
         contentPanel.add(createFuelPanel(), EnergyType.FUEL.id());
         contentPanel.add(createRefrigerantPanel(), EnergyType.REFRIGERANT.id());
-    contentPanel.add(createGeneralPanel(), "general");
+        contentPanel.add(createGeneralPanel(), "general");
         contentPanel.add(createCupsConfigPanel(), "cups");
         contentPanel.add(createEmissionFactorsPanel(), "factors");
         contentPanel.add(createOptionsPanel(), "options");

@@ -6,10 +6,23 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 
 /**
+ * Energy type label resolver.
+ *
+ * <p>
  * Utility helpers to resolve possibly-localized energy type labels into the
- * canonical {@link EnergyType}. This accepts enum names, short ids (e.g.
- * "electricity") and localized display labels from the application's
- * resource bundles (Spanish or default).
+ * canonical {@link EnergyType}. Accepts enum names,
+ * short ids (e.g. "electricity") and localized display labels from the
+ * application's resource bundles (Spanish or default).
+ * </p>
+ *
+ * <h3>Contract and notes</h3>
+ * <ul>
+ * <li>Returns {@code null} when the input cannot be mapped.</li>
+ * <li>Resolution prefers the Spanish resource bundle, then the default
+ * bundle.</li>
+ * <li>Keep imports at the top of the file; do not introduce inline
+ * imports.</li>
+ * </ul>
  */
 public final class EnergyTypeUtils {
     private static final ResourceBundle SPANISH_BUNDLE = ResourceBundle.getBundle("Messages", new Locale("es"));

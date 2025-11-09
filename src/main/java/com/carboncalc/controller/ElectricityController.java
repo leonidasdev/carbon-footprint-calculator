@@ -39,16 +39,26 @@ import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 
 /**
- * Controller responsible for the Electricity import/export UI.
+ * ElectricityController
  *
- * Responsibilities:
- * - Manage provider and ERP Excel file selection and preview.
- * - Map selected columns from provider/ERP files to an internal
- * ElectricityMapping and trigger export using ElectricityExcelExporter.
- * - Load persisted CUPS configuration and current year, and persist changes.
+ * <p>
+ * Controller responsible for the Electricity module UI: selecting provider
+ * and ERP spreadsheets, mapping columns to an {@link ElectricityMapping},
+ * previewing data and invoking {@link ElectricityExcelExporter}
+ * to produce exports.
+ * </p>
  *
- * Note: This is a Swing-focused controller; heavy I/O (export) currently runs
- * synchronously and can be moved to a background thread if needed.
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: provider and ERP Excel/CSV files plus user-specified column
+ * mappings.</li>
+ * <li>Outputs: export files written by the Electricity exporter and UI
+ * updates.</li>
+ * <li>Errors: file/format errors are reported via dialogs; long-running exports
+ * may be moved off the EDT for responsiveness.</li>
+ * </ul>
+ * </p>
  */
 public class ElectricityController {
     private final ResourceBundle messages;

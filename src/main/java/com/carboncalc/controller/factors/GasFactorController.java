@@ -19,12 +19,24 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Controller for gas emission factors.
+ * GasFactorController
  *
- * Loads and persists per-year gas factor entries via {@link GasFactorService},
- * populates the shared factors table, and wires Add/Edit/Delete actions on the
- * trading companies panel. The controller presents localized user messages
- * and marshals UI updates to the EDT when necessary.
+ * <p>
+ * Subcontroller that manages gas emission factors: loads and persists per-year
+ * gas factor entries using {@link GasFactorService}, populates the shared
+ * factors table and wires Add/Edit/Delete UI actions.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: year selection and user edits from the gas factor subpanel.</li>
+ * <li>Outputs: persisted gas factors and updates to the shared factors
+ * table.</li>
+ * <li>Behavior: UI updates are performed on the EDT and errors are shown via
+ * localized messages; persistence occurs immediately per-row.</li>
+ * </ul>
+ * </p>
  */
 public class GasFactorController extends GenericFactorController {
     private GasFactorPanel panel;

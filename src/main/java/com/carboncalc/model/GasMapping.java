@@ -1,12 +1,23 @@
 package com.carboncalc.model;
 
 /**
- * Represents the mapping of Excel columns for gas data processing.
+ * GasMapping
  *
- * Instances of this class describe which spreadsheet columns correspond to
- * the various expected fields (CUPS, invoice dates, consumption, etc.) used
- * by the gas import flow. The helper {@link #isComplete()} indicates whether
- * the mapping is ready to be used for parsing.
+ * <p>
+ * Represents the mapping of Excel columns for gas data processing. Instances
+ * describe which sheet columns correspond to expected fields (CUPS, invoice
+ * dates, consumption, etc.) used by the gas import flow.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Indices are zero-based; {@code -1} indicates an unselected column.</li>
+ * <li>Callers should verify {@link #isComplete()} before parsing to avoid
+ * indexing errors and to ensure required fields (including gas type) are
+ * present.</li>
+ * </ul>
+ * </p>
  */
 public class GasMapping {
     private int cupsIndex;

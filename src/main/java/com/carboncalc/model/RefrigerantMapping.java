@@ -1,15 +1,23 @@
 package com.carboncalc.model;
 
 /**
- * DTO for column mappings selected by the user when importing refrigerant
- * data from a Teams Forms / Excel sheet.
+ * RefrigerantMapping
  *
  * <p>
- * Conventions:
+ * DTO for column mappings selected by the user when importing refrigerant
+ * data from a Teams Forms / Excel sheet. Stores zero-based column indices
+ * for the fields required by the import pipeline.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
  * <ul>
- * <li>A value of {@code -1} means the column was not selected.</li>
- * <li>Non-negative values correspond to zero-based sheet column indices.</li>
+ * <li>A value of {@code -1} indicates the column was not selected.</li>
+ * <li>{@link #isComplete()} enforces that all required mapping indices are
+ * present
+ * before parsing begins.</li>
  * </ul>
+ * </p>
  */
 public class RefrigerantMapping {
     private final int centroIndex;

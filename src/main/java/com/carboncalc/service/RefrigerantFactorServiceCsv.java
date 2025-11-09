@@ -14,13 +14,23 @@ import java.util.Optional;
 import java.time.Year;
 
 /**
- * CSV-backed implementation for refrigerant PCA factors.
+ * RefrigerantFactorServiceCsv
  *
  * <p>
- * Persists per-year CSV files under {@code data/emission_factors/{year}}.
- * The CSV format uses a simple header {@code refrigerantType,pca}. The
- * implementation offers basic upsert semantics and preserves a stable
- * alphabetical ordering of refrigerant types in the file.
+ * CSV-backed implementation for refrigerant PCA factors. Persists per-year
+ * CSV files under {@code data/emission_factors/{year}} using a simple
+ * {@code refrigerantType,pca} header and provides stable upsert semantics.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Writes preserve a canonical alphabetical order for refrigerant types
+ * to make file diffs predictable.</li>
+ * <li>Loading returns an empty list for missing or unparsable files to
+ * keep callers resilient.</li>
+ * </ul>
+ * </p>
  */
 public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
     private static final String BASE_PATH = "data/emission_factors";

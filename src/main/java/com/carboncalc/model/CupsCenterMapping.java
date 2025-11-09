@@ -1,20 +1,24 @@
 package com.carboncalc.model;
 
 /**
+ * CupsCenterMapping
+ *
+ * <p>
  * Mapping object for a CUPS center row used during import and manual
- * configuration flows.
+ * configuration flows. This POJO carries the CUPS identifier and associated
+ * center metadata (acronym, campus, energy type and address fields) used
+ * across the UI and import preview.
+ * </p>
  *
  * <p>
- * This POJO holds the CUPS identifier and associated center metadata used
- * by the Cups UI and import preview. It includes fields for acronym and the
- * newly added {@code campus} value which is stored alongside energy and
- * address fields.
- *
- * <p>
- * The natural ordering implemented by {@link #compareTo(CupsCenterMapping)}
- * is a case-insensitive ordering on the center display name to allow
- * consistent sorting in UI tables. Equality prefers database id comparison
- * when available and falls back to matching by the (cups, centerName) pair.
+ * Contract and notes:
+ * <ul>
+ * <li>The class is a simple DTO; validation is performed by higher-level
+ * components during import or before persistence.</li>
+ * <li>Comparison and equality are implemented to produce stable ordering
+ * and predictable identity semantics for table views and CSV operations.</li>
+ * </ul>
+ * </p>
  */
 public class CupsCenterMapping implements Comparable<CupsCenterMapping> {
     private Long id;

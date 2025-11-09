@@ -12,14 +12,24 @@ import java.util.Vector;
 /**
  * GeneralPanel
  *
- * Provides a consolidated file-management box for electricity, gas, fuel
- * and refrigerant reports and a vertically-aligned result box containing
+ * <p>
+ * Provides a consolidated file-management area for electricity, gas, fuel
+ * and refrigerant inputs and a vertically-aligned result box containing
  * a preview table and an "Apply & Save Excel" action.
  *
- * This panel is intended as a lightweight shared UI that controllers can
- * wire into. It follows the project's styling conventions (UIUtils) and
- * exposes getters for the core controls so the controller can attach
- * behavior.
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>This panel exposes simple getters for core controls (file buttons,
+ * preview table and save button) so the {@code GeneralController}
+ * can attach behavior and perform exports.</li>
+ * <li>UI construction is performed on the EDT via the {@link BaseModulePanel}
+ * initialization flow; controllers should handle any long-running work
+ * off the EDT.</li>
+ * <li>The {@link #onSave()} implementation delegates to the Save Results
+ * button so container-level save hooks trigger the same action as
+ * clicking the button in the UI.</li>
+ * </ul>
  */
 public class GeneralPanel extends BaseModulePanel {
 

@@ -31,36 +31,26 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 
 /**
- * Gas Excel exporter.
+ * GasExcelExporter
  *
  * <p>
- * Produces Excel reports for gas consumption mirroring the electricity
- * exporter behavior but adapted to gas-specific mappings and gas-type based
- * emission factors.
+ * Produces Excel reports for gas consumption. The exporter follows the same
+ * general pattern as the electricity exporter but uses gas-specific mappings
+ * and per-gas-type factors. Output includes a detailed sheet ("Extendido"),
+ * a per-center summary ("Por centro") and a total sheet.
  * </p>
  *
  * <p>
- * Responsibilities (high level):
+ * Contract and notes:
  * <ul>
- * <li>Write the detailed (Extendido), per-center (Por centro) and total
- * (Total) sheets.</li>
- * <li>Load per-year gas-type emission factors and apply them to consumption
- * rows.</li>
- * <li>Write formulas into the workbook so the resulting sheet is
- * inspectable and editable by the user.</li>
+ * <li>Inputs: optional provider file and sheet, GasMapping, reporting year
+ * and invoice filters.</li>
+ * <li>Outputs: an Excel workbook written to the destination path and a
+ * "Diagnostics" sheet with parsing/validation details.</li>
+ * <li>Behavior: the exporter is tolerant of missing data and writes empty
+ * templates or diagnostic messages instead of failing hard.</li>
  * </ul>
  * </p>
- *
- * <p>
- * Notes on localization: header labels for exported Excel files are read
- * from the Spanish resource bundle (Messages_es) to guarantee consistent
- * Spanish wording in exported workbooks regardless of the application's
- * current UI locale. Exporters perform resource-bundle lookups at write-time
- * and avoid changing column ordering so downstream consumers remain
- * compatible.
- * </p>
- *
- * @since 1.0.0
  */
 public class GasExcelExporter {
     /**

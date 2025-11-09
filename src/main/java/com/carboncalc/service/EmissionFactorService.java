@@ -5,12 +5,22 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service contract for managing per-type emission factors.
+ * EmissionFactorService
+ *
  * <p>
- * Implementations are responsible for persisting per-entity, per-year
- * emission factors and providing basic utilities such as listing available
- * years and exporting data. Implementations may be CSV-backed (the
- * current default) or use other storage mechanisms.
+ * Service contract for managing per-type emission factors (electricity,
+ * gas, fuel, refrigerant). Implementations persist per-entity, per-year
+ * CSV files and expose utilities for listing years and exporting data.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Implementations must persist changes immediately so the UI reflects
+ * up-to-date values.</li>
+ * <li>Loaders should tolerate blank lines and malformed rows and prefer
+ * best-effort parsing rather than failing hard on minor CSV issues.</li>
+ * </ul>
  * </p>
  */
 public interface EmissionFactorService {

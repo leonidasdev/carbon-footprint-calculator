@@ -15,10 +15,23 @@ import java.util.ResourceBundle;
 import java.awt.Dimension;
 
 /**
- * Collection of small UI helper utilities used across the application.
+ * UI helper utilities and constants.
  *
- * This class centralizes colors and simple styling helpers so the rest of the
- * codebase can keep a consistent look and avoid duplicated styling logic.
+ * <p>
+ * Collection of small UI helper utilities used across the application. This
+ * class centralizes colors, sizing constants and simple styling helpers so
+ * the rest of the codebase can keep a consistent look and avoid duplicated
+ * styling logic.
+ * </p>
+ *
+ * <h3>Contract and notes</h3>
+ * <ul>
+ * <li>Contains static styling constants and factory-like helper methods.</li>
+ * <li>Helpers mutate Swing components passed by callers (apply styling
+ * in-place).</li>
+ * <li>Keep imports at the top of the file; do not introduce inline
+ * imports.</li>
+ * </ul>
  */
 public class UIUtils {
     public static final Color UPM_BLUE = new Color(0x1B3D6D);

@@ -28,14 +28,25 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Controller for refrigerant PCA factors.
+ * RefrigerantFactorController
  *
  * <p>
- * Loads and persists per-year refrigerant PCA entries via
- * {@link RefrigerantFactorService}, populates the shared factors table in
- * {@link EmissionFactorsPanel} and wires Add/Edit/Delete actions exposed by
- * the {@link RefrigerantFactorPanel} UI. The controller presents localized
- * user messages and marshals UI updates to the EDT when required.
+ * Subcontroller that loads and persists per-year refrigerant emission factors
+ * via {@link RefrigerantFactorService}, populates the shared factors table and
+ * wires Add/Edit/Delete and import actions exposed by
+ * {@link RefrigerantFactorPanel}.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: import spreadsheets and in-panel edits for refrigerant PCA
+ * values.</li>
+ * <li>Outputs: persisted refrigerant factors and preview/table updates.</li>
+ * <li>Behavior: UI updates are scheduled on the EDT; imports support
+ * CSV/XLS/XLSX
+ * and are executed synchronously by the controller.</li>
+ * </ul>
  * </p>
  */
 public class RefrigerantFactorController extends GenericFactorController {

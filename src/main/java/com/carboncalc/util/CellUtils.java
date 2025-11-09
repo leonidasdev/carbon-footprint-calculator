@@ -5,12 +5,23 @@ import java.text.Normalizer;
 import java.util.Locale;
 
 /**
- * Small helpers for working with Apache POI cells used by import/export logic.
+ * Cell utilities for Apache POI interactions.
  *
  * <p>
- * The utilities provide safe accessors that handle nulls, formulas and
- * basic normalization (for matching header names and parsing numbers) so the
- * higher-level code can remain compact and robust.
+ * Small helpers for working with Apache POI {@link Cell}
+ * instances used by import/export logic. The utilities provide safe accessors
+ * that handle nulls, formulas and basic normalization so higher-level code
+ * can remain compact and robust.
+ *
+ * <h3>Contract and notes</h3>
+ * <ul>
+ * <li>All methods are null-tolerant and return safe defaults rather than
+ * throwing whenever reasonable.</li>
+ * <li>Helpers are focused on read-only access; callers are responsible for
+ * write semantics and style management.</li>
+ * <li>Keep imports at the top of the file; do not introduce inline
+ * imports.</li>
+ * </ul>
  */
 public final class CellUtils {
     private CellUtils() {

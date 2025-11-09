@@ -36,14 +36,26 @@ import com.carboncalc.util.excel.GasExcelExporter;
 import com.carboncalc.util.EnergyTypeUtils;
 
 /**
- * Controller for the Gas import/export UI.
+ * GasController
  *
- * Responsibilities:
- * - Manage provider and ERP Excel selection and preview for gas data.
- * - Populate persisted CUPS for gas and refresh available gas types per year.
+ * <p>
+ * Controller that manages the gas import/export UI: provider/ERP file
+ * selection,
+ * sheet and column mapping, preview and delegation to {@link GasExcelExporter}
+ * for producing Excel reports.
+ * </p>
  *
- * Notes: UI operations are Swing-based; heavy I/O runs synchronously and
- * can be moved to a background thread if desired.
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: provider and ERP spreadsheets (XLSX/XLS/CSV) and user mappings
+ * from the panel.</li>
+ * <li>Outputs: exported Excel reports and preview updates in the view.</li>
+ * <li>Behavior: parsing and export are synchronous; heavy operations should be
+ * moved
+ * to a background worker if UI responsiveness is required.</li>
+ * </ul>
+ * </p>
  */
 public class GasController {
     private final ResourceBundle messages;

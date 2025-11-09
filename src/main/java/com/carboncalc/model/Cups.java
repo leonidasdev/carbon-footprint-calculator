@@ -1,14 +1,23 @@
 package com.carboncalc.model;
 
 /**
- * Represents a stored CUPS entry.
+ * Cups
  *
- * This small value object holds the key CUPS identifier and related
- * metadata used by the Cups configuration UI and persistence layer. The
- * {@link #compareTo(Cups)} method provides a case-insensitive ordering by
- * the CUPS identifier to allow consistent sorting in tables and lists.
- * Equality prefers database id comparison when available and falls back to
- * the CUPS string otherwise.
+ * <p>
+ * Small value object representing a stored CUPS entry. Used by the CUPS
+ * configuration UI and persistence layer to carry identifier and metadata
+ * such as the emission entity and energy type.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>{@code compareTo} implements a case-insensitive ordering on the
+ * CUPS identifier to support consistent UI sorting.</li>
+ * <li>{@code equals} prefers id-based equality when available and falls
+ * back to CUPS string comparison for compatibility with CSV-backed data.</li>
+ * </ul>
+ * </p>
  */
 public class Cups implements Comparable<Cups> {
     private Long id;

@@ -20,16 +20,26 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * CSV-backed implementation of {@link CupsService}.
+ * CupsServiceCsv
  *
  * <p>
- * Stores CUPS and CUPS-center mapping data under the project-local
- * data directory. This implementation focuses on robustness: it uses a
- * lenient parser for legacy CSV variations and preserves backwards
- * compatibility with older files. The cups CSV now contains an additional
- * "campus" column (between acronym and energyType); the lenient reader
- * will tolerate older files missing that column and will set campus to an
- * empty string in that case.
+ * CSV-backed implementation of {@link CupsService} that persists CUPS and
+ * mapping rows under the project-local data directory. The implementation
+ * emphasizes robustness and backward compatibility with legacy CSV files.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Reads and writes are lenient: the loader tolerates missing columns,
+ * extra blank lines and minor header variations.</li>
+ * <li>Writes are performed by creating a normalized in-memory collection,
+ * reassigning stable IDs and writing the full CSV in one operation to
+ * avoid partial file corruption.</li>
+ * <li>The class is the canonical CSV-backed store used by the UI; other
+ * storage backends may be added later without changing the interface.</li>
+ * </ul>
+ * </p>
  */
 public class CupsServiceCsv implements CupsService {
     private static final String DATA_DIR = "data";

@@ -6,15 +6,31 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 /**
- * Settings
+ * Lightweight file-backed settings helper.
  *
- * Minimal file-backed settings helper used by the Options UI. The class
- * purposefully exposes small, focused methods for language persistence so
- * callers don't need to know file paths or IO details.
+ * <p>
+ * Minimal helper used by the Options UI for persisting simple settings like
+ * the current language. Callers do not need to know file paths or IO details;
+ * the helper centralizes that responsibility.
+ * </p>
  *
+ * <h3>Contract and notes</h3>
+ * <ul>
+ * <li>Persists a single language code value to
+ * {@code data/language/current_language.txt}.</li>
+ * <li>Methods may throw {@link IOException}; callers should handle it.</li>
+ * <li>Keep imports at the top of the file; do not introduce inline
+ * imports.</li>
+ * </ul>
+ *
+ * <p>
  * Storage format:
- * - data/language/current_language.txt contains a small language code, e.g.
- * "en" or "es". The file is created (and directories) on demand.
+ * <ul>
+ * <li>{@code data/language/current_language.txt} contains a short language code
+ * such as "en" or "es". The file and parent directories are created on
+ * demand.</li>
+ * </ul>
+ * </p>
  */
 public final class Settings {
     private static final Path LANG_FILE = Path.of("data", "language", "current_language.txt");

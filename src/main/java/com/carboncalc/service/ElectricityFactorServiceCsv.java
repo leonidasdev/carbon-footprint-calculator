@@ -14,12 +14,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * CSV-backed implementation of {@link ElectricityFactorService}.
+ * ElectricityFactorServiceCsv
  *
- * Persists electricity general factors and the per-year list of trading
- * companies under {@code data/emission_factors/{year}/}. The implementation
- * uses careful CSV handling to preserve quoted textual fields and performs
- * atomic writes with a safe rename strategy to reduce corruption risk.
+ * <p>
+ * CSV-backed implementation of {@link ElectricityFactorService}. Persists
+ * electricity general factors and per-year trading companies under
+ * {@code data/emission_factors/{year}/}. The implementation performs
+ * careful CSV handling (quoted fields) and atomic file replace semantics to
+ * reduce corruption risk.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Readers tolerate missing files and return default/empty factor
+ * objects instead of throwing.</li>
+ * <li>Writers use a write-to-temp-and-move pattern to ensure atomic
+ * replacement when possible and fall back to non-atomic replace if the
+ * filesystem does not support atomic moves.</li>
+ * </ul>
+ * </p>
  */
 public class ElectricityFactorServiceCsv implements ElectricityFactorService {
     // Use `data/emission_factors/{year}` directory for electricity general files

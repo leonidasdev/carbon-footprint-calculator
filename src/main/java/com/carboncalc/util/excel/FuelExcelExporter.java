@@ -21,13 +21,28 @@ import java.time.LocalDate;
 import java.sql.Date;
 
 /**
- * Excel exporter for fuel import results.
+ * FuelExcelExporter
  *
  * <p>
- * Produces an "Extendido" sheet containing detailed rows with the
- * calculated emissions (Emisiones tCO2) as a spreadsheet formula, a
- * "Por centro" sheet with per-center aggregates and a "Total" sheet
- * summarizing overall quantity and emissions.
+ * Produces Excel reports for fuel (diesel/petrol/etc.) consumption. The
+ * exporter generates a detailed "Extendido" sheet containing per-row
+ * formulas for computed emissions, a per-center summary ("Por centro") and
+ * a small total sheet summarizing consumption and emissions.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Inputs: destination path and optional provider file/sheet, column
+ * mapping, reporting year and optional filters (date limits, completion
+ * header).</li>
+ * <li>Outputs: an Excel workbook written to the provided path with the
+ * standard sheets and a "Diagnostics" sheet containing parsing details.</li>
+ * <li>Behavior: when provider data is missing or malformed the exporter
+ * writes a minimal template and records diagnostics instead of failing.
+ * </li>
+ * </ul>
+ * </p>
  */
 public class FuelExcelExporter {
 

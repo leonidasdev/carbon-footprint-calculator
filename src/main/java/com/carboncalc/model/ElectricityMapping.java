@@ -1,12 +1,23 @@
 package com.carboncalc.model;
 
 /**
- * Represents the mapping of Excel columns for electricity data processing.
+ * ElectricityMapping
  *
- * Used by the Excel import pipeline to determine which columns contain the
- * expected values (CUPS, invoice numbers, consumption ranges, etc.). The
- * {@link #isComplete()}-style check allows callers to verify the mapping is
- * valid before attempting to parse rows.
+ * <p>
+ * Represents the mapping of Excel columns for electricity data processing.
+ * Used by the import pipeline to determine which sheet columns map to
+ * logical fields (CUPS, invoice numbers, consumption, dates, etc.).
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>Indices are zero-based; a value of {@code -1} indicates the column
+ * has not been selected.</li>
+ * <li>Callers should invoke {@link #isComplete()} before attempting to
+ * parse rows to avoid index-out-of-range errors.</li>
+ * </ul>
+ * </p>
  */
 public class ElectricityMapping {
     private int cupsIndex;

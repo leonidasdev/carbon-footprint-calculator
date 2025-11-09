@@ -1,18 +1,25 @@
 package com.carboncalc.model;
 
 /**
- * Simple data holder representing a CUPS center row.
+ * CenterData
  *
  * <p>
- * This class is a plain POJO used by the CUPS configuration UI and import
- * flow. It intentionally keeps no validation logic; controllers and services
- * are responsible for validating and normalizing values prior to persistence.
+ * Simple data holder representing a CUPS center row used across the UI and
+ * import/export flows. This POJO intentionally contains no validation or
+ * persistence logic — controllers and services are responsible for those
+ * concerns.
+ * </p>
  *
  * <p>
- * Fields stored include: cups, marketer, centerName, centerAcronym, campus,
- * energyType, and address fields. The {@code campus} field was added to
- * allow an explicit campus value to be stored and displayed in the UI and
- * persisted in the CSV.
+ * Contract and notes:
+ * <ul>
+ * <li>The class is used as a transfer object between UI panels and the
+ * persistence layer; fields may be null or empty when constructed from
+ * partial import data.</li>
+ * <li>Do not add business validation here; keep this class as a simple
+ * container so it remains easy to serialize to CSV and map from forms.</li>
+ * </ul>
+ * </p>
  */
 public class CenterData {
     private String cups;

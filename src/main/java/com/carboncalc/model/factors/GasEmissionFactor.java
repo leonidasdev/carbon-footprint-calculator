@@ -1,11 +1,24 @@
 package com.carboncalc.model.factors;
 
 /**
- * Represents a gas emission factor for a specific entity and year.
+ * GasEmissionFactor
+ *
  * <p>
- * This simple data holder implements {@link EmissionFactor} and stores the
- * baseline kgCO2 per cubic meter and related technical fields (pressure
- * adjustments, calorific value) used by conversion services.
+ * Represents a gas emission factor for a specific entity and year. This
+ * data holder implements {@link EmissionFactor} and stores the baseline
+ * kgCO2 per cubic meter together with optional technical fields such as
+ * pressure adjustments and calorific value used by conversion services.
+ * </p>
+ *
+ * <p>
+ * Contract and notes:
+ * <ul>
+ * <li>The POJO is used by CSV-backed services and conversion logic; it
+ * contains no domain validation and expects callers to enforce value
+ * constraints.</li>
+ * <li>The {@link #getUnit()} method documents the intended units
+ * (e.g., {@code kgCO2/m³}).</li>
+ * </ul>
  * </p>
  */
 public class GasEmissionFactor implements EmissionFactor {

@@ -60,11 +60,9 @@ public class GeneralExporterResolvePerCenterTest {
                 // expected sheet name used in formulas
                 String expectedSheetName = variant.equals("Por centro") ? "Electricidad - Por centro" : variant;
 
-                // allow either the exact variant or the canonical dash-prefixed name
-                String canonical = "Electricidad - Por centro";
-                assertTrue(formula.contains(expectedSheetName) || formula.contains(canonical),
-                        "Expected formula to reference sheet name variant or canonical: " + expectedSheetName + " / "
-                                + canonical
+                String altExpected = expectedSheetName.replaceFirst(" ", " - ");
+                assertTrue(formula.contains(expectedSheetName) || formula.contains(altExpected),
+                        "Expected formula to reference sheet name variant: " + expectedSheetName + " or " + altExpected
                                 + " but was: " + formula);
             }
         }

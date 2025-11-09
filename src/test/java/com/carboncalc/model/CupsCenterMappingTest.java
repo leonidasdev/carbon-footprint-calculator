@@ -37,6 +37,6 @@ class CupsCenterMappingTest {
         // toString contains the cups and centerName
         String s = a.toString();
         assertTrue(s.contains("CUPS-1"));
-        assertTrue(s.contains("alpha") || s.contains("Alpha") );
+        assertTrue(s.contains("alpha") || s.contains("Alpha"));
     }
 }

@@ -15,6 +15,8 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
+import org.apache.poi.ss.usermodel.CellValue;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 
@@ -81,9 +83,9 @@ public class GasNegativeValuesIntegrationTest {
             assertEquals(CellType.FORMULA, consumo.getCellType(), "Consumo cell should be a formula (SUMIF)");
 
             try {
-                org.apache.poi.ss.usermodel.FormulaEvaluator eval = wb.getCreationHelper().createFormulaEvaluator();
-                org.apache.poi.ss.usermodel.CellValue cv = eval.evaluate(consumo);
-                if (cv != null && cv.getCellType() == org.apache.poi.ss.usermodel.CellType.NUMERIC) {
+                FormulaEvaluator eval = wb.getCreationHelper().createFormulaEvaluator();
+                CellValue cv = eval.evaluate(consumo);
+                if (cv != null && cv.getCellType() == CellType.NUMERIC) {
                     double val = cv.getNumberValue();
                     assertEquals(-800.5, val, 0.0001, "Per-center evaluated sum should be the negative value");
                 } else {

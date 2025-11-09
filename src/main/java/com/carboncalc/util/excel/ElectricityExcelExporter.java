@@ -515,13 +515,40 @@ public class ElectricityExcelExporter {
         }
 
         int r = 1;
+        // Determine the detailed sheet name (Extendido) used by the exporter so we can
+        // reference its columns via SUMIF. Detailed sheet columns (by enum) place
+        // "Consumo aplicable por año al centro" in column L (11 -> letter L) and
+        // "Emisiones Location-based" in column N (13 -> letter N). We'll build
+        // SUMIF formulas that match the center name in column B of the detailed sheet.
+        String detailedName = spanish.containsKey("result.sheet.extended")
+                ? spanish.getString("result.sheet.extended")
+                : "Extendido";
+        String detailedConsumoCol = "L"; // CONSUMO_APLICABLE_CENTRO
+        String detailedMarketCol = "M"; // EMISIONES_MARKET
+        String detailedLocationCol = "N"; // EMISIONES_LOCATION
+
         for (Map.Entry<String, double[]> e : aggregates.entrySet()) {
             Row row = sheet.createRow(r++);
             row.createCell(0).setCellValue(e.getKey());
-            double[] v = e.getValue();
-            row.createCell(1).setCellValue(v[0]);
-            row.createCell(2).setCellValue(v[1]);
-            row.createCell(3).setCellValue(v[2]);
+            int excelRow = row.getRowNum() + 1;
+
+            // B: Consumo (kWh) as SUMIF over detailed sheet: sum matching center names
+            Cell consumoCell = row.createCell(1);
+            String consumoFormula = String.format("IFERROR(SUMIF('%s'!$B:$B,$A%d,'%s'!$%s:$%s),0)",
+                    detailedName, excelRow, detailedName, detailedConsumoCol, detailedConsumoCol);
+            consumoCell.setCellFormula(consumoFormula);
+
+            // C: Emisiones Market-based as SUMIF over detailed sheet (column M)
+            Cell marketCell = row.createCell(2);
+            String marketFormula = String.format("IFERROR(SUMIF('%s'!$B:$B,$A%d,'%s'!$%s:$%s),0)",
+                    detailedName, excelRow, detailedName, detailedMarketCol, detailedMarketCol);
+            marketCell.setCellFormula(marketFormula);
+
+            // D: Emisiones Location-based as SUMIF over detailed sheet (column N)
+            Cell locationCell = row.createCell(3);
+            String locationFormula = String.format("IFERROR(SUMIF('%s'!$B:$B,$A%d,'%s'!$%s:$%s),0)",
+                    detailedName, excelRow, detailedName, detailedLocationCol, detailedLocationCol);
+            locationCell.setCellFormula(locationFormula);
         }
         // Autosize
         for (int i = 0; i < 4; i++)
@@ -540,21 +567,23 @@ public class ElectricityExcelExporter {
                 header.getCell(i).setCellStyle(headerStyle);
         }
 
-        double totalConsumo = 0.0;
-        double totalMarket = 0.0;
-        double totalLocation = 0.0;
-        for (double[] v : aggregates.values()) {
-            if (v == null || v.length < 3)
-                continue;
-            totalConsumo += v[0];
-            totalMarket += v[1];
-            totalLocation += v[2];
-        }
+        // Instead of writing literal totals we reference the per-center sheet via
+        // SUM formulas so totals update when per-center formulas change. The per-center
+        // sheet is named using the localized per-center label (usually "Por centro").
+        String perCenterName = spanish.containsKey("result.sheet.per_center")
+                ? spanish.getString("result.sheet.per_center")
+                : "Por centro";
 
         Row row = sheet.createRow(1);
-        row.createCell(0).setCellValue(totalConsumo);
-        row.createCell(1).setCellValue(totalMarket);
-        row.createCell(2).setCellValue(totalLocation);
+        // B: Total Consumo -> sum column B in per-center sheet
+        Cell c0 = row.createCell(0);
+        c0.setCellFormula(String.format("SUM('%s'!$B:$B)", perCenterName));
+        // C: Total Market-based emissions -> sum column C in per-center sheet
+        Cell c1 = row.createCell(1);
+        c1.setCellFormula(String.format("SUM('%s'!$C:$C)", perCenterName));
+        // D: Total Location-based emissions -> sum column D in per-center sheet
+        Cell c2 = row.createCell(2);
+        c2.setCellFormula(String.format("SUM('%s'!$D:$D)", perCenterName));
 
         for (int i = 0; i < 3; i++)
             sheet.autoSizeColumn(i);

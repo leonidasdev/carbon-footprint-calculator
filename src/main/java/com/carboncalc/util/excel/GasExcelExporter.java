@@ -486,6 +486,16 @@ public class GasExcelExporter {
         emissionsStyle.setDataFormat(wb.createDataFormat().getFormat("0.000000"));
 
         int r = 1;
+        // Build SUMIF formulas that reference the detailed sheet so per-center values
+        // remain dynamic and auditable. The detailed sheet places the "Consumo
+        // aplicable por año al centro" at column L (index 11) and the computed
+        // emissions at column M (index 12) for the gas exporter layout.
+        String detailedName = spanish.containsKey("result.sheet.extended")
+                ? spanish.getString("result.sheet.extended")
+                : "Extendido";
+        String detailedConsumoCol = "L"; // CONSUMO_APLICABLE_CENTRO
+        String detailedEmissionsCol = "M"; // EMISIONES (tCO2e) written in detailed rows
+
         if (aggregates == null || aggregates.isEmpty()) {
             // Produce an empty row to make it clear the sheet contains no aggregates
             Row empty = sheet.createRow(r++);
@@ -500,12 +510,23 @@ public class GasExcelExporter {
             for (Map.Entry<String, double[]> e : aggregates.entrySet()) {
                 Row row = sheet.createRow(r++);
                 row.createCell(0).setCellValue(e.getKey());
-                double[] v = e.getValue();
+                int excelRow = row.getRowNum() + 1;
+
+                // B: Consumo (kWh) as SUMIF over detailed sheet: sum matching center names in
+                // detailed column B
                 Cell cCons = row.createCell(1);
-                cCons.setCellValue(v != null && v.length > 0 ? v[0] : 0.0);
+                String consumoFormula = String.format(
+                        "IFERROR(SUMIF('%s'!$B:$B,$A%d,'%s'!$%s:$%s),0)",
+                        detailedName, excelRow, detailedName, detailedConsumoCol, detailedConsumoCol);
+                cCons.setCellFormula(consumoFormula);
                 cCons.setCellStyle(numberStyle);
+
+                // C: Emisiones (tCO2e) as SUMIF over detailed sheet (emissions column)
                 Cell cEm = row.createCell(2);
-                cEm.setCellValue(v != null && v.length > 1 ? v[1] : 0.0);
+                String emisFormula = String.format(
+                        "IFERROR(SUMIF('%s'!$B:$B,$A%d,'%s'!$%s:$%s),0)",
+                        detailedName, excelRow, detailedName, detailedEmissionsCol, detailedEmissionsCol);
+                cEm.setCellFormula(emisFormula);
                 cEm.setCellStyle(emissionsStyle);
             }
         }
@@ -558,23 +579,18 @@ public class GasExcelExporter {
         CellStyle emissionsStyle = wb.createCellStyle();
         emissionsStyle.setDataFormat(wb.createDataFormat().getFormat("0.000000"));
 
-        double totalConsumo = 0.0;
-        double totalEmisiones = 0.0;
-        if (aggregates != null && !aggregates.isEmpty()) {
-            for (double[] v : aggregates.values()) {
-                if (v == null || v.length < 2)
-                    continue;
-                totalConsumo += v[0];
-                totalEmisiones += v[1];
-            }
-        }
+        // Instead of computing totals in Java, write SUM formulas that reference the
+        // 'Por centro' sheet so totals remain dynamic when per-center formulas update.
+        String perCenterName = spanish.containsKey("result.sheet.per_center")
+                ? spanish.getString("result.sheet.per_center")
+                : "Por centro";
 
         Row row = sheet.createRow(1);
         Cell c0 = row.createCell(0);
-        c0.setCellValue(totalConsumo);
+        c0.setCellFormula(String.format("SUM('%s'!$B:$B)", perCenterName));
         c0.setCellStyle(numberStyle);
         Cell c1 = row.createCell(1);
-        c1.setCellValue(totalEmisiones);
+        c1.setCellFormula(String.format("SUM('%s'!$C:$C)", perCenterName));
         c1.setCellStyle(emissionsStyle);
 
         for (int i = 0; i < 2; i++)

@@ -540,14 +540,50 @@ public class FuelExcelExporter {
                 h.getCell(i).setCellStyle(headerStyle);
         }
 
-        // Write aggregates: consumption (L) and emissions (tCO2)
+        // Write aggregates as SUMIF formulas referencing the detailed sheet so
+        // per-center values remain dynamic. Detailed sheet "Importe" is at
+        // column I (index 8) and "Emisiones" is at column K (index 10).
         int r = 1;
-        for (Map.Entry<String, double[]> e : aggregates.entrySet()) {
-            Row row = sheet.createRow(r++);
-            row.createCell(0).setCellValue(e.getKey());
-            double[] v = e.getValue();
-            row.createCell(1).setCellValue(v[0]);
-            row.createCell(2).setCellValue(v[1]);
+        String detailedName = spanish.containsKey("result.sheet.extended")
+                ? spanish.getString("result.sheet.extended")
+                : "Extendido";
+        String detailedAmountCol = "I"; // Importe
+        String detailedEmissionsCol = "K"; // Emisiones
+
+        // Numeric styles
+        Workbook wb = sheet.getWorkbook();
+        CellStyle numberStyle = wb.createCellStyle();
+        numberStyle.setDataFormat(wb.createDataFormat().getFormat("0.00"));
+        CellStyle emissionsStyle = wb.createCellStyle();
+        emissionsStyle.setDataFormat(wb.createDataFormat().getFormat("0.000000"));
+
+        if (aggregates == null || aggregates.isEmpty()) {
+            Row empty = sheet.createRow(r++);
+            empty.createCell(0).setCellValue("-");
+            Cell c1 = empty.createCell(1);
+            c1.setCellValue(0.0);
+            c1.setCellStyle(numberStyle);
+            Cell c2 = empty.createCell(2);
+            c2.setCellValue(0.0);
+            c2.setCellStyle(emissionsStyle);
+        } else {
+            for (Map.Entry<String, double[]> e : aggregates.entrySet()) {
+                Row row = sheet.createRow(r++);
+                row.createCell(0).setCellValue(e.getKey());
+                int excelRow = row.getRowNum() + 1;
+
+                Cell cCons = row.createCell(1);
+                String consumoFormula = String.format("IFERROR(SUMIF('%s'!$B:$B,$A%d,'%s'!$%s:$%s),0)",
+                        detailedName, excelRow, detailedName, detailedAmountCol, detailedAmountCol);
+                cCons.setCellFormula(consumoFormula);
+                cCons.setCellStyle(numberStyle);
+
+                Cell cEm = row.createCell(2);
+                String emisFormula = String.format("IFERROR(SUMIF('%s'!$B:$B,$A%d,'%s'!$%s:$%s),0)",
+                        detailedName, excelRow, detailedName, detailedEmissionsCol, detailedEmissionsCol);
+                cEm.setCellFormula(emisFormula);
+                cEm.setCellStyle(emissionsStyle);
+            }
         }
 
         // Autosize columns for readability
@@ -574,19 +610,24 @@ public class FuelExcelExporter {
             h.getCell(1).setCellStyle(headerStyle);
         }
 
-        // Sum up all centers
-        double totalAmt = 0.0;
-        double totalEm = 0.0;
-        for (double[] v : aggregates.values()) {
-            if (v == null || v.length < 2)
-                continue;
-            totalAmt += v[0];
-            totalEm += v[1];
-        }
+        // Use SUM formulas referencing the localized per-center sheet so totals
+        // update when per-center formulas change.
+        String perCenterName = spanish.containsKey("result.sheet.per_center")
+                ? spanish.getString("result.sheet.per_center")
+                : "Por centro";
+        Workbook wb = sheet.getWorkbook();
+        CellStyle numberStyle = wb.createCellStyle();
+        numberStyle.setDataFormat(wb.createDataFormat().getFormat("0.00"));
+        CellStyle emissionsStyle = wb.createCellStyle();
+        emissionsStyle.setDataFormat(wb.createDataFormat().getFormat("0.000000"));
 
         Row r = sheet.createRow(1);
-        r.createCell(0).setCellValue(totalAmt);
-        r.createCell(1).setCellValue(totalEm);
+        Cell c0 = r.createCell(0);
+        c0.setCellFormula(String.format("SUM('%s'!$B:$B)", perCenterName));
+        c0.setCellStyle(numberStyle);
+        Cell c1 = r.createCell(1);
+        c1.setCellFormula(String.format("SUM('%s'!$C:$C)", perCenterName));
+        c1.setCellStyle(emissionsStyle);
         sheet.autoSizeColumn(0);
         sheet.autoSizeColumn(1);
     }

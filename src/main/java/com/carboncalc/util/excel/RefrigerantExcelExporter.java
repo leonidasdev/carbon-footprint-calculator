@@ -74,6 +74,8 @@ public class RefrigerantExcelExporter {
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
             // Always use Spanish messages for exported Excel files regardless of UI locale
             ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
+            String moduleLabel = spanish.containsKey("module.refrigerants") ? spanish.getString("module.refrigerants")
+                    : "Refrigerantes";
             try {
                 // create a Diagnostics sheet early so we can always append context and
                 // failures there. Keep a reference for later diagnostic writes.
@@ -112,9 +114,9 @@ public class RefrigerantExcelExporter {
                 }
 
                 if (providerPath != null && providerSheet != null) {
-                    String sheetExtended = spanish.containsKey("result.sheet.extended")
-                            ? spanish.getString("result.sheet.extended")
-                            : "Extendido";
+                    String sheetExtended = moduleLabel + " - "
+                            + (spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
+                                    : "Extendido");
                     Sheet detailed = workbook.createSheet(sheetExtended);
                     CellStyle header = createHeaderStyle(workbook);
                     createDetailedHeader(detailed, header, spanish);
@@ -141,16 +143,18 @@ public class RefrigerantExcelExporter {
                                 if (aggregates == null || aggregates.isEmpty()) {
                                     aggregates = computeAggregatesFromDetailed(detailed, wbEval);
                                 }
-                                String perCenterName = spanish.containsKey("result.sheet.per_center")
-                                        ? spanish.getString("result.sheet.per_center")
-                                        : "Por centro";
+                                String perCenterName = moduleLabel + " - "
+                                        + (spanish.containsKey("result.sheet.per_center")
+                                                ? spanish.getString("result.sheet.per_center")
+                                                : "Por centro");
                                 Sheet perCenter = workbook.createSheet(perCenterName);
-                                createPerCenterSheet(perCenter, header, aggregates, spanish);
-                                String totalName = spanish.containsKey("result.sheet.total")
-                                        ? spanish.getString("result.sheet.total")
-                                        : "Total";
+                                createPerCenterSheet(perCenter, header, aggregates, spanish, sheetExtended);
+                                String totalName = moduleLabel + " - "
+                                        + (spanish.containsKey("result.sheet.total")
+                                                ? spanish.getString("result.sheet.total")
+                                                : "Total");
                                 Sheet total = workbook.createSheet(totalName);
-                                createTotalSheetFromAggregates(total, header, aggregates, spanish);
+                                createTotalSheetFromAggregates(total, header, aggregates, spanish, perCenterName);
                             } else {
                                 // provider sheet not found -> emit diagnostics
                                 try {
@@ -194,12 +198,24 @@ public class RefrigerantExcelExporter {
                         }
                     }
                 } else {
-                    // Create empty template
-                    Sheet detailed = workbook.createSheet("Extendido");
-                    Sheet total = workbook.createSheet("Total");
+                    // Create empty template with prefixed sheet names
+                    String sheetExtended = moduleLabel + " - "
+                            + (spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
+                                    : "Extendido");
+                    Sheet detailed = workbook.createSheet(sheetExtended);
                     CellStyle header = createHeaderStyle(workbook);
                     createDetailedHeader(detailed, header, spanish);
-                    createTotalSheetFromAggregates(total, header, new HashMap<>(), spanish);
+                    String perCenterName = moduleLabel + " - "
+                            + (spanish.containsKey("result.sheet.per_center")
+                                    ? spanish.getString("result.sheet.per_center")
+                                    : "Por centro");
+                    Sheet perCenter = workbook.createSheet(perCenterName);
+                    createPerCenterSheet(perCenter, header, new HashMap<>(), spanish, sheetExtended);
+                    String totalName = moduleLabel + " - "
+                            + (spanish.containsKey("result.sheet.total") ? spanish.getString("result.sheet.total")
+                                    : "Total");
+                    Sheet total = workbook.createSheet(totalName);
+                    createTotalSheetFromAggregates(total, header, new HashMap<>(), spanish, perCenterName);
                 }
                 // Ensure sheet order: put Extendido first, Diagnostics second (if present)
                 try {
@@ -489,9 +505,11 @@ public class RefrigerantExcelExporter {
             String qtyStr = CellUtils.getCellStringByIndex(src, mapping.getQuantityIndex(), df, eval);
 
             double qty = CellUtils.parseDoubleSafe(qtyStr);
-            if (qty <= 0) {
+            // Allow negative quantities (rectified returns). Only skip rows that
+            // have a literal zero quantity.
+            if (qty == 0) {
                 skippedByZeroQty++;
-                // per-row diagnostics: zero or negative quantity
+                // per-row diagnostics: zero quantity
                 if (diag != null) {
                     try {
                         Row dr = diag.createRow(diagRow++);
@@ -706,7 +724,7 @@ public class RefrigerantExcelExporter {
      * Create the per-center aggregation sheet using pre-computed aggregates.
      */
     private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates,
-            ResourceBundle spanish) {
+            ResourceBundle spanish, String detailedName) {
         Row h = sheet.createRow(0);
         // Localized headers: Centro, Consumo (kg), Emisiones (tCO2e)
         h.createCell(0).setCellValue(spanish.getString("refrigerant.mapping.centro"));
@@ -717,14 +735,17 @@ public class RefrigerantExcelExporter {
                 h.getCell(i).setCellStyle(headerStyle);
         }
         // Build SUMIF formulas referencing the detailed sheet so per-center values
-        // are dynamic. In the detailed sheet Quantity is at column H (index 7) and
-        // Emisiones at column J (index 9).
+        // are dynamic. The detailed sheet name is provided by the caller.
         int r = 1;
-        String detailedName = spanish.containsKey("result.sheet.extended")
-                ? spanish.getString("result.sheet.extended")
-                : "Extendido";
-        String detailedQtyCol = "H"; // Cantidad (kg)
-        String detailedEmissionsCol = "J"; // Emisiones (tCO2)
+        Sheet detailedSheet = sheet.getWorkbook().getSheet(detailedName);
+        String qtyLabel = spanish.getString("refrigerant.mapping.quantity") + " (kg)";
+        String detailedQtyCol = ExporterUtils.findColumnLetterByLabel(detailedSheet, qtyLabel);
+        String detailedEmissionsCol = ExporterUtils.findColumnLetterByLabel(detailedSheet,
+                spanish.getString("refrigerant.mapping.emissions"));
+        if (detailedQtyCol == null)
+            detailedQtyCol = "H";
+        if (detailedEmissionsCol == null)
+            detailedEmissionsCol = "J";
 
         Workbook wb = sheet.getWorkbook();
         CellStyle numberStyle = wb.createCellStyle();
@@ -768,7 +789,7 @@ public class RefrigerantExcelExporter {
      * Create a simple total sheet summarizing quantity and emissions.
      */
     private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
-            Map<String, double[]> aggregates, ResourceBundle spanish) {
+            Map<String, double[]> aggregates, ResourceBundle spanish, String perCenterName) {
         Row h = sheet.createRow(0);
         // Localized total labels
         h.createCell(0).setCellValue(spanish.getString("refrigerant.export.total.consumption"));
@@ -777,11 +798,8 @@ public class RefrigerantExcelExporter {
             h.getCell(0).setCellStyle(headerStyle);
             h.getCell(1).setCellStyle(headerStyle);
         }
-        // Use SUM formulas referencing the 'Por centro' sheet so totals update when
-        // per-center formulas are recalculated.
-        String perCenterName = spanish.containsKey("result.sheet.per_center")
-                ? spanish.getString("result.sheet.per_center")
-                : "Por centro";
+        // Use SUM formulas referencing the provided per-center sheet name so totals
+        // update when per-center formulas are recalculated.
         Workbook wb = sheet.getWorkbook();
         CellStyle numberStyle = wb.createCellStyle();
         numberStyle.setDataFormat(wb.createDataFormat().getFormat("0.00"));

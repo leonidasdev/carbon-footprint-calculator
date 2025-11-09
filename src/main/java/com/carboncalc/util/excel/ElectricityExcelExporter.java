@@ -72,12 +72,17 @@ public class ElectricityExcelExporter {
             String sheetMode, Set<String> validInvoices) throws IOException {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
+            // Prepare localization and module label used to prefix sheet names
+            ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
+            String moduleLabel = spanish.containsKey("module.electricity")
+                    ? spanish.getString("module.electricity")
+                    : "Electricidad";
+
             // Create sheets based on mode
             if ("extended".equalsIgnoreCase(sheetMode)) {
-                ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
-                String sheetExtended = spanish.containsKey("result.sheet.extended")
-                        ? spanish.getString("result.sheet.extended")
-                        : "Extendido";
+                String sheetExtended = moduleLabel + " - "
+                        + (spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
+                                : "Extendido");
                 Sheet detailedSheet = workbook.createSheet(sheetExtended);
                 CellStyle headerStyle = createHeaderStyle(workbook);
                 createDetailedSheet(detailedSheet, headerStyle, spanish);
@@ -102,18 +107,20 @@ public class ElectricityExcelExporter {
                             }
                             Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
                                     validInvoices, locationFactor);
-                            // create per-center sheet from aggregates
-                            String perCenterName = spanish.containsKey("result.sheet.per_center")
-                                    ? spanish.getString("result.sheet.per_center")
-                                    : "Por centro";
+                            // create per-center sheet from aggregates (prefixed)
+                            String perCenterName = moduleLabel + " - "
+                                    + (spanish.containsKey("result.sheet.per_center")
+                                            ? spanish.getString("result.sheet.per_center")
+                                            : "Por centro");
                             Sheet perCenter = workbook.createSheet(perCenterName);
-                            createPerCenterSheet(perCenter, headerStyle, aggregates, spanish);
-                            // create total sheet summarizing per-center aggregates
-                            String totalName = spanish.containsKey("result.sheet.total")
-                                    ? spanish.getString("result.sheet.total")
-                                    : "Total";
+                            createPerCenterSheet(perCenter, headerStyle, aggregates, spanish, sheetExtended);
+                            // create total sheet summarizing per-center aggregates (prefixed)
+                            String totalName = moduleLabel + " - "
+                                    + (spanish.containsKey("result.sheet.total")
+                                            ? spanish.getString("result.sheet.total")
+                                            : "Total");
                             Sheet total = workbook.createSheet(totalName);
-                            createTotalSheetFromAggregates(total, headerStyle, aggregates, spanish);
+                            createTotalSheetFromAggregates(total, headerStyle, aggregates, spanish, perCenterName);
                         }
                         src.close();
                     } catch (Exception e) {
@@ -121,11 +128,16 @@ public class ElectricityExcelExporter {
                     }
                 }
             } else {
-                // Default: create both sheets as simple template
-                Sheet detailedSheet = workbook.createSheet("Extendido");
-                Sheet totalSheet = workbook.createSheet("Total");
+                // Default: create both sheets as simple template using prefixed names
+                String sheetExtended = moduleLabel + " - "
+                        + (spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
+                                : "Extendido");
+                String totalSheetName = moduleLabel + " - "
+                        + (spanish.containsKey("result.sheet.total") ? spanish.getString("result.sheet.total")
+                                : "Total");
+                Sheet detailedSheet = workbook.createSheet(sheetExtended);
+                Sheet totalSheet = workbook.createSheet(totalSheetName);
                 CellStyle headerStyle = createHeaderStyle(workbook);
-                ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
                 createDetailedSheet(detailedSheet, headerStyle, spanish);
                 createTotalSheet(totalSheet, headerStyle, spanish);
             }
@@ -442,7 +454,9 @@ public class ElectricityExcelExporter {
             // Numeric values
             out.createCell(col++).setCellValue(consumo);
             // Percentage of consumo applicable to the reporting year
-            double porcentajeAplicableAno = consumo > 0 ? ((consumoAplicable / consumo) * 100.0) : 0.0;
+            // Allow negative consumption (rectified invoices). Only avoid division by
+            // zero; preserve sign when computing percentages.
+            double porcentajeAplicableAno = consumo != 0 ? ((consumoAplicable / consumo) * 100.0) : 0.0;
             Cell pctYearCell = out.createCell(col++);
             pctYearCell.setCellValue(porcentajeAplicableAno);
             pctYearCell.setCellStyle(percentStyle);
@@ -502,7 +516,7 @@ public class ElectricityExcelExporter {
     }
 
     private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates,
-            ResourceBundle spanish) {
+            ResourceBundle spanish, String detailedName) {
         // Header
         Row header = sheet.createRow(0);
         header.createCell(0).setCellValue(spanish.getString("electricity.percenter.centro"));
@@ -515,17 +529,22 @@ public class ElectricityExcelExporter {
         }
 
         int r = 1;
-        // Determine the detailed sheet name (Extendido) used by the exporter so we can
-        // reference its columns via SUMIF. Detailed sheet columns (by enum) place
-        // "Consumo aplicable por año al centro" in column L (11 -> letter L) and
-        // "Emisiones Location-based" in column N (13 -> letter N). We'll build
-        // SUMIF formulas that match the center name in column B of the detailed sheet.
-        String detailedName = spanish.containsKey("result.sheet.extended")
-                ? spanish.getString("result.sheet.extended")
-                : "Extendido";
-        String detailedConsumoCol = "L"; // CONSUMO_APLICABLE_CENTRO
-        String detailedMarketCol = "M"; // EMISIONES_MARKET
-        String detailedLocationCol = "N"; // EMISIONES_LOCATION
+        // Attempt to resolve the column letters by matching the localized header
+        // labels in the detailed sheet header row. Fallback to previous
+        // hard-coded letters for backward compatibility.
+        Sheet detailedSheet = sheet.getWorkbook().getSheet(detailedName);
+        String detailedConsumoCol = ExporterUtils.findColumnLetterByLabel(detailedSheet,
+                spanish.getString(DetailedHeader.CONSUMO_APLICABLE_CENTRO.key()));
+        String detailedMarketCol = ExporterUtils.findColumnLetterByLabel(detailedSheet,
+                spanish.getString(DetailedHeader.EMISIONES_MARKET.key()));
+        String detailedLocationCol = ExporterUtils.findColumnLetterByLabel(detailedSheet,
+                spanish.getString(DetailedHeader.EMISIONES_LOCATION.key()));
+        if (detailedConsumoCol == null)
+            detailedConsumoCol = "L";
+        if (detailedMarketCol == null)
+            detailedMarketCol = "M";
+        if (detailedLocationCol == null)
+            detailedLocationCol = "N";
 
         for (Map.Entry<String, double[]> e : aggregates.entrySet()) {
             Row row = sheet.createRow(r++);
@@ -556,7 +575,7 @@ public class ElectricityExcelExporter {
     }
 
     private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
-            Map<String, double[]> aggregates, ResourceBundle spanish) {
+            Map<String, double[]> aggregates, ResourceBundle spanish, String perCenterName) {
         // Header
         Row header = sheet.createRow(0);
         header.createCell(0).setCellValue(spanish.getString("electricity.total.consumption"));
@@ -569,10 +588,7 @@ public class ElectricityExcelExporter {
 
         // Instead of writing literal totals we reference the per-center sheet via
         // SUM formulas so totals update when per-center formulas change. The per-center
-        // sheet is named using the localized per-center label (usually "Por centro").
-        String perCenterName = spanish.containsKey("result.sheet.per_center")
-                ? spanish.getString("result.sheet.per_center")
-                : "Por centro";
+        // sheet name is provided by the caller (prefixed with module label).
 
         Row row = sheet.createRow(1);
         // B: Total Consumo -> sum column B in per-center sheet
@@ -642,7 +658,8 @@ public class ElectricityExcelExporter {
         try {
             java.time.LocalDate start = parseDateLenient(fechaInicio);
             java.time.LocalDate end = parseDateLenient(fechaFin);
-            if (start == null || end == null || totalKwh <= 0)
+            // Require both dates and a sane date order; allow totalKwh to be negative
+            if (start == null || end == null)
                 return 0.0;
             if (end.isBefore(start))
                 return 0.0;
@@ -659,6 +676,8 @@ public class ElectricityExcelExporter {
             long overlappedDays = ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
             if (totalDays <= 0)
                 return 0.0;
+            // Preserve sign of totalKwh: a negative totalKwh will prorate to a
+            // negative applicable kWh when overlap exists.
             return (totalKwh * ((double) overlappedDays / (double) totalDays));
         } catch (Exception e) {
             return 0.0;

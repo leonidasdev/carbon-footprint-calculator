@@ -104,11 +104,12 @@ public class GasExcelExporter {
             String sheetMode, Set<String> validInvoices) throws IOException {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
+            ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
+            String moduleLabel = spanish.containsKey("module.gas") ? spanish.getString("module.gas") : "Gas";
             if ("extended".equalsIgnoreCase(sheetMode)) {
-                ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
-                String sheetExtended = spanish.containsKey("result.sheet.extended")
-                        ? spanish.getString("result.sheet.extended")
-                        : "Extendido";
+                String sheetExtended = moduleLabel + " - "
+                        + (spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
+                                : "Extendido");
                 Sheet detailedSheet = workbook.createSheet(sheetExtended);
                 CellStyle headerStyle = createHeaderStyle(workbook);
                 createDetailedSheet(detailedSheet, headerStyle, spanish);
@@ -125,16 +126,18 @@ public class GasExcelExporter {
 
                             Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
                                     validInvoices, gasTypeToFactor);
-                            String perCenterName = spanish.containsKey("result.sheet.per_center")
-                                    ? spanish.getString("result.sheet.per_center")
-                                    : "Por centro";
+                            String perCenterName = moduleLabel + " - "
+                                    + (spanish.containsKey("result.sheet.per_center")
+                                            ? spanish.getString("result.sheet.per_center")
+                                            : "Por centro");
                             Sheet perCenter = workbook.createSheet(perCenterName);
-                            createPerCenterSheet(perCenter, headerStyle, aggregates, spanish);
-                            String totalName = spanish.containsKey("result.sheet.total")
-                                    ? spanish.getString("result.sheet.total")
-                                    : "Total";
+                            createPerCenterSheet(perCenter, headerStyle, aggregates, spanish, sheetExtended);
+                            String totalName = moduleLabel + " - "
+                                    + (spanish.containsKey("result.sheet.total")
+                                            ? spanish.getString("result.sheet.total")
+                                            : "Total");
                             Sheet total = workbook.createSheet(totalName);
-                            createTotalSheetFromAggregates(total, headerStyle, aggregates, spanish);
+                            createTotalSheetFromAggregates(total, headerStyle, aggregates, spanish, perCenterName);
                         }
                         src.close();
                     } catch (Exception e) {
@@ -142,13 +145,20 @@ public class GasExcelExporter {
                     }
                 }
             } else {
-                // default template
-                Sheet detailedSheet = workbook.createSheet("Extendido");
-                Sheet totalSheet = workbook.createSheet("Total");
+                // default template using prefixed names
+                String sheetExtended = moduleLabel + " - "
+                        + (spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
+                                : "Extendido");
+                String totalSheet = moduleLabel + " - "
+                        + (spanish.containsKey("result.sheet.total") ? spanish.getString("result.sheet.total")
+                                : "Total");
+                Sheet detailedSheet = workbook.createSheet(sheetExtended);
+                Sheet total = workbook.createSheet(totalSheet);
                 CellStyle headerStyle = createHeaderStyle(workbook);
-                ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
                 createDetailedSheet(detailedSheet, headerStyle, spanish);
-                createTotalSheet(totalSheet, headerStyle, spanish);
+                createTotalSheetFromAggregates(total, headerStyle, new HashMap<>(), spanish, moduleLabel + " - "
+                        + (spanish.containsKey("result.sheet.per_center") ? spanish.getString("result.sheet.per_center")
+                                : "Por centro"));
             }
 
             try (FileOutputStream fos = new FileOutputStream(filePath)) {
@@ -297,7 +307,9 @@ public class GasExcelExporter {
                 centersCount = centersPerCups.getOrDefault(cups.trim(), 1);
             double consumoPorCentro = centersCount > 0 ? consumoAplicable / (double) centersCount : consumoAplicable;
             double porcentajePorCentro = centersCount > 0 ? (100.0 / (double) centersCount) : 100.0;
-            double porcentajeAplicableAno = consumo > 0 ? ((consumoAplicable / consumo) * 100.0) : 0.0;
+            // Allow negative consumption (rectified invoices). Only avoid division by
+            // zero when computing the percentage for the reporting year.
+            double porcentajeAplicableAno = consumo != 0 ? ((consumoAplicable / consumo) * 100.0) : 0.0;
 
             // Compute emissions per center (market and location) using consumoPorCentro
             double emisionesT = (consumoPorCentro * factor) / 1000.0;
@@ -460,7 +472,7 @@ public class GasExcelExporter {
      * @param spanish     resource bundle to localize column headers
      */
     private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates,
-            ResourceBundle spanish) {
+            ResourceBundle spanish, String detailedName) {
         // Header
         Row header = sheet.createRow(0);
         header.createCell(0).setCellValue(
@@ -486,15 +498,20 @@ public class GasExcelExporter {
         emissionsStyle.setDataFormat(wb.createDataFormat().getFormat("0.000000"));
 
         int r = 1;
-        // Build SUMIF formulas that reference the detailed sheet so per-center values
-        // remain dynamic and auditable. The detailed sheet places the "Consumo
-        // aplicable por año al centro" at column L (index 11) and the computed
-        // emissions at column M (index 12) for the gas exporter layout.
-        String detailedName = spanish.containsKey("result.sheet.extended")
-                ? spanish.getString("result.sheet.extended")
-                : "Extendido";
-        String detailedConsumoCol = "L"; // CONSUMO_APLICABLE_CENTRO
-        String detailedEmissionsCol = "M"; // EMISIONES (tCO2e) written in detailed rows
+        // Attempt to resolve the detailed sheet column letters by matching localized
+        // header labels; fall back to hard-coded letters when resolution fails.
+        Sheet detailedSheet = sheet.getWorkbook().getSheet(detailedName);
+        String detailedConsumoCol = ExporterUtils.findColumnLetterByLabel(detailedSheet,
+                spanish.getString(DetailedHeader.CONSUMO_APLICABLE_CENTRO.key()));
+        // emissions label: prefer a gas-specific override if present in messages
+        String emissionsLabel = spanish.containsKey("gas.detailed.emissions")
+                ? spanish.getString("gas.detailed.emissions")
+                : spanish.getString(DetailedHeader.EMISIONES_MARKET.key());
+        String detailedEmissionsCol = ExporterUtils.findColumnLetterByLabel(detailedSheet, emissionsLabel);
+        if (detailedConsumoCol == null)
+            detailedConsumoCol = "L";
+        if (detailedEmissionsCol == null)
+            detailedEmissionsCol = "M";
 
         if (aggregates == null || aggregates.isEmpty()) {
             // Produce an empty row to make it clear the sheet contains no aggregates
@@ -558,7 +575,7 @@ public class GasExcelExporter {
      * @param spanish     resource bundle for localized labels
      */
     private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
-            Map<String, double[]> aggregates, ResourceBundle spanish) {
+            Map<String, double[]> aggregates, ResourceBundle spanish, String perCenterName) {
         // Header
         Row header = sheet.createRow(0);
         header.createCell(0)
@@ -580,10 +597,8 @@ public class GasExcelExporter {
         emissionsStyle.setDataFormat(wb.createDataFormat().getFormat("0.000000"));
 
         // Instead of computing totals in Java, write SUM formulas that reference the
-        // 'Por centro' sheet so totals remain dynamic when per-center formulas update.
-        String perCenterName = spanish.containsKey("result.sheet.per_center")
-                ? spanish.getString("result.sheet.per_center")
-                : "Por centro";
+        // per-center sheet (name provided by caller) so totals remain dynamic when
+        // per-center formulas update.
 
         Row row = sheet.createRow(1);
         Cell c0 = row.createCell(0);
@@ -644,7 +659,8 @@ public class GasExcelExporter {
         try {
             LocalDate start = parseDateLenient(fechaInicio);
             LocalDate end = parseDateLenient(fechaFin);
-            if (start == null || end == null || totalKwh <= 0)
+            // Require both dates and a sensible date order; allow negative totals
+            if (start == null || end == null)
                 return 0.0;
             if (end.isBefore(start))
                 return 0.0;
@@ -661,6 +677,7 @@ public class GasExcelExporter {
             long overlappedDays = ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
             if (totalDays <= 0)
                 return 0.0;
+            // Preserve sign of totalKwh when prorating across days
             return (totalKwh * ((double) overlappedDays / (double) totalDays));
         } catch (Exception e) {
             return 0.0;

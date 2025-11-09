@@ -989,7 +989,19 @@ public class GeneralExcelExporter {
                 String sheetName = s.getSheetName();
                 if (isDiagnosticSheetName(sheetName))
                     continue;
-                String newName = moduleLabel + " - " + sheetName;
+                // Avoid double-prefixing: if the source sheet already begins with
+                // the module label (e.g. "Electricidad - Por centro") do not
+                // add another moduleLabel prefix. Check common variants in a
+                // case-insensitive manner.
+                String newName;
+                String sheetNameLower = sheetName == null ? "" : sheetName.toLowerCase();
+                String prefixDashLower = (moduleLabel + " - ").toLowerCase();
+                String prefixSpaceLower = (moduleLabel + " ").toLowerCase();
+                if (sheetNameLower.startsWith(prefixDashLower) || sheetNameLower.startsWith(prefixSpaceLower)) {
+                    newName = sheetName;
+                } else {
+                    newName = moduleLabel + " - " + sheetName;
+                }
                 newName = makeUniqueSheetName(outWb, newName);
                 Sheet dest = outWb.createSheet(newName);
                 copySheetContent(s, dest);
@@ -1057,7 +1069,16 @@ public class GeneralExcelExporter {
                 String sheetName = s.getSheetName();
                 if (isDiagnosticSheetName(sheetName))
                     continue;
-                String newName = moduleLabel + " " + sheetName;
+                // Avoid double-prefixing as above for the space-separated variant
+                String newName;
+                String sheetNameLower = sheetName == null ? "" : sheetName.toLowerCase();
+                String prefixSpaceLower = (moduleLabel + " ").toLowerCase();
+                String prefixDashLower = (moduleLabel + " - ").toLowerCase();
+                if (sheetNameLower.startsWith(prefixSpaceLower) || sheetNameLower.startsWith(prefixDashLower)) {
+                    newName = sheetName;
+                } else {
+                    newName = moduleLabel + " " + sheetName;
+                }
                 // ensure unique sheet name
                 newName = makeUniqueSheetName(outWb, newName);
                 Sheet dest = outWb.createSheet(newName);

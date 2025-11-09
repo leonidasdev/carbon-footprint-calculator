@@ -65,6 +65,8 @@ public class FuelExcelExporter {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
             ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
+            String moduleLabel = spanish.containsKey("module.fuel") ? spanish.getString("module.fuel")
+                    : "Combustibles";
 
             // Diagnostics sheet created early so we can always append context
             Sheet diagSheet = null;
@@ -102,10 +104,10 @@ public class FuelExcelExporter {
             } catch (Exception ignored) {
             }
 
-            // Create main sheets (localized names)
-            String sheetExtended = spanish.containsKey("result.sheet.extended")
-                    ? spanish.getString("result.sheet.extended")
-                    : "Extendido";
+            // Create main sheets (localized names) prefixed with module label
+            String sheetExtended = moduleLabel + " - "
+                    + (spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
+                            : "Extendido");
             Sheet detailed = workbook.createSheet(sheetExtended);
             CellStyle header = createHeaderStyle(workbook);
             createDetailedHeader(detailed, header, spanish);
@@ -132,16 +134,18 @@ public class FuelExcelExporter {
                             if (aggregates == null || aggregates.isEmpty()) {
                                 aggregates = computeAggregatesFromDetailed(detailed, wbEval);
                             }
-                            String perCenterName = spanish.containsKey("result.sheet.per_center")
-                                    ? spanish.getString("result.sheet.per_center")
-                                    : "Por centro";
+                            String perCenterName = moduleLabel + " - "
+                                    + (spanish.containsKey("result.sheet.per_center")
+                                            ? spanish.getString("result.sheet.per_center")
+                                            : "Por centro");
                             Sheet perCenter = workbook.createSheet(perCenterName);
-                            createPerCenterSheet(perCenter, header, aggregates, spanish);
-                            String totalName = spanish.containsKey("result.sheet.total")
-                                    ? spanish.getString("result.sheet.total")
-                                    : "Total";
+                            createPerCenterSheet(perCenter, header, aggregates, spanish, sheetExtended);
+                            String totalName = moduleLabel + " - "
+                                    + (spanish.containsKey("result.sheet.total")
+                                            ? spanish.getString("result.sheet.total")
+                                            : "Total");
                             Sheet total = workbook.createSheet(totalName);
-                            createTotalSheetFromAggregates(total, header, aggregates, spanish);
+                            createTotalSheetFromAggregates(total, header, aggregates, spanish, perCenterName);
                         } else {
                             // provider sheet not found -> write diagnostics
                             if (diagSheet == null)
@@ -167,15 +171,23 @@ public class FuelExcelExporter {
                     }
                 }
             } else {
-                // create empty template
-                Sheet total = workbook.createSheet("Total");
-                createTotalSheetFromAggregates(total, header, new HashMap<>(), spanish);
+                // create empty template with prefixed sheet names
+                String perCenterName = moduleLabel + " - "
+                        + (spanish.containsKey("result.sheet.per_center") ? spanish.getString("result.sheet.per_center")
+                                : "Por centro");
+                Sheet perCenter = workbook.createSheet(perCenterName);
+                createPerCenterSheet(perCenter, header, new HashMap<>(), spanish, sheetExtended);
+                String totalName = moduleLabel + " - "
+                        + (spanish.containsKey("result.sheet.total") ? spanish.getString("result.sheet.total")
+                                : "Total");
+                Sheet total = workbook.createSheet(totalName);
+                createTotalSheetFromAggregates(total, header, new HashMap<>(), spanish, perCenterName);
             }
 
             // Ensure sheet order and write file
             try {
-                if (workbook.getSheet("Extendido") != null)
-                    workbook.setSheetOrder("Extendido", 0);
+                if (workbook.getSheet(sheetExtended) != null)
+                    workbook.setSheetOrder(sheetExtended, 0);
                 if (workbook.getSheet("Diagnostics") != null)
                     workbook.setSheetOrder("Diagnostics", 1);
                 workbook.setActiveSheet(0);
@@ -302,7 +314,9 @@ public class FuelExcelExporter {
             String vehicleType = CellUtils.getCellStringByIndex(src, mapping.getVehicleTypeIndex(), df, eval);
             String amtStr = CellUtils.getCellStringByIndex(src, mapping.getAmountIndex(), df, eval);
             double amount = CellUtils.parseDoubleSafe(amtStr);
-            if (amount <= 0) {
+            // Allow negative amounts (rectified invoices). Only skip rows with
+            // a literal zero amount.
+            if (amount == 0) {
                 // diagnostics: zero amount
                 Row dr = diag.createRow(diagRow++);
                 dr.createCell(0).setCellValue(i);
@@ -529,7 +543,7 @@ public class FuelExcelExporter {
      * @param spanish     resource bundle to localize column headers
      */
     private static void createPerCenterSheet(Sheet sheet, CellStyle headerStyle, Map<String, double[]> aggregates,
-            ResourceBundle spanish) {
+            ResourceBundle spanish, String detailedName) {
         // Header row (localized)
         Row h = sheet.createRow(0);
         h.createCell(0).setCellValue(spanish.getString("fuel.mapping.centro"));
@@ -544,11 +558,15 @@ public class FuelExcelExporter {
         // per-center values remain dynamic. Detailed sheet "Importe" is at
         // column I (index 8) and "Emisiones" is at column K (index 10).
         int r = 1;
-        String detailedName = spanish.containsKey("result.sheet.extended")
-                ? spanish.getString("result.sheet.extended")
-                : "Extendido";
-        String detailedAmountCol = "I"; // Importe
-        String detailedEmissionsCol = "K"; // Emisiones
+        Sheet detailedSheet = sheet.getWorkbook().getSheet(detailedName);
+        String detailedAmountCol = ExporterUtils.findColumnLetterByLabel(detailedSheet,
+                spanish.getString("fuel.mapping.amount_with_unit"));
+        String detailedEmissionsCol = ExporterUtils.findColumnLetterByLabel(detailedSheet,
+                spanish.getString("fuel.mapping.emissions"));
+        if (detailedAmountCol == null)
+            detailedAmountCol = "I";
+        if (detailedEmissionsCol == null)
+            detailedEmissionsCol = "K";
 
         // Numeric styles
         Workbook wb = sheet.getWorkbook();
@@ -601,7 +619,7 @@ public class FuelExcelExporter {
      * @param spanish     resource bundle for localization
      */
     private static void createTotalSheetFromAggregates(Sheet sheet, CellStyle headerStyle,
-            Map<String, double[]> aggregates, ResourceBundle spanish) {
+            Map<String, double[]> aggregates, ResourceBundle spanish, String perCenterName) {
         Row h = sheet.createRow(0);
         h.createCell(0).setCellValue(spanish.getString("fuel.export.total.consumption"));
         h.createCell(1).setCellValue(spanish.getString("fuel.export.total.emissions"));
@@ -610,11 +628,8 @@ public class FuelExcelExporter {
             h.getCell(1).setCellStyle(headerStyle);
         }
 
-        // Use SUM formulas referencing the localized per-center sheet so totals
+        // Use SUM formulas referencing the provided per-center sheet name so totals
         // update when per-center formulas change.
-        String perCenterName = spanish.containsKey("result.sheet.per_center")
-                ? spanish.getString("result.sheet.per_center")
-                : "Por centro";
         Workbook wb = sheet.getWorkbook();
         CellStyle numberStyle = wb.createCellStyle();
         numberStyle.setDataFormat(wb.createDataFormat().getFormat("0.00"));

@@ -30,18 +30,24 @@ import java.time.Year;
  * </p>
  */
 public class EmissionFactorServiceCsv implements EmissionFactorService {
-    private static final String BASE_PATH = "data/emission_factors";
+    private static final String DEFAULT_BASE_PATH = "data/emission_factors";
+    private final String basePath;
     private Integer defaultYear;
 
     public EmissionFactorServiceCsv() {
+        this(DEFAULT_BASE_PATH);
+    }
+
+    public EmissionFactorServiceCsv(String basePath) {
+        this.basePath = basePath == null || basePath.isBlank() ? DEFAULT_BASE_PATH : basePath;
         this.defaultYear = Year.now().getValue();
         createYearDirectory(defaultYear);
     }
 
     @Override
     public void saveEmissionFactor(EmissionFactor factor) {
-        String yearPath = String.format("%s/%d", BASE_PATH, factor.getYear());
         createYearDirectory(factor.getYear());
+        String yearPath = String.format("%s/%d", this.basePath, factor.getYear());
 
         // Use the new electricity-specific filename for electricity factors
         String fileName;
@@ -112,10 +118,10 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
     public List<? extends EmissionFactor> loadEmissionFactors(String type, int year) {
         Path p;
         if ("ELECTRICITY".equalsIgnoreCase(type)) {
-            p = Paths.get(String.format("%s/%d/electricity_factors.csv", BASE_PATH, year));
+            p = Paths.get(this.basePath, String.valueOf(year), "electricity_factors.csv");
         } else {
-            String filePath = String.format("%s/%d/emission_factors_%s.csv", BASE_PATH, year, type.toLowerCase());
-            p = Paths.get(filePath);
+            p = Paths.get(this.basePath, String.valueOf(year),
+                    String.format("emission_factors_%s.csv", type.toLowerCase()));
         }
         List<EmissionFactor> result = new ArrayList<>();
         if (!Files.exists(p))
@@ -250,7 +256,7 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
     @Override
     public boolean createYearDirectory(int year) {
         try {
-            Path yearPath = Paths.get(BASE_PATH, String.valueOf(year));
+            Path yearPath = Paths.get(this.basePath, String.valueOf(year));
             Files.createDirectories(yearPath);
             return true;
         } catch (IOException e) {
@@ -263,7 +269,7 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
     public List<Integer> getAvailableYears(String type) {
         try {
             List<Integer> years = new ArrayList<>();
-            Path basePath = Paths.get(BASE_PATH);
+            Path basePath = Paths.get(this.basePath);
 
             if (Files.exists(basePath)) {
                 try (DirectoryStream<Path> stream = Files.newDirectoryStream(basePath)) {
@@ -322,7 +328,7 @@ public class EmissionFactorServiceCsv implements EmissionFactorService {
             // deletion performed; no debug output in normal runs
 
             // Persist filtered list to CSV
-            java.nio.file.Path base = java.nio.file.Paths.get(BASE_PATH, String.valueOf(year));
+            java.nio.file.Path base = java.nio.file.Paths.get(this.basePath, String.valueOf(year));
             String fileName;
             if ("ELECTRICITY".equalsIgnoreCase(type)) {
                 fileName = "electricity_factors.csv";

@@ -26,10 +26,24 @@ import java.time.Year;
  * </p>
  */
 public class FuelFactorServiceCsv implements FuelFactorService {
-    private static final String BASE_PATH = "data/emission_factors";
+    // Default location for emission factors (kept final)
+    private static final String DEFAULT_BASE_PATH = "data/emission_factors";
+    private final String basePath;
     private Integer defaultYear;
 
+    /**
+     * Default constructor uses the built-in data path.
+     */
     public FuelFactorServiceCsv() {
+        this(DEFAULT_BASE_PATH);
+    }
+
+    /**
+     * Test-friendly constructor allowing to override the base path used to
+     * read/write CSV files.
+     */
+    public FuelFactorServiceCsv(String basePath) {
+        this.basePath = basePath == null || basePath.isBlank() ? DEFAULT_BASE_PATH : basePath;
         this.defaultYear = Year.now().getValue();
         createYearDirectory(defaultYear);
     }
@@ -38,7 +52,7 @@ public class FuelFactorServiceCsv implements FuelFactorService {
     public void saveFuelFactor(FuelEmissionFactor entry) {
         int year = entry.getYear() <= 0 ? defaultYear : entry.getYear();
         String fileName = "fuel_factors.csv";
-        Path filePath = Paths.get(BASE_PATH, String.valueOf(year), fileName);
+        Path filePath = Paths.get(this.basePath, String.valueOf(year), fileName);
         try {
             List<String> lines = new ArrayList<>();
             if (Files.exists(filePath))
@@ -125,7 +139,7 @@ public class FuelFactorServiceCsv implements FuelFactorService {
 
     @Override
     public List<FuelEmissionFactor> loadFuelFactors(int year) {
-        Path p = Paths.get(BASE_PATH, String.valueOf(year), "fuel_factors.csv");
+        Path p = Paths.get(this.basePath, String.valueOf(year), "fuel_factors.csv");
         List<FuelEmissionFactor> out = new ArrayList<>();
         if (!Files.exists(p))
             return out;
@@ -171,7 +185,7 @@ public class FuelFactorServiceCsv implements FuelFactorService {
 
     @Override
     public void deleteFuelFactor(int year, String entity) {
-        Path p = Paths.get(BASE_PATH, String.valueOf(year), "fuel_factors.csv");
+        Path p = Paths.get(this.basePath, String.valueOf(year), "fuel_factors.csv");
         if (!Files.exists(p))
             return;
         try {
@@ -209,7 +223,7 @@ public class FuelFactorServiceCsv implements FuelFactorService {
 
     private void createYearDirectory(int year) {
         try {
-            Files.createDirectories(Paths.get(BASE_PATH, String.valueOf(year)));
+            Files.createDirectories(Paths.get(this.basePath, String.valueOf(year)));
         } catch (IOException ignored) {
         }
     }

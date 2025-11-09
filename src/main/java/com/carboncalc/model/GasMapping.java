@@ -61,6 +61,16 @@ public class GasMapping {
         this.gasType = gasType == null ? "" : gasType;
     }
 
+    /**
+     * Backward-compatible constructor used by callers/tests that did not supply
+     * a gasType. Defaults gasType to empty string.
+     */
+    public GasMapping(int cupsIndex, int invoiceNumberIndex, int startDateIndex, int endDateIndex,
+            int consumptionIndex, int centerIndex, int emissionEntityIndex) {
+        this(cupsIndex, invoiceNumberIndex, startDateIndex, endDateIndex, consumptionIndex, centerIndex,
+                emissionEntityIndex, "");
+    }
+
     public int getCupsIndex() {
         return cupsIndex;
     }

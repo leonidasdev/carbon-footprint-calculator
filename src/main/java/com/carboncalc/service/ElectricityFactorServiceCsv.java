@@ -36,8 +36,25 @@ import java.util.List;
  * </p>
  */
 public class ElectricityFactorServiceCsv implements ElectricityFactorService {
-    // Use `data/emission_factors/{year}` directory for electricity general files
-    private static final Path BASE_PATH = Paths.get("data", "emission_factors");
+    // Default location for emission factors (kept final)
+    private static final String DEFAULT_BASE_PATH = "data/emission_factors";
+    // Instance base path so callers/tests can inject an alternate path
+    private final String basePath;
+
+    /**
+     * Default constructor uses the built-in data path.
+     */
+    public ElectricityFactorServiceCsv() {
+        this(DEFAULT_BASE_PATH);
+    }
+
+    /**
+     * Test-friendly constructor allowing to override the base path used to
+     * read/write CSV files.
+     */
+    public ElectricityFactorServiceCsv(String basePath) {
+        this.basePath = basePath == null || basePath.isBlank() ? DEFAULT_BASE_PATH : basePath;
+    }
 
     @Override
     /**
@@ -50,7 +67,7 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
      * </p>
      */
     public ElectricityGeneralFactors loadFactors(int year) throws IOException {
-        Path yearDir = BASE_PATH.resolve(String.valueOf(year));
+        Path yearDir = Paths.get(this.basePath, String.valueOf(year));
         Path generalPath = yearDir.resolve("electricity_general_factors.csv");
         Path companiesPath = yearDir.resolve("electricity_factors.csv");
 
@@ -106,7 +123,7 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
      * Writes two CSV files (general + companies) using atomic replace semantics.
      */
     public void saveFactors(ElectricityGeneralFactors factors, int year) throws IOException {
-        Path yearDir = BASE_PATH.resolve(String.valueOf(year));
+        Path yearDir = Paths.get(this.basePath, String.valueOf(year));
         Path generalFile = yearDir.resolve("electricity_general_factors.csv");
         Path companiesFile = yearDir.resolve("electricity_factors.csv");
 
@@ -160,7 +177,7 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
     private void writeAtomicWithBackup(Path targetPath, List<String> lines) throws IOException {
         Path dir = targetPath.getParent();
         if (dir == null)
-            dir = BASE_PATH;
+            dir = Paths.get(this.basePath);
         Files.createDirectories(dir);
 
         // Do not create extra backup files to avoid clutter. We perform an
@@ -191,7 +208,7 @@ public class ElectricityFactorServiceCsv implements ElectricityFactorService {
 
     @Override
     public Path getYearDirectory(int year) {
-        return BASE_PATH.resolve(String.valueOf(year));
+        return Paths.get(this.basePath, String.valueOf(year));
     }
 
     /**

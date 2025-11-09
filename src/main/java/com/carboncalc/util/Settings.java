@@ -33,7 +33,20 @@ import java.nio.file.StandardOpenOption;
  * </p>
  */
 public final class Settings {
-    private static final Path LANG_FILE = Path.of("data", "language", "current_language.txt");
+    // Default language file location. Tests may override via the test-only setter.
+    private static Path LANG_FILE = Path.of("data", "language", "current_language.txt");
+
+    /**
+     * Test hook: override the language file location. Accepts null to restore
+     * the default path. This is package-visible to allow tests in the same
+     * package to call it without using reflection.
+     */
+    static void setLangFile(Path p) {
+        if (p == null)
+            LANG_FILE = Path.of("data", "language", "current_language.txt");
+        else
+            LANG_FILE = p;
+    }
 
     private Settings() {
     }

@@ -7,6 +7,15 @@ import java.util.*;
 import java.time.Year;
 
 /**
+ * package com.carboncalc.service;
+ * 
+ * import com.carboncalc.model.factors.GasFactorEntry;
+ * import java.io.IOException;
+ * import java.nio.file.*;
+ * import java.util.*;
+ * import java.time.Year;
+ * 
+ * /**
  * GasFactorServiceCsv
  *
  * <p>
@@ -28,10 +37,16 @@ import java.time.Year;
  * </p>
  */
 public class GasFactorServiceCsv implements GasFactorService {
-    private static final String BASE_PATH = "data/emission_factors";
+    private static final String DEFAULT_BASE_PATH = "data/emission_factors";
+    private final String basePath;
     private Integer defaultYear;
 
     public GasFactorServiceCsv() {
+        this(DEFAULT_BASE_PATH);
+    }
+
+    public GasFactorServiceCsv(String basePath) {
+        this.basePath = basePath == null || basePath.isBlank() ? DEFAULT_BASE_PATH : basePath;
         this.defaultYear = Year.now().getValue();
         createYearDirectory(defaultYear);
     }
@@ -40,7 +55,7 @@ public class GasFactorServiceCsv implements GasFactorService {
     public void saveGasFactor(GasFactorEntry entry) {
         int year = entry.getYear() <= 0 ? defaultYear : entry.getYear();
         String fileName = "gas_factors.csv";
-        Path filePath = Paths.get(BASE_PATH, String.valueOf(year), fileName);
+        Path filePath = Paths.get(this.basePath, String.valueOf(year), fileName);
         try {
             List<String> lines = new ArrayList<>();
             if (Files.exists(filePath))
@@ -89,7 +104,7 @@ public class GasFactorServiceCsv implements GasFactorService {
     @Override
     /** Load gas factors for the provided year; handles legacy and new formats. */
     public List<GasFactorEntry> loadGasFactors(int year) {
-        Path p = Paths.get(BASE_PATH, String.valueOf(year), "gas_factors.csv");
+        Path p = Paths.get(this.basePath, String.valueOf(year), "gas_factors.csv");
         List<GasFactorEntry> out = new ArrayList<>();
         if (!Files.exists(p))
             return out;
@@ -135,7 +150,7 @@ public class GasFactorServiceCsv implements GasFactorService {
     @Override
     /** Delete a gas factor (by normalized gas-type/entity) for the given year. */
     public void deleteGasFactor(int year, String entity) {
-        Path p = Paths.get(BASE_PATH, String.valueOf(year), "gas_factors.csv");
+        Path p = Paths.get(this.basePath, String.valueOf(year), "gas_factors.csv");
         if (!Files.exists(p))
             return;
         try {
@@ -173,7 +188,7 @@ public class GasFactorServiceCsv implements GasFactorService {
 
     private void createYearDirectory(int year) {
         try {
-            Files.createDirectories(Paths.get(BASE_PATH, String.valueOf(year)));
+            Files.createDirectories(Paths.get(this.basePath, String.valueOf(year)));
         } catch (IOException ignored) {
         }
     }

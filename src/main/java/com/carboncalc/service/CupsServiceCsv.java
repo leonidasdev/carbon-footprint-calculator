@@ -42,17 +42,25 @@ import java.util.List;
  * </p>
  */
 public class CupsServiceCsv implements CupsService {
-    private static final String DATA_DIR = "data";
+    // Default data directory (project-local). Tests can inject an alternate
+    // directory by using the constructor that accepts a base path.
+    private static final String DEFAULT_DATA_DIR = "data";
+    private final String dataDir;
     private static final String CUPS_DIR = "cups_center";
     private static final String CUPS_FILE = "cups.csv";
 
     public CupsServiceCsv() {
+        this(DEFAULT_DATA_DIR);
+    }
+
+    public CupsServiceCsv(String dataDir) {
+        this.dataDir = dataDir == null || dataDir.isBlank() ? DEFAULT_DATA_DIR : dataDir;
         initializeDataDirectory();
     }
 
     private void initializeDataDirectory() {
         // Create main data directory
-        Path dataDir = Paths.get(DATA_DIR);
+        Path dataDir = Paths.get(this.dataDir);
         if (!Files.exists(dataDir)) {
             try {
                 Files.createDirectory(dataDir);
@@ -62,7 +70,7 @@ public class CupsServiceCsv implements CupsService {
         }
 
         // Create cups_center directory
-        Path cupsDir = Paths.get(DATA_DIR, CUPS_DIR);
+        Path cupsDir = Paths.get(this.dataDir, CUPS_DIR);
         if (!Files.exists(cupsDir)) {
             try {
                 Files.createDirectory(cupsDir);
@@ -73,7 +81,7 @@ public class CupsServiceCsv implements CupsService {
     }
 
     protected <T> List<T> readCsvFile(String filename, Class<T> type) throws IOException {
-        Path filePath = Paths.get(DATA_DIR, filename);
+        Path filePath = Paths.get(this.dataDir, filename);
         if (!Files.exists(filePath)) {
             return List.of(); // Return empty list if file doesn't exist
         }
@@ -89,7 +97,7 @@ public class CupsServiceCsv implements CupsService {
     }
 
     protected <T> void writeCsvFile(String filename, List<T> data, Class<T> type) throws IOException {
-        Path filePath = Paths.get(DATA_DIR, filename);
+        Path filePath = Paths.get(this.dataDir, filename);
 
         try (Writer writer = Files.newBufferedWriter(filePath)) {
             StatefulBeanToCsv<T> beanToCsv = new StatefulBeanToCsvBuilder<T>(writer)
@@ -181,7 +189,7 @@ public class CupsServiceCsv implements CupsService {
      * @throws IOException on IO or parse errors
      */
     private List<CupsCenterMapping> loadCupsDataLenient() throws IOException {
-        Path filePath = Paths.get(DATA_DIR, CUPS_DIR, CUPS_FILE);
+        Path filePath = Paths.get(this.dataDir, CUPS_DIR, CUPS_FILE);
         if (!Files.exists(filePath))
             return List.of();
 
@@ -273,7 +281,7 @@ public class CupsServiceCsv implements CupsService {
      */
     @Override
     public void saveCupsData(List<CupsCenterMapping> mappings) throws IOException {
-        Path filePath = Paths.get(DATA_DIR, CUPS_DIR, CUPS_FILE);
+        Path filePath = Paths.get(this.dataDir, CUPS_DIR, CUPS_FILE);
 
         // Ensure directory exists
         if (!Files.exists(filePath.getParent())) {

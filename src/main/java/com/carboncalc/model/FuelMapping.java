@@ -42,6 +42,15 @@ public class FuelMapping {
         this.completionTimeIndex = completionTimeIndex;
     }
 
+    /**
+     * Backward-compatible constructor used by older tests that only supplied
+     * the four primary indices (centro, responsable, invoice, provider).
+     * The remaining indices are initialized to -1 (unmapped).
+     */
+    public FuelMapping(int centroIndex, int responsableIndex, int invoiceIndex, int providerIndex) {
+        this(centroIndex, responsableIndex, invoiceIndex, providerIndex, -1, -1, -1, -1, -1);
+    }
+
     public int getCentroIndex() {
         return centroIndex;
     }

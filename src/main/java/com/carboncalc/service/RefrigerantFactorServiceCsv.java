@@ -33,10 +33,16 @@ import java.time.Year;
  * </p>
  */
 public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
-    private static final String BASE_PATH = "data/emission_factors";
+    private static final String DEFAULT_BASE_PATH = "data/emission_factors";
+    private final String basePath;
     private Integer defaultYear;
 
     public RefrigerantFactorServiceCsv() {
+        this(DEFAULT_BASE_PATH);
+    }
+
+    public RefrigerantFactorServiceCsv(String basePath) {
+        this.basePath = basePath == null || basePath.isBlank() ? DEFAULT_BASE_PATH : basePath;
         this.defaultYear = Year.now().getValue();
         createYearDirectory(defaultYear);
     }
@@ -49,7 +55,7 @@ public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
      */
     public void saveRefrigerantFactor(RefrigerantEmissionFactor entry) {
         int year = entry.getYear() <= 0 ? defaultYear : entry.getYear();
-        Path filePath = Paths.get(BASE_PATH, String.valueOf(year), "refrigerant_factors.csv");
+        Path filePath = Paths.get(this.basePath, String.valueOf(year), "refrigerant_factors.csv");
         try {
             List<String> lines = new ArrayList<>();
             if (Files.exists(filePath)) {
@@ -100,7 +106,7 @@ public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
      * when the CSV file is missing or cannot be parsed.
      */
     public List<RefrigerantEmissionFactor> loadRefrigerantFactors(int year) {
-        Path p = Paths.get(BASE_PATH, String.valueOf(year), "refrigerant_factors.csv");
+        Path p = Paths.get(this.basePath, String.valueOf(year), "refrigerant_factors.csv");
         List<RefrigerantEmissionFactor> out = new ArrayList<>();
         if (!Files.exists(p))
             return out;
@@ -140,7 +146,7 @@ public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
      * specified year (case-insensitive). Does nothing if the file is missing.
      */
     public void deleteRefrigerantFactor(int year, String entity) {
-        Path p = Paths.get(BASE_PATH, String.valueOf(year), "refrigerant_factors.csv");
+        Path p = Paths.get(this.basePath, String.valueOf(year), "refrigerant_factors.csv");
         if (!Files.exists(p))
             return;
         try {
@@ -184,7 +190,7 @@ public class RefrigerantFactorServiceCsv implements RefrigerantFactorService {
 
     private void createYearDirectory(int year) {
         try {
-            Files.createDirectories(Paths.get(BASE_PATH, String.valueOf(year)));
+            Files.createDirectories(Paths.get(this.basePath, String.valueOf(year)));
         } catch (IOException ignored) {
         }
     }

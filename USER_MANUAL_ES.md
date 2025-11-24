@@ -265,24 +265,25 @@ Los proveedores de electricidad suministran datos de consumo a través de sus po
 Lo siguiente representa los nombres de columnas reales de las exportaciones del proveedor ACCIONA S.L.:
 
 ```
-CUPS | Fecha emisión factura | Fecha inicio suministro | Fecha fin suministro | 
-Total EA (kWh) | Centro | Sociedad emisora
+CUPS | Nº Factura | Fecha Inicio Suministro | Fecha Fin Suministro | 
+Consumo (kWh) | Nombre del Centro | Sociedad Emisora | [Columnas adicionales]
 ```
 
 **Definiciones de Columnas:**
 - **CUPS** — Código Universal del Punto de Suministro - identificador único del medidor
-- **Fecha emisión factura** — Fecha de emisión de la factura
-- **Fecha inicio suministro** — Fecha de inicio del período de facturación
-- **Fecha fin suministro** — Fecha de finalización del período de facturación
-- **Total EA (kWh)** — Energía activa total consumida en kilovatios-hora
+- **Nº Factura** — Número de la factura emitida
+- **Fecha Inicio Suministro** — Fecha de inicio del período de suministro de energía
+- **Fecha Fin Suministro** — Fecha de finalización del período de suministro de energía
+- **Consumo (kWh)** — Energía activa total consumida en kilovatios-hora
 - **Centro** — Nombre de la instalación o centro
 - **Sociedad emisora** — Empresa emisora o entidad legal
+- **[Columnas adicionales]** — Los proveedores típicamente incluyen contratos, provincia, ciudad, entre otros
 
 **Nota de Variación de Proveedores:**
 
 Diferentes proveedores de electricidad utilizan diferentes convenciones de nomenclatura de columnas:
 - **ACCIONA S.L.:** Como se muestra arriba
-- **Iberdrola:** Puede usar "Consumo kWh" en lugar de "Total EA (kWh)"
+- **Iberdrola:** Puede usar "Total EA (kWh)" en lugar de "Consumo (kWh)"
 - **Endesa:** Puede usar "Punto de suministro" en lugar de "CUPS"
 - **Naturgy:** Puede incluir columnas separadas para diferentes períodos tarifarios (P1, P2, P3)
 
@@ -295,13 +296,13 @@ Los sistemas de Planificación de Recursos Empresariales consolidan datos financ
 **Estructura Típica de Columnas de Exportación ERP (SOROLLA):**
 
 ```
-Factura proveedor | Fecha Conformidad | [Columnas ERP adicionales]
+Nº Factura | Fecha Conformidad | [Columnas adicionales]
 ```
 
 **Definiciones de Columnas:**
-- **Factura proveedor** — Número o referencia de factura del proveedor
+- **Nº Factura** — Número o referencia de factura del proveedor
 - **Fecha Conformidad** — Fecha de conformidad o aprobación
-- **[Columnas adicionales]** — Los sistemas ERP típicamente incluyen centros de coste, cuentas de contabilidad general, importes, flujos de aprobación
+- **[Columnas adicionales]** — Los sistemas ERP típicamente incluyen centros de coste, cuentas de contabilidad general, importes, flujos de aprobación, entre otros
 
 **Variación de Sistemas ERP:**
 
@@ -346,17 +347,17 @@ La interfaz de mapeo de columnas permite a la aplicación localizar los campos d
 **Mapeo de Proveedor (Campos Requeridos):**
 
 - **CUPS** — Código Único de Punto de Suministro (identificador del medidor eléctrico)
-- **Número de Factura** — Número de referencia de factura
-- **Fecha Inicio** — Fecha de inicio del período de facturación
-- **Fecha Fin** — Fecha de finalización del período de facturación
-- **Consumo** — Valor de consumo de electricidad (kWh)
-- **Centro** — Identificador de instalación o ubicación
-- **Entidad Emisora** — Nombre del proveedor de servicios públicos
+- **Nº Factura** — Número de referencia de factura
+- **Fecha Inicio Suministro** — Fecha de inicio del periodo de suministro de energía
+- **Fecha Fin Suministro** — Fecha de finalización del periodo de suministro de energía
+- **Consumo (kWh)** — Valor de consumo de electricidad (kWh)
+- **Nombre del Centro** — Identificador de instalación o ubicación
+- **Sociedad Emisora** — Nombre del proveedor de servicios públicos
 
 **Mapeo ERP (Campos Requeridos):**
 
-- **Número de Factura** — Referencia de factura que coincide con archivo de proveedor
-- **Fecha de Conformidad** — Fecha de aprobación de pago o conformidad
+- **Nº Factura** — Referencia de factura que coincide con archivo de proveedor
+- **Fecha Conformidad** — Fecha de aprobación de pago o conformidad
 
 **Procedimiento de Mapeo:**
 
@@ -406,17 +407,19 @@ Los proveedores de gas suministran datos de consumo a través de sus portales de
 Lo siguiente representa los nombres de columnas reales de las exportaciones de proveedores de gas:
 
 ```
-CUPS | No. Factura | Fecha Inicio | Fecha Fin | Consumos kWh | Centro | Sociedad
+CUPS | Nº Factura | Fecha Inicio Suministro | Fecha Fin Suministro | 
+Consumo (kWh) | Tipo de Gas | Nombre del Centro | Sociedad Emisora | [Columnas adicionales]
 ```
 
 **Definiciones de Columnas:**
 - **CUPS** — Código Universal del Punto de Suministro - identificador único del medidor
-- **No. Factura** — Número de factura
-- **Fecha Inicio** — Fecha de inicio del período de facturación
-- **Fecha Fin** — Fecha de finalización del período de facturación
-- **Consumos kWh** — Consumo de gas en kilovatios-hora
-- **Centro** — Nombre de la instalación o centro
-- **Sociedad** — Empresa o entidad legal
+- **Nº Factura** — Número de factura
+- **Fecha Inicio Suministro** — Fecha de inicio del período de suministro de energía
+- **Fecha Fin Suministro** — Fecha de finalización del período de suministro de energía
+- **Consumo (kWh)** — Consumo de gas en kilovatios-hora
+- **Nombre del Centro** — Nombre de la instalación o centro
+- **Sociedad Emisora** — Empresa o entidad legal
+- **[Columnas adicionales]** — Los proveedores típicamente incluyen contratos, provincia, ciudad, entre otros
 
 **Nota:** El consumo de gas a menudo se expresa en kWh (contenido de energía) en lugar de m³ (volumen). Los proveedores típicamente realizan la conversión basándose en el valor calorífico del gas.
 
@@ -427,11 +430,11 @@ Los sistemas de Planificación de Recursos Empresariales proporcionan datos fina
 **Estructura Típica de Columnas de Exportación ERP (SOROLLA):**
 
 ```
-Factura proveedor | Fecha Conformidad | [Columnas ERP adicionales]
+Nº Factura | Fecha Conformidad | [Columnas adicionales]
 ```
 
 **Definiciones de Columnas:**
-- **Factura proveedor** — Número o referencia de factura del proveedor
+- **Nº Factura** — Número o referencia de factura del proveedor
 - **Fecha Conformidad** — Fecha de conformidad o aprobación
 - **[Columnas adicionales]** — Los sistemas ERP típicamente incluyen centros de coste, cuentas de contabilidad general, importes, flujos de aprobación
 
@@ -529,15 +532,15 @@ Mapear los siguientes campos a sus columnas Excel correspondientes:
 
 **Campos Requeridos:**
 
-- **Centro (Center)** — Identificador de instalación o ubicación
-- **Responsable** — Persona responsable de la compra
-- **Invoice Number** — Número de recibo o factura de combustible
-- **Provider** — Nombre del proveedor de combustible o gasolinera
-- **Invoice Date** — Fecha de compra
-- **Fuel Type** — Tipo de combustible (Gasolina, Diesel, etc.)
-- **Vehicle Type** — Clasificación del vehículo (Automóvil, Camión, Furgoneta, etc.)
-- **Amount** — Cantidad de combustible comprado (litros)
-- **Completion Time** — Marca de tiempo de envío del formulario
+- **Centro** — Identificador de instalación o ubicación
+- **Responsable del centro** — Persona responsable de la compra
+- **Número de factura** — Número de recibo o factura de combustible
+- **Proveedor** — Nombre del proveedor de combustible o gasolinera
+- **Fecha de la factura** — Fecha de compra
+- **Tipo de combustible** — Tipo de combustible (Gasolina, Diesel, etc.)
+- **Tipo de vehículo** — Clasificación del vehículo (Automóvil, Camión, Furgoneta, etc.)
+- **Importe (€)** — Precio del combustible comprado (€)
+- **Last Modified** — Marca de tiempo de envío del formulario
 
 #### Paso 3: Configuración de Límite de Fecha
 
@@ -588,14 +591,14 @@ Tipo de refrigerante: | Cantidad (ud): | Collaborators | Workflows | Last Modifi
 - **Created By** — Dirección de correo electrónico del remitente del formulario
 - **Title** — Título del formulario
 - **Form Version** — Número de versión de la plantilla del formulario
-- **Centro:** — Nombre de la instalación o centro
-- **Responsable del centro:** — Persona responsable del centro
-- **Adjuntar factura:** — Adjunto de factura (referencia de archivo)
-- **Número de factura:** — Número de factura de servicio
-- **Proveedor:** — Nombre del proveedor de servicio o contratista
-- **Fecha de la factura:** — Fecha de servicio
-- **Tipo de refrigerante:** — Designación del tipo de refrigerante (por ejemplo, R-410A, R-134a, R-404A)
-- **Cantidad (ud):** — Cantidad de refrigerante utilizado (unidades/kilogramos)
+- **Centro** — Nombre de la instalación o centro
+- **Responsable del centro** — Persona responsable del centro
+- **Adjuntar factura** — Adjunto de factura (referencia de archivo)
+- **Número de factura** — Número de factura de servicio
+- **Proveedor** — Nombre del proveedor de servicio o contratista
+- **Fecha de la factura** — Fecha de servicio
+- **Tipo de refrigerante** — Designación del tipo de refrigerante (por ejemplo, R-410A, R-134a, R-404A)
+- **Cantidad (ud)** — Cantidad de refrigerante utilizado (unidades/kilogramos)
 - **Collaborators** — Colaboradores adicionales del formulario
 - **Workflows** — Información de flujo de trabajo asociado
 - **Last Modified** — Marca de tiempo de última modificación
@@ -619,12 +622,12 @@ Mapear los siguientes campos específicos de refrigerante:
 **Campos Requeridos:**
 
 - **Centro** — Ubicación de la instalación
-- **Person** — Técnico o persona responsable
-- **Invoice Number** — Número de factura de servicio
-- **Provider** — Proveedor de servicio o contratista
-- **Invoice Date** — Fecha de servicio
-- **Refrigerant Type** — Designación de gas refrigerante (por ejemplo, R-410A, R-134a, R-404A)
-- **Quantity** — Cantidad de refrigerante utilizado (kilogramos)
+- **Responsable del centro** — Técnico o persona responsable
+- **Número de factur** — Número de factura de servicio
+- **Proveedor** — Proveedor de servicio o contratista
+- **Fecha de la factura** — Fecha de servicio
+- **Tipo de refrigerante** — Designación de gas refrigerante (por ejemplo, R-410A, R-134a, R-404A)
+- **Cantidad (ud)** — Cantidad de refrigerante utilizado (kilogramos)
 - **Completion Time** — Marca de tiempo de envío del formulario
 
 #### Paso 4: Límite de Fecha y Cálculo
@@ -735,15 +738,15 @@ Use importación de Excel para agregar múltiples instalaciones simultáneamente
 2. Hacer clic en **"Añadir Archivo"** y seleccionar el archivo Excel que contiene datos de centros
 3. Elegir la hoja de cálculo apropiada
 4. Configurar el mapeo de columnas seleccionando la columna Excel correspondiente para cada campo requerido:
-   - Columna de CUPS
-   - Columna de Marketer
-   - Columna de nombre de centro
-   - Columna de acrónimo
-   - Columna de tipo de energía
-   - Columna de dirección de calle
-   - Columna de código postal
-   - Columna de ciudad
-   - Columna de provincia
+   - CUPS
+   - Comercializadora
+   - Nombre del centro
+   - Acrónimo
+   - Tipo de energía
+   - Calle
+   - Código postal
+   - Localidad
+   - Provincia
 5. Verificar el mapeo en la tabla de vista previa (panel derecho)
 6. Hacer clic en **"Importar"** para ejecutar la importación masiva
 7. Todos los registros válidos se agregan a la tabla de datos maestros
@@ -906,41 +909,41 @@ Lo siguiente representa estructuras de columnas reales de exportaciones de prove
 **Estructura Completa de Exportación del Proveedor (ACCIONA S.L.):**
 
 ```
-CUPS | Fecha emisión factura | Fecha inicio suministro | Fecha fin suministro | 
-Total EA (kWh) | Centro | Sociedad emisora
+CUPS | Nº Factura | Fecha inicio suministro | Fecha fin suministro | 
+Consumo (kWh) | Centro | Sociedad emisora
 ```
 
 **Columnas de Datos Requeridas para Cálculos de Emisiones:**
 
 | Nombre de Columna (Español) | Nombre de Columna (Inglés) | Tipo de Datos | Formato | Ejemplo |
 |------------------------------|----------------------------|---------------|---------|---------|
-| CUPS | CUPS Code | Texto | ES + 18-20 caracteres | ES0031406123456789JK0F |
-| Fecha emisión factura | Invoice Issue Date | Fecha | DD/MM/YYYY | 01/02/2024 |
-| Fecha inicio suministro | Supply Period Start | Fecha | DD/MM/YYYY | 01/01/2024 |
-| Fecha fin suministro | Supply Period End | Fecha | DD/MM/YYYY | 31/01/2024 |
-| Total EA (kWh) | Total Active Energy | Numérico | Decimal | 1250.75 |
-| Centro | Center/Facility | Texto | Cualquiera | Building A |
-| Sociedad emisora | Issuing Company | Texto | Cualquiera | Company XYZ |
+| CUPS | CUPS | Text | ES + 18-20 caracteres | ES0031406123456789JK0F |
+| Nº Factura | Invoice Number | Texto | Cualquiera | ACC1553321 |
+| Fecha inicio suministro | Supply Start Date | Fecha | DD/MM/YYYY | 01/01/2024 |
+| Fecha fin suministro | Supply End Date | Fecha | DD/MM/YYYY | 31/01/2024 |
+| Consumo (kWh) | Consumption (kWh) | Numérico | Decimal | 1250.75 |
+| Centro | Center Name | Texto | Cualquiera | Building A |
+| Sociedad emisora | Emission Entity | Texto | Cualquiera | Company XYZ |
 
 **Datos de Muestra (Formato ACCIONA S.L.):**
 
 ```
-CUPS                    Fecha emisión  Fecha inicio   Fecha fin      Total EA   Centro      Sociedad
-                        factura        suministro     suministro     (kWh)                  emisora
-ES0031406123456789JK0F  01/02/2024     01/01/2024     31/01/2024     1250.75    Building A  Company XYZ
-ES0031406987654321AB0C  01/02/2024     01/01/2024     31/01/2024     2340.50    Building B  Company XYZ
+CUPS                    Número de  Fecha inicio   Fecha fin      Consumo   Centro      Sociedad
+                        factura    suministro     suministro     (kWh)                  emisora
+ES0031406123456789JK0F  ACC020211     01/01/2024     31/01/2024     1250.75    Building A  Company XYZ
+ES0031406987654321AB0C  ACC904234     01/01/2024     31/01/2024     2340.50    Building B  Company XYZ
 ```
 
 **Ejemplos de Variación de Proveedores:**
 
 Diferentes proveedores de electricidad utilizan diferentes nombres de columnas para los mismos datos:
 
-| Campo de Datos | ACCIONA S.L. | Alternativa Iberdrola | Alternativa Endesa |
-|----------------|--------------|----------------------|-------------------|
-| Código CUPS | CUPS | CUPS | Punto de suministro |
-| Consumo | Total EA (kWh) | Consumo kWh | Energía consumida |
-| Fecha Inicio | Fecha inicio suministro | Inicio periodo | Fecha inicio |
-| Fecha Fin | Fecha fin suministro | Fin periodo | Fecha fin |
+| Campo de datos | ACCIONA S.L. | Alternativa Iberdrola | Alternativa Endesa |
+|------------|---------|----------------------|-------------------|
+| CUPS | CUPS | CUPS | Punto de suministro |
+| Consumption (kWh) | Consumo (kWh) | Consumo kWh | Energía consumida |
+| Supply Start Date | Fecha inicio suministro | Inicio periodo | Fecha inicio |
+| Supply End Date | Fecha fin suministro | Fin periodo | Fecha fin |
 
 ---
 
@@ -953,28 +956,29 @@ Las exportaciones de proveedores de gas siguen una estructura similar a la elect
 **Estructura Completa de Exportación del Proveedor:**
 
 ```
-CUPS | No. Factura | Fecha Inicio | Fecha Fin | Consumos kWh | Centro | Sociedad
+CUPS | Nº Factura | Fecha inicio suministro | Fecha fin suministro | Consumos kWh | Centro | Sociedad emisora
 ```
 
 **Columnas de Datos Requeridas para Cálculos de Emisiones:**
 
 | Nombre de Columna (Español) | Nombre de Columna (Inglés) | Tipo de Datos | Formato | Ejemplo |
 |------------------------------|----------------------------|---------------|---------|---------|
-| CUPS | CUPS Code | Texto | ES + 18-20 caracteres | ES0031406123456789JK0F |
-| No. Factura | Invoice Number | Texto | Alfanumérico | GAS-2024-001 |
-| Fecha Inicio | Billing Period Start | Fecha | DD/MM/YYYY | 01/01/2024 |
-| Fecha Fin | Billing Period End | Fecha | DD/MM/YYYY | 31/01/2024 |
-| Consumos kWh | Gas Consumption (kWh) | Numérico | Decimal | 3450.50 |
-| Centro | Center/Facility | Texto | Cualquiera | Building A |
-| Sociedad | Company/Entity | Texto | Cualquiera | Company XYZ |
+| CUPS | CUPS | Texto | ES + 18-20 caracteres | ES0031406123456789JK0F |
+| Nº Factura | Invoice Number | Texto | Cualquiera | ACC1553321 |
+| Fecha inicio suministro | Supply Start Date | Fecha | DD/MM/YYYY | 01/01/2024 |
+| Fecha fin suministro | Supply End Date | Fecha | DD/MM/YYYY | 31/01/2024 |
+| Consumo (kWh) | Consumption (kWh) | Numérico| Decimal | 1250.75 |
+| Tipo de gas | Gas Type | Texto | Enums | GAS NATURAL |
+| Centro | Center Name | Texto | Cualquiera | Building A |
+| Sociedad emisora | Emission Entity | Texto | Cualquiera | Company XYZ |
 
 **Datos de Muestra (Formato de Proveedor de Gas):**
 
 ```
-CUPS                    No. Factura   Fecha Inicio  Fecha Fin   Consumos  Centro      Sociedad
-                                                                 kWh
-ES0031406123456789JK0F  GAS-2024-001  01/01/2024    31/01/2024  3450.50   Building A  Company XYZ
-ES0031406987654321AB0C  GAS-2024-002  01/01/2024    31/01/2024  4120.25   Building B  Company XYZ
+CUPS                    Nº  Fecha inicio   Fecha fin      Consumo      Tipo de       Centro      Sociedad
+                        factura    suministro     suministro     (kWh)         gas                       emisora
+ES0031406123456789JK0F  ACC020211     01/01/2024     31/01/2024     1250.75    GAS NATURAL   Building A  Company XYZ
+ES0031406987654321AB0C  ACC904234     01/01/2024     31/01/2024     2340.50    GAS NATURAL   Building B  Company XYZ
 ```
 
 **Nota:** El consumo de gas se proporciona típicamente en kWh (contenido de energía) en lugar de m³ (volumen). Los proveedores de gas convierten el volumen a energía utilizando el valor calorífico del gas.
@@ -990,20 +994,20 @@ Los sistemas ERP proporcionan datos financieros y administrativos relacionados c
 **Estructura Típica de Exportación ERP (SOROLLA):**
 
 ```
-Factura proveedor | Fecha Conformidad | [Columnas ERP adicionales]
+Nº Factura | Fecha Conformidad | [Columnas adicionales]
 ```
 
 **Columnas Principales Requeridas:**
 
 | Nombre de Columna (Español) | Nombre de Columna (Inglés) | Tipo de Datos | Formato | Ejemplo |
 |------------------------------|----------------------------|---------------|---------|---------|
-| Factura proveedor | Provider Invoice | Texto | Alfanumérico | INV-ACC-2024-001 o GAS-2024-001 |
-| Fecha Conformidad | Conformity/Approval Date | Fecha | DD/MM/YYYY | 15/01/2024 |
+| Nº Factura | Invoice Number | Texto | Alfanumérico | INV-ACC-2024-001 or GAS-2024-001 |
+| Fecha Conformidad | Conformity Date | Fecha | DD/MM/YYYY | 15/01/2024 |
 
 **Datos de Muestra (Formato SOROLLA):**
 
 ```
-Factura proveedor    Fecha Conformidad
+Nº Factura    Fecha Conformidad
 INV-ACC-2024-001     15/01/2024
 GAS-2024-001         16/01/2024
 INV-ACC-2024-002     18/01/2024

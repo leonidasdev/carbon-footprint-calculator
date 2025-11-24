@@ -17,7 +17,7 @@ This repository contains the source code, CSV data for emission factors (per yea
 
 ## Documentation
 
-📖 **Comprehensive User Manuals Available:**
+**Comprehensive User Manuals Available:**
 - [English User Manual](USER_MANUAL_EN.md) — Complete guide covering all modules, workflows, and troubleshooting
 - [Spanish User Manual (Manual de Usuario)](USER_MANUAL_ES.md) — Guía completa en español
 

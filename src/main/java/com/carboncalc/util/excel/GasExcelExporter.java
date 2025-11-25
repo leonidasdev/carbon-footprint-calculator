@@ -144,9 +144,6 @@ public class GasExcelExporter {
                         }
                         src.close();
                     } catch (Exception e) {
-                        // Log error for debugging
-                        System.err.println("Error processing gas provider data: " + e.getMessage());
-                        e.printStackTrace();
                         // Continue writing template even if reading fails
                     }
                 }

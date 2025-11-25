@@ -81,30 +81,21 @@ public class ElectricityExcelExporter {
 
             // Create sheets based on mode
             if ("extended".equalsIgnoreCase(sheetMode)) {
-                System.out.println("[DEBUG] Entering extended mode for electricity");
                 String sheetExtended = moduleLabel + " - "
                         + (spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
                                 : "Extendido");
-                System.out.println("[DEBUG] Extended sheet name: " + sheetExtended);
                 Sheet detailedSheet = workbook.createSheet(sheetExtended);
                 CellStyle headerStyle = createHeaderStyle(workbook);
                 createDetailedSheet(detailedSheet, headerStyle, spanish);
 
                 // If provider data is available, try to open and read rows
-                System.out.println("[DEBUG] Provider path: " + providerPath);
-                System.out.println("[DEBUG] Provider sheet: " + providerSheet);
                 if (providerPath != null && providerSheet != null) {
-                    System.out.println("[DEBUG] Provider data is available, attempting to read...");
                     try (FileInputStream fis = new FileInputStream(providerPath)) {
-                        System.out.println("[DEBUG] Successfully opened provider file");
                         Workbook src = providerPath.toLowerCase().endsWith(".xlsx")
                                 ? new XSSFWorkbook(fis)
                                 : new HSSFWorkbook(fis);
-                        System.out.println("[DEBUG] Workbook loaded, looking for sheet: " + providerSheet);
                         Sheet sheet = src.getSheet(providerSheet);
-                        System.out.println("[DEBUG] Sheet found: " + (sheet != null) + ", sheet object: " + sheet);
                         if (sheet != null) {
-                            System.out.println("[DEBUG] Sheet has " + sheet.getLastRowNum() + " rows");
                             // Load per-year general factors to compute location-based emissions
                             double locationFactor = 0.0;
                             try {
@@ -115,16 +106,13 @@ public class ElectricityExcelExporter {
                             } catch (Exception ex) {
                                 // ignore and use 0.0
                             }
-                            System.out.println("[DEBUG] Calling writeExtendedRows with year=" + year);
                             Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
                                     validInvoices, locationFactor);
-                            System.out.println("[DEBUG] writeExtendedRows returned " + aggregates.size() + " centers");
                             // create per-center sheet from aggregates (prefixed)
                             String perCenterName = moduleLabel + " - "
                                     + (spanish.containsKey("result.sheet.per_center")
                                             ? spanish.getString("result.sheet.per_center")
                                             : "Por centro");
-                            System.out.println("[DEBUG] Creating per-center sheet: " + perCenterName);
                             Sheet perCenter = workbook.createSheet(perCenterName);
                             createPerCenterSheet(perCenter, headerStyle, aggregates, spanish, sheetExtended);
                             // create total sheet summarizing per-center aggregates (prefixed)
@@ -132,30 +120,13 @@ public class ElectricityExcelExporter {
                                     + (spanish.containsKey("result.sheet.total")
                                             ? spanish.getString("result.sheet.total")
                                             : "Total");
-                            System.out.println("[DEBUG] Creating total sheet: " + totalName);
                             Sheet total = workbook.createSheet(totalName);
                             createTotalSheetFromAggregates(total, headerStyle, aggregates, spanish, perCenterName);
-                            System.out.println("[DEBUG] Successfully created all sheets");
-                        } else {
-                            System.err.println("[ERROR] Sheet '" + providerSheet + "' not found in provider workbook!");
-                            System.err.println("[ERROR] Available sheets: ");
-                            for (int i = 0; i < src.getNumberOfSheets(); i++) {
-                                System.err.println("  - " + src.getSheetName(i));
-                            }
                         }
                         src.close();
                     } catch (Exception e) {
-                        // Log error for debugging
-                        System.err.println("[ERROR] Exception processing electricity provider data: " + e.getMessage());
-                        e.printStackTrace();
                         // Continue writing template even if reading fails
                     }
-                } else {
-                    System.err.println("[ERROR] Provider path or sheet is null - no data processing will occur");
-                    if (providerPath == null)
-                        System.err.println("  - providerPath is null");
-                    if (providerSheet == null)
-                        System.err.println("  - providerSheet is null");
                 }
             } else {
                 // Default: create both sheets as simple template using prefixed names
@@ -305,10 +276,6 @@ public class ElectricityExcelExporter {
 
     private static Map<String, double[]> writeExtendedRows(Sheet target, Sheet source, ElectricityMapping mapping,
             int year, Set<String> validInvoices, double locationFactorKgPerKwh) {
-        System.out.println("[DEBUG writeExtendedRows] Starting to process rows");
-        System.out.println("[DEBUG writeExtendedRows] Source sheet: " + source.getSheetName() + ", rows: "
-                + source.getLastRowNum());
-        System.out.println("[DEBUG writeExtendedRows] Year: " + year + ", Location factor: " + locationFactorKgPerKwh);
         DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = source.getWorkbook().getCreationHelper().createFormulaEvaluator();
         Map<String, double[]> perCenterAgg = new HashMap<>();
@@ -331,13 +298,10 @@ public class ElectricityExcelExporter {
             }
         }
         if (headerRowIndex == -1) {
-            System.err.println("[ERROR writeExtendedRows] No header row found in provider sheet!");
             diagnostics.add("No header row found in provider sheet; no rows will be processed.");
             writeDiagnosticsSheet(target.getWorkbook(), diagnostics);
             return perCenterAgg;
         }
-
-        System.out.println("[DEBUG writeExtendedRows] Header row found at index: " + headerRowIndex);
         int outRow = target.getLastRowNum() + 1;
         int idCounter = 1;
         // Build a map CUPS -> count of centers that reference it (from

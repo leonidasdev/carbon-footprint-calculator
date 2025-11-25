@@ -7,6 +7,7 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.sql.Date;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -67,7 +68,7 @@ public class GasExcelExporter {
     static {
         // Use resource keys for headers; exporters will lookup the Spanish bundle
         DetailedHeader[] dh = DetailedHeader.values();
-        java.util.List<String> tmp = new java.util.ArrayList<>();
+        List<String> tmp = new ArrayList<>();
         for (DetailedHeader h : dh) {
             if (h == DetailedHeader.EMISIONES_MARKET) {
                 tmp.add(h.key());
@@ -104,7 +105,7 @@ public class GasExcelExporter {
             String sheetMode, Set<String> validInvoices) throws IOException {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
-            ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
+            ResourceBundle spanish = ResourceBundle.getBundle("Messages", Locale.getDefault());
             String moduleLabel = spanish.containsKey("module.gas") ? spanish.getString("module.gas") : "Gas";
             if ("extended".equalsIgnoreCase(sheetMode)) {
                 String sheetExtended = moduleLabel + " - "
@@ -116,7 +117,7 @@ public class GasExcelExporter {
 
                 if (providerPath != null && providerSheet != null) {
                     try (FileInputStream fis = new FileInputStream(providerPath)) {
-                        org.apache.poi.ss.usermodel.Workbook src = providerPath.toLowerCase().endsWith(".xlsx")
+                        Workbook src = providerPath.toLowerCase().endsWith(".xlsx")
                                 ? new XSSFWorkbook(fis)
                                 : new HSSFWorkbook(fis);
                         Sheet sheet = src.getSheet(providerSheet);
@@ -126,12 +127,14 @@ public class GasExcelExporter {
 
                             Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
                                     validInvoices, gasTypeToFactor);
+
                             String perCenterName = moduleLabel + " - "
                                     + (spanish.containsKey("result.sheet.per_center")
                                             ? spanish.getString("result.sheet.per_center")
                                             : "Por centro");
                             Sheet perCenter = workbook.createSheet(perCenterName);
                             createPerCenterSheet(perCenter, headerStyle, aggregates, spanish, sheetExtended);
+
                             String totalName = moduleLabel + " - "
                                     + (spanish.containsKey("result.sheet.total")
                                             ? spanish.getString("result.sheet.total")
@@ -141,7 +144,10 @@ public class GasExcelExporter {
                         }
                         src.close();
                     } catch (Exception e) {
-                        // ignore read errors and continue writing template
+                        // Log error for debugging
+                        System.err.println("Error processing gas provider data: " + e.getMessage());
+                        e.printStackTrace();
+                        // Continue writing template even if reading fails
                     }
                 }
             } else {
@@ -234,6 +240,7 @@ public class GasExcelExporter {
         } catch (Exception ex) {
             // ignore and assume 1 per cups
         }
+
         for (int i = headerRowIndex + 1; i <= source.getLastRowNum(); i++) {
             Row srcRow = source.getRow(i);
             if (srcRow == null)
@@ -351,7 +358,7 @@ public class GasExcelExporter {
             Cell startCell = out.createCell(col++);
             try {
                 if (parsedStart != null) {
-                    startCell.setCellValue(java.sql.Date.valueOf(parsedStart));
+                    startCell.setCellValue(Date.valueOf(parsedStart));
                     startCell.setCellStyle(dateStyle);
                 } else {
                     startCell.setCellValue(fechaInicio != null ? fechaInicio : "");
@@ -364,7 +371,7 @@ public class GasExcelExporter {
             Cell endCell = out.createCell(col++);
             try {
                 if (parsedEnd != null) {
-                    endCell.setCellValue(java.sql.Date.valueOf(parsedEnd));
+                    endCell.setCellValue(Date.valueOf(parsedEnd));
                     endCell.setCellStyle(dateStyle);
                 } else {
                     endCell.setCellValue(fechaFin != null ? fechaFin : "");
@@ -446,7 +453,6 @@ public class GasExcelExporter {
             }
             out.createCell(col++).setCellValue(marketFactorValue);
         }
-        // summary
         diagnostics.add(String.format("Processed %d centers in aggregates", perCenterAgg.size()));
         // write diagnostics sheet
         try {
@@ -813,7 +819,11 @@ public class GasExcelExporter {
     /** Write diagnostics messages into a Diagnostics sheet. Safe no-op on error. */
     private static void writeDiagnosticsSheet(Workbook wb, List<String> diagnostics) {
         try {
-            Sheet diag = wb.createSheet("Diagnostics");
+            ResourceBundle spanish = ResourceBundle.getBundle("Messages", Locale.getDefault());
+            String diagnosticsName = spanish.containsKey("export.sheet.diagnostics")
+                    ? spanish.getString("export.sheet.diagnostics")
+                    : "Diagnostics";
+            Sheet diag = wb.createSheet(diagnosticsName);
             int rr = 0;
             for (String msg : diagnostics) {
                 Row r = diag.createRow(rr++);

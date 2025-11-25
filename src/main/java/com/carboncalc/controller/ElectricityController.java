@@ -755,7 +755,26 @@ public class ElectricityController {
             String erpSheet = (String) view.getErpSheetSelector().getSelectedItem();
             ElectricityMapping mapping = view.getSelectedColumns();
             int selectedYear = (Integer) view.getYearSpinner().getValue();
-            String sheetMode = (String) view.getResultSheetSelector().getSelectedItem();
+            
+            // Translate localized sheet mode to internal mode string
+            String sheetMode = "extended";
+            try {
+                Object sel = view.getResultSheetSelector().getSelectedItem();
+                String selStr = sel != null ? sel.toString() : null;
+                if (selStr != null) {
+                    String perCenterLabel = messages.getString("result.sheet.per_center");
+                    String totalLabel = messages.getString("result.sheet.total");
+                    if (selStr.equalsIgnoreCase(perCenterLabel)) {
+                        sheetMode = "per_center";
+                    } else if (selStr.equalsIgnoreCase(totalLabel)) {
+                        sheetMode = "total";
+                    } else {
+                        sheetMode = "extended";
+                    }
+                }
+            } catch (Exception ignore) {
+                sheetMode = "extended";
+            }
 
             // Build set of valid invoice numbers from ERP file (conformity date >=
             // selectedYear)

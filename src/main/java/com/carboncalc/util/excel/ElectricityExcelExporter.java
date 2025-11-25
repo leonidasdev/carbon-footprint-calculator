@@ -7,6 +7,7 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.sql.Date;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -80,21 +81,30 @@ public class ElectricityExcelExporter {
 
             // Create sheets based on mode
             if ("extended".equalsIgnoreCase(sheetMode)) {
+                System.out.println("[DEBUG] Entering extended mode for electricity");
                 String sheetExtended = moduleLabel + " - "
                         + (spanish.containsKey("result.sheet.extended") ? spanish.getString("result.sheet.extended")
                                 : "Extendido");
+                System.out.println("[DEBUG] Extended sheet name: " + sheetExtended);
                 Sheet detailedSheet = workbook.createSheet(sheetExtended);
                 CellStyle headerStyle = createHeaderStyle(workbook);
                 createDetailedSheet(detailedSheet, headerStyle, spanish);
 
                 // If provider data is available, try to open and read rows
+                System.out.println("[DEBUG] Provider path: " + providerPath);
+                System.out.println("[DEBUG] Provider sheet: " + providerSheet);
                 if (providerPath != null && providerSheet != null) {
+                    System.out.println("[DEBUG] Provider data is available, attempting to read...");
                     try (FileInputStream fis = new FileInputStream(providerPath)) {
-                        org.apache.poi.ss.usermodel.Workbook src = providerPath.toLowerCase().endsWith(".xlsx")
+                        System.out.println("[DEBUG] Successfully opened provider file");
+                        Workbook src = providerPath.toLowerCase().endsWith(".xlsx")
                                 ? new XSSFWorkbook(fis)
                                 : new HSSFWorkbook(fis);
+                        System.out.println("[DEBUG] Workbook loaded, looking for sheet: " + providerSheet);
                         Sheet sheet = src.getSheet(providerSheet);
+                        System.out.println("[DEBUG] Sheet found: " + (sheet != null) + ", sheet object: " + sheet);
                         if (sheet != null) {
+                            System.out.println("[DEBUG] Sheet has " + sheet.getLastRowNum() + " rows");
                             // Load per-year general factors to compute location-based emissions
                             double locationFactor = 0.0;
                             try {
@@ -105,13 +115,16 @@ public class ElectricityExcelExporter {
                             } catch (Exception ex) {
                                 // ignore and use 0.0
                             }
+                            System.out.println("[DEBUG] Calling writeExtendedRows with year=" + year);
                             Map<String, double[]> aggregates = writeExtendedRows(detailedSheet, sheet, mapping, year,
                                     validInvoices, locationFactor);
+                            System.out.println("[DEBUG] writeExtendedRows returned " + aggregates.size() + " centers");
                             // create per-center sheet from aggregates (prefixed)
                             String perCenterName = moduleLabel + " - "
                                     + (spanish.containsKey("result.sheet.per_center")
                                             ? spanish.getString("result.sheet.per_center")
                                             : "Por centro");
+                            System.out.println("[DEBUG] Creating per-center sheet: " + perCenterName);
                             Sheet perCenter = workbook.createSheet(perCenterName);
                             createPerCenterSheet(perCenter, headerStyle, aggregates, spanish, sheetExtended);
                             // create total sheet summarizing per-center aggregates (prefixed)
@@ -119,13 +132,30 @@ public class ElectricityExcelExporter {
                                     + (spanish.containsKey("result.sheet.total")
                                             ? spanish.getString("result.sheet.total")
                                             : "Total");
+                            System.out.println("[DEBUG] Creating total sheet: " + totalName);
                             Sheet total = workbook.createSheet(totalName);
                             createTotalSheetFromAggregates(total, headerStyle, aggregates, spanish, perCenterName);
+                            System.out.println("[DEBUG] Successfully created all sheets");
+                        } else {
+                            System.err.println("[ERROR] Sheet '" + providerSheet + "' not found in provider workbook!");
+                            System.err.println("[ERROR] Available sheets: ");
+                            for (int i = 0; i < src.getNumberOfSheets(); i++) {
+                                System.err.println("  - " + src.getSheetName(i));
+                            }
                         }
                         src.close();
                     } catch (Exception e) {
-                        // ignore read errors and continue writing template
+                        // Log error for debugging
+                        System.err.println("[ERROR] Exception processing electricity provider data: " + e.getMessage());
+                        e.printStackTrace();
+                        // Continue writing template even if reading fails
                     }
+                } else {
+                    System.err.println("[ERROR] Provider path or sheet is null - no data processing will occur");
+                    if (providerPath == null)
+                        System.err.println("  - providerPath is null");
+                    if (providerSheet == null)
+                        System.err.println("  - providerSheet is null");
                 }
             } else {
                 // Default: create both sheets as simple template using prefixed names
@@ -275,6 +305,10 @@ public class ElectricityExcelExporter {
 
     private static Map<String, double[]> writeExtendedRows(Sheet target, Sheet source, ElectricityMapping mapping,
             int year, Set<String> validInvoices, double locationFactorKgPerKwh) {
+        System.out.println("[DEBUG writeExtendedRows] Starting to process rows");
+        System.out.println("[DEBUG writeExtendedRows] Source sheet: " + source.getSheetName() + ", rows: "
+                + source.getLastRowNum());
+        System.out.println("[DEBUG writeExtendedRows] Year: " + year + ", Location factor: " + locationFactorKgPerKwh);
         DataFormatter df = new DataFormatter();
         FormulaEvaluator eval = source.getWorkbook().getCreationHelper().createFormulaEvaluator();
         Map<String, double[]> perCenterAgg = new HashMap<>();
@@ -297,11 +331,13 @@ public class ElectricityExcelExporter {
             }
         }
         if (headerRowIndex == -1) {
+            System.err.println("[ERROR writeExtendedRows] No header row found in provider sheet!");
             diagnostics.add("No header row found in provider sheet; no rows will be processed.");
             writeDiagnosticsSheet(target.getWorkbook(), diagnostics);
             return perCenterAgg;
         }
 
+        System.out.println("[DEBUG writeExtendedRows] Header row found at index: " + headerRowIndex);
         int outRow = target.getLastRowNum() + 1;
         int idCounter = 1;
         // Build a map CUPS -> count of centers that reference it (from
@@ -340,8 +376,8 @@ public class ElectricityExcelExporter {
             double consumo = parseDoubleSafe(consumoStr);
             // Parse start and end dates (may be missing). Include row if either date is in
             // reporting year
-            java.time.LocalDate parsedStart = parseDateLenient(fechaInicio);
-            java.time.LocalDate parsedEnd = parseDateLenient(fechaFin);
+            LocalDate parsedStart = parseDateLenient(fechaInicio);
+            LocalDate parsedEnd = parseDateLenient(fechaFin);
             // diagnostic reason removed - no diagnostics sheet in final output
 
             boolean startInYear = parsedStart != null && parsedStart.getYear() == reportingYear;
@@ -436,7 +472,7 @@ public class ElectricityExcelExporter {
             // Fecha inicio (as date cell)
             Cell startCell = out.createCell(col++);
             try {
-                startCell.setCellValue(java.sql.Date.valueOf(parsedStart));
+                startCell.setCellValue(Date.valueOf(parsedStart));
                 startCell.setCellStyle(dateStyle);
             } catch (Exception ex) {
                 startCell.setCellValue(fechaInicio != null ? fechaInicio : "");
@@ -445,7 +481,7 @@ public class ElectricityExcelExporter {
             // Fecha fin (as date cell)
             Cell endCell = out.createCell(col++);
             try {
-                endCell.setCellValue(java.sql.Date.valueOf(parsedEnd));
+                endCell.setCellValue(Date.valueOf(parsedEnd));
                 endCell.setCellStyle(dateStyle);
             } catch (Exception ex) {
                 endCell.setCellValue(fechaFin != null ? fechaFin : "");
@@ -656,8 +692,8 @@ public class ElectricityExcelExporter {
      */
     private static double computeApplicableKwh(String fechaInicio, String fechaFin, double totalKwh, int year) {
         try {
-            java.time.LocalDate start = parseDateLenient(fechaInicio);
-            java.time.LocalDate end = parseDateLenient(fechaFin);
+            LocalDate start = parseDateLenient(fechaInicio);
+            LocalDate end = parseDateLenient(fechaFin);
             // Require both dates and a sane date order; allow totalKwh to be negative
             if (start == null || end == null)
                 return 0.0;
@@ -818,7 +854,11 @@ public class ElectricityExcelExporter {
     /** Write diagnostics messages into a Diagnostics sheet. Safe no-op on error. */
     private static void writeDiagnosticsSheet(Workbook wb, List<String> diagnostics) {
         try {
-            Sheet diag = wb.createSheet("Diagnostics");
+            ResourceBundle spanish = ResourceBundle.getBundle("Messages", Locale.getDefault());
+            String diagnosticsName = spanish.containsKey("export.sheet.diagnostics")
+                    ? spanish.getString("export.sheet.diagnostics")
+                    : "Diagnostics";
+            Sheet diag = wb.createSheet(diagnosticsName);
             int rr = 0;
             for (String msg : diagnostics) {
                 Row r = diag.createRow(rr++);

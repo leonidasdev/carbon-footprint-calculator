@@ -264,18 +264,18 @@ Electricity providers supply consumption data through their customer portals. Us
 The following represents actual column names from ACCIONA S.L. provider exports:
 
 ```
-CUPS | Fecha emisión factura | Fecha inicio suministro | Fecha fin suministro | 
-Consumo (kWh) | Centro | Sociedad emisora | [Additional columns]
+CUPS | Nº Factura | Fecha Inicio Suministro | Fecha Fin Suministro | 
+Consumo (kWh) | Nombre del Centro | Sociedad Emisora | [Additional columns]
 ```
 
 **Column Definitions:**
 - **CUPS** — Código Universal del Punto de Suministro (Universal Supply Point Code) - unique meter identifier
-- **Fecha emisión factura** — Invoice issue date
-- **Fecha inicio suministro** — Billing period start date
-- **Fecha fin suministro** — Billing period end date
+- **Nº Factura** — Invoice number
+- **Fecha Inicio Suministro** — Billing period start date
+- **Fecha Fin Suministro** — Billing period end date
 - **Consumo (kWh)** — Total active energy consumed in kilowatt-hours
-- **Centro** — Facility or center name
-- **Sociedad emisora** — Issuing company or legal entity
+- **Nombre del Centro** — Facility or center name
+- **Sociedad Emisora** — Issuing company or legal entity
 - **[Additional columns]** — Providers typically include contracts, province, city, and others
 
 **Provider Variation Note:**
@@ -295,11 +295,11 @@ Enterprise Resource Planning systems consolidate financial and operational data.
 **Typical ERP Export Column Structure (SOROLLA):**
 
 ```
-Factura proveedor | Fecha Conformidad | [Additional columns]
+Nº Factura | Fecha Conformidad | [Additional columns]
 ```
 
 **Column Definitions:**
-- **Factura proveedor** — Provider invoice number or reference
+- **Nº Factura** — Provider invoice number or reference
 - **Fecha Conformidad** — Conformity date or approval date
 - **[Additional columns]** — ERP systems typically include cost centers, GL accounts, amounts, approval workflows
 
@@ -406,17 +406,19 @@ Gas providers supply consumption data through their customer portals, similar to
 The following represents actual column names from gas provider exports:
 
 ```
-CUPS | No. Factura | Fecha Inicio | Fecha Fin | Consumos kWh | Centro | Sociedad | [Additional columns]
+CUPS | Nº Factura | Fecha Inicio Suministro | Fecha Fin Suministro | 
+Consumo (kWh) | Tipo de Gas | Nombre del Centro | Sociedad Emisora | [Additional columns]
 ```
 
 **Column Definitions:**
 - **CUPS** — Código Universal del Punto de Suministro (Universal Supply Point Code) - unique meter identifier
-- **No. Factura** — Invoice number
-- **Fecha Inicio** — Billing period start date
-- **Fecha Fin** — Billing period end date
-- **Consumos kWh** — Gas consumption in kilowatt-hours
-- **Centro** — Facility or center name
-- **Sociedad** — Company or legal entity
+- **Nº Factura** — Invoice number
+- **Fecha Inicio Suministro** — Billing period start date
+- **Fecha Fin Suministro** — Billing period end date
+- **Consumo (kWh)** — Gas consumption in kilowatt-hours
+- **Tipo de Gas** — Gas type specification
+- **Nombre del Centro** — Facility or center name
+- **Sociedad Emisora** — Company or legal entity
 - **[Additional columns]** — Providers typically include contracts, province, city, and others
 
 **Note:** Gas consumption is often expressed in kWh (energy content) rather than m³ (volume). Providers typically perform the conversion based on the gas calorific value.
@@ -428,11 +430,11 @@ Enterprise Resource Planning systems provide financial and administrative data f
 **Typical ERP Export Column Structure (SOROLLA):**
 
 ```
-Factura proveedor | Fecha Conformidad | [Additional columns]
+Nº Factura | Fecha Conformidad | [Additional columns]
 ```
 
 **Column Definitions:**
-- **Factura proveedor** — Provider invoice number or reference
+- **Nº Factura** — Provider invoice number or reference
 - **Fecha Conformidad** — Conformity date or approval date
 - **[Additional columns]** — ERP systems typically include cost centers, GL accounts, amounts, approval workflows
 
@@ -538,7 +540,7 @@ Map the following fields to their corresponding Excel columns:
 - **Fuel Type** — Type of fuel (Gasoline, Diesel, etc.)
 - **Vehicle Type** — Vehicle classification (Car, Truck, Van, etc.)
 - **Amount** — Quantity of fuel purchased (liters)
-- **Completion Time** — Form submission timestamp
+- **Last Modified** — Form submission timestamp
 
 #### Step 3: Date Limit Configuration
 
@@ -626,7 +628,7 @@ Map the following refrigerant-specific fields:
 - **Invoice Date** — Service date
 - **Refrigerant Type** — Refrigerant gas designation (e.g., R-410A, R-134a, R-404A)
 - **Quantity** — Amount of refrigerant used (kilograms)
-- **Completion Time** — Form submission timestamp
+- **Last Modified** — Form submission timestamp
 
 #### Step 4: Date Limit and Calculation
 
@@ -907,29 +909,29 @@ The following represents actual column structures from electricity provider expo
 **Complete Provider Export Structure (ACCIONA S.L.):**
 
 ```
-CUPS | Nº Factura | Fecha inicio suministro | Fecha fin suministro | 
-Consumo (kWh) | Centro | Sociedad emisora
+CUPS | Nº Factura | Fecha Inicio Suministro | Fecha Fin Suministro | 
+Consumo (kWh) | Nombre del Centro | Sociedad Emisora
 ```
 
 **Required Data Columns for Emission Calculations:**
 
 | Column Name (Spanish) | Column Name (English) | Data Type | Format | Example |
 |----------------------|---------------------|-----------|--------|---------|
-| CUPS | CUPS | Text | ES + 18-20 characters | ES0031406123456789JK0F |
-| Nº Factura | Invoice Number | Text | Any | ACC1553321 |
-| Fecha inicio suministro | Supply Start Date | Date | DD/MM/YYYY | 01/01/2024 |
-| Fecha fin suministro | Supply End Date | Date | DD/MM/YYYY | 31/01/2024 |
-| Consumo (kWh) | Consumption (kWh) | Numeric | Decimal | 1250.75 |
-| Centro | Center Name | Text | Any | Building A |
-| Sociedad emisora | Emission Entity | Text | Any | Company XYZ |
+| CUPS | CUPS | Text | ES + 18-20 caracteres | ES0031406123456789JK0F |
+| Nº Factura | Invoice Number | Texto | Alfanumérico | ACC1553321 |
+| Fecha inicio suministro | Supply Start Date | Fecha | DD/MM/YYYY | 01/01/2024 |
+| Fecha fin suministro | Supply End Date | Fecha | DD/MM/YYYY | 31/01/2024 |
+| Consumo (kWh) | Consumption (kWh) | Numérico | Decimal | 1250.75 |
+| Nombre del Centro | Center Name | Texto | Cualquiera | Building A |
+| Sociedad emisora | Emission Entity | Texto | Cualquiera | Company XYZ |
 
 **Sample Data (ACCIONA S.L. Format):**
 
 ```
-CUPS                    Número de  Fecha inicio   Fecha fin      Consumo   Centro      Sociedad
-                        factura    suministro     suministro     (kWh)                  emisora
-ES0031406123456789JK0F  ACC020211     01/01/2024     31/01/2024     1250.75    Building A  Company XYZ
-ES0031406987654321AB0C  ACC904234     01/01/2024     31/01/2024     2340.50    Building B  Company XYZ
+CUPS                    Nº         Fecha Inicio   Fecha Fin      Consumo   Nombre del      Sociedad
+                        Factura    Suministro     Suministro     (kWh)     Centro          Emisora
+ES0031406123456789JK0F  ACC020211  01/01/2024     31/01/2024     1250.75   Building A      Company XYZ
+ES0031406987654321AB0C  ACC904234  01/01/2024     31/01/2024     2340.50   Building B      Company XYZ
 ```
 
 **Provider Variation Examples:**
@@ -939,9 +941,9 @@ Different electricity providers use different column names for the same data:
 | Data Field | ACCIONA S.L. | Iberdrola Alternative | Endesa Alternative |
 |------------|---------|----------------------|-------------------|
 | CUPS | CUPS | CUPS | Punto de suministro |
-| Consumption (kWh) | Consumo (kWh) | Consumo kWh | Energía consumida |
-| Supply Start Date | Fecha inicio suministro | Inicio periodo | Fecha inicio |
-| Supply End Date | Fecha fin suministro | Fin periodo | Fecha fin |
+| Consumption | Consumo (kWh) | Total EA (kWh) | Energía consumida |
+| Start Date | Fecha Inicio Suministro | Inicio periodo | Fecha inicio |
+| End Date | Fecha Fin Suministro | Fin periodo | Fecha fin |
 
 ---
 
@@ -954,29 +956,30 @@ Gas provider exports follow a similar structure to electricity with some column 
 **Complete Provider Export Structure:**
 
 ```
-CUPS | Nº Factura | Fecha inicio suministro | Fecha fin suministro | Consumos kWh | Centro | Sociedad emisora
+CUPS | Nº Factura | Fecha Inicio Suministro | Fecha Fin Suministro | 
+Consumo (kWh) | Tipo de Gas | Nombre del Centro | Sociedad Emisora
 ```
 
 **Required Data Columns for Emission Calculations:**
 
 | Column Name (Spanish) | Column Name (English) | Data Type | Format | Example |
 |----------------------|---------------------|-----------|--------|---------|
-| CUPS | CUPS | Text | ES + 18-20 characters | ES0031406123456789JK0F |
-| Nº Factura | Invoice Number | Text | Any | ACC1553321 |
-| Fecha inicio suministro | Supply Start Date | Date | DD/MM/YYYY | 01/01/2024 |
-| Fecha fin suministro | Supply End Date | Date | DD/MM/YYYY | 31/01/2024 |
-| Consumo (kWh) | Consumption (kWh) | Numeric | Decimal | 1250.75 |
-| Tipo de gas | Gas Type | Text | Enums | GAS NATURAL |
-| Centro | Center Name | Text | Any | Building A |
-| Sociedad emisora | Emission Entity | Text | Any | Company XYZ |
+| CUPS | CUPS Code | Text | ES + 18-20 characters | ES0031406123456789JK0F |
+| Nº Factura | Invoice Number | Text | Alphanumeric | GAS-2024-001 |
+| Fecha Inicio Suministro | Supply Start Date | Date | DD/MM/YYYY | 01/01/2024 |
+| Fecha Fin Suministro | Supply End Date | Date | DD/MM/YYYY | 31/01/2024 |
+| Consumo (kWh) | Consumption (kWh) | Numeric | Decimal | 3450.50 |
+| Tipo de Gas | Gas Type | Text | Any | GAS NATURAL |
+| Nombre del Centro | Center Name | Text | Any | Building A |
+| Sociedad Emisora | Emission Entity | Text | Any | Company XYZ |
 
 **Sample Data (Gas Provider Format):**
 
 ```
-CUPS                    Nº  Fecha inicio   Fecha fin      Consumo      Tipo de       Centro      Sociedad
-                        factura    suministro     suministro     (kWh)         gas                       emisora
-ES0031406123456789JK0F  ACC020211     01/01/2024     31/01/2024     1250.75    GAS NATURAL   Building A  Company XYZ
-ES0031406987654321AB0C  ACC904234     01/01/2024     31/01/2024     2340.50    GAS NATURAL   Building B  Company XYZ
+CUPS                    Nº         Fecha Inicio   Fecha Fin      Consumo      Tipo de       Nombre del      Sociedad
+                        Factura    Suministro     Suministro     (kWh)        Gas           Centro          Emisora
+ES0031406123456789JK0F  GAS-2024-001  01/01/2024  31/01/2024     3450.50   GAS NATURAL   Building A      Company XYZ
+ES0031406987654321AB0C  GAS-2024-002  01/01/2024  31/01/2024     4120.25   GAS NATURAL   Building B      Company XYZ
 ```
 
 **Note:** Gas consumption is typically provided in kWh (energy content) rather than m³ (volume). Gas providers convert volume to energy using the calorific value of the gas.
@@ -1044,7 +1047,7 @@ Workflows | Last Modified
 | Tipo de combustible | Fuel Type | Text | Any | Diesel |
 | Tipo de vehículo | Vehicle Type | Text | Any | Truck |
 | Importe (€) | Amount (€) | Numeric | Decimal | 50.5 |
-| Created By | Completion Time | DateTime | Excel timestamp | 05/03/2024 10:30 |
+| Last Modified | Last Modified | DateTime | Excel timestamp | 05/03/2024 10:30 |
 
 **Non-Required Metadata Columns:**
 - Id, #, Title, Form Version, Adjuntar factura, Collaborators, Workflows, Last Modified
@@ -1074,7 +1077,7 @@ Tipo de refrigerante: | Cantidad (ud): | Collaborators | Workflows | Last Modifi
 | Fecha de la factura: | Invoice Date | Date | DD/MM/YYYY | 10/03/2024 |
 | Tipo de refrigerante: | Refrigerant Type | Text | Specific designation | R-410A |
 | Cantidad (ud): | Quantity (units) | Numeric | Decimal (kg) | 2.5 |
-| Created By | Completion Time | DateTime | Excel timestamp | 10/03/2024 14:00 |
+| Last Modified | Last Modified | DateTime | Excel timestamp | 10/03/2024 14:00 |
 
 **Non-Required Metadata Columns:**
 - Id, #, Title, Form Version, Adjuntar factura:, Collaborators, Workflows, Last Modified

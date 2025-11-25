@@ -539,7 +539,7 @@ Mapear los siguientes campos a sus columnas Excel correspondientes:
 - **Fecha de la factura** — Fecha de compra
 - **Tipo de combustible** — Tipo de combustible (Gasolina, Diesel, etc.)
 - **Tipo de vehículo** — Clasificación del vehículo (Automóvil, Camión, Furgoneta, etc.)
-- **Importe (€)** — Precio del combustible comprado (€)
+- **Importe (€)** — Importe de la factura en Euros
 - **Last Modified** — Marca de tiempo de envío del formulario
 
 #### Paso 3: Configuración de Límite de Fecha
@@ -607,7 +607,7 @@ Tipo de refrigerante: | Cantidad (ud): | Collaborators | Workflows | Last Modifi
 
 Al igual que con el módulo de Combustible, las columnas de metadatos del sistema (Id, #, Created By, Form Version, Collaborators, Workflows, Last Modified) no son requeridas para cálculos de emisiones. Mapee solo las columnas de datos sustantivas durante el paso de configuración.
 
-**Variación en Nombres de Columnas:** Tenga en cuenta que algunos encabezados de columnas en la exportación de refrigerante incluyen dos puntos (por ejemplo, "Centro:" vs "Centro"). Esta variación de formato no afecta la funcionalidad de mapeo—seleccione la columna apropiada independientemente de la puntuación.
+**Variación en Nombres de Columnas:** Tenga en cuenta que algunos encabezados de columnas en la exportación de refrigerante pueden incluir dos puntos (por ejemplo, "Centro:" vs "Centro"). Esta variación de formato no afecta la funcionalidad de mapeo—seleccione la columna apropiada independientemente de la puntuación.
 
 **Procedimiento Operacional:**
 
@@ -623,12 +623,12 @@ Mapear los siguientes campos específicos de refrigerante:
 
 - **Centro** — Ubicación de la instalación
 - **Responsable del centro** — Técnico o persona responsable
-- **Número de factur** — Número de factura de servicio
+- **Número de factura** — Número de factura de servicio
 - **Proveedor** — Proveedor de servicio o contratista
 - **Fecha de la factura** — Fecha de servicio
 - **Tipo de refrigerante** — Designación de gas refrigerante (por ejemplo, R-410A, R-134a, R-404A)
 - **Cantidad (ud)** — Cantidad de refrigerante utilizado (kilogramos)
-- **Completion Time** — Marca de tiempo de envío del formulario
+- **Last Modified** — Marca de tiempo de envío del formulario
 
 #### Paso 4: Límite de Fecha y Cálculo
 
@@ -909,8 +909,8 @@ Lo siguiente representa estructuras de columnas reales de exportaciones de prove
 **Estructura Completa de Exportación del Proveedor (ACCIONA S.L.):**
 
 ```
-CUPS | Nº Factura | Fecha inicio suministro | Fecha fin suministro | 
-Consumo (kWh) | Centro | Sociedad emisora
+CUPS | Nº Factura | Fecha Inicio Suministro | Fecha Fin Suministro | 
+Consumo (kWh) | Nombre del Centro | Sociedad Emisora
 ```
 
 **Columnas de Datos Requeridas para Cálculos de Emisiones:**
@@ -918,20 +918,20 @@ Consumo (kWh) | Centro | Sociedad emisora
 | Nombre de Columna (Español) | Nombre de Columna (Inglés) | Tipo de Datos | Formato | Ejemplo |
 |------------------------------|----------------------------|---------------|---------|---------|
 | CUPS | CUPS | Text | ES + 18-20 caracteres | ES0031406123456789JK0F |
-| Nº Factura | Invoice Number | Texto | Cualquiera | ACC1553321 |
+| Nº Factura | Invoice Number | Texto | Alfanumérico | ACC1553321 |
 | Fecha inicio suministro | Supply Start Date | Fecha | DD/MM/YYYY | 01/01/2024 |
 | Fecha fin suministro | Supply End Date | Fecha | DD/MM/YYYY | 31/01/2024 |
 | Consumo (kWh) | Consumption (kWh) | Numérico | Decimal | 1250.75 |
-| Centro | Center Name | Texto | Cualquiera | Building A |
+| Nombre del Centro | Center Name | Texto | Cualquiera | Building A |
 | Sociedad emisora | Emission Entity | Texto | Cualquiera | Company XYZ |
 
 **Datos de Muestra (Formato ACCIONA S.L.):**
 
 ```
-CUPS                    Número de  Fecha inicio   Fecha fin      Consumo   Centro      Sociedad
-                        factura    suministro     suministro     (kWh)                  emisora
-ES0031406123456789JK0F  ACC020211     01/01/2024     31/01/2024     1250.75    Building A  Company XYZ
-ES0031406987654321AB0C  ACC904234     01/01/2024     31/01/2024     2340.50    Building B  Company XYZ
+CUPS                    Nº         Fecha Inicio   Fecha Fin      Consumo   Nombre del      Sociedad
+                        Factura    Suministro     Suministro     (kWh)     Centro          Emisora
+ES0031406123456789JK0F  ACC020211  01/01/2024     31/01/2024     1250.75   Building A      Company XYZ
+ES0031406987654321AB0C  ACC904234  01/01/2024     31/01/2024     2340.50   Building B      Company XYZ
 ```
 
 **Ejemplos de Variación de Proveedores:**
@@ -941,9 +941,9 @@ Diferentes proveedores de electricidad utilizan diferentes nombres de columnas p
 | Campo de datos | ACCIONA S.L. | Alternativa Iberdrola | Alternativa Endesa |
 |------------|---------|----------------------|-------------------|
 | CUPS | CUPS | CUPS | Punto de suministro |
-| Consumption (kWh) | Consumo (kWh) | Consumo kWh | Energía consumida |
-| Supply Start Date | Fecha inicio suministro | Inicio periodo | Fecha inicio |
-| Supply End Date | Fecha fin suministro | Fin periodo | Fecha fin |
+| Consumo (kWh) | Consumo (kWh) | Total EA (kWh) | Energía consumida |
+| Fecha Inicio Suministro | Fecha Inicio Suministro | Inicio periodo | Fecha inicio |
+| Fecha Fin Suministro | Fecha Fin Suministro | Fin periodo | Fecha fin |
 
 ---
 
@@ -956,7 +956,8 @@ Las exportaciones de proveedores de gas siguen una estructura similar a la elect
 **Estructura Completa de Exportación del Proveedor:**
 
 ```
-CUPS | Nº Factura | Fecha inicio suministro | Fecha fin suministro | Consumos kWh | Centro | Sociedad emisora
+CUPS | Nº Factura | Fecha Inicio Suministro | Fecha Fin Suministro | 
+Consumo (kWh) | Tipo de Gas | Nombre del Centro | Sociedad Emisora
 ```
 
 **Columnas de Datos Requeridas para Cálculos de Emisiones:**
@@ -968,17 +969,17 @@ CUPS | Nº Factura | Fecha inicio suministro | Fecha fin suministro | Consumos k
 | Fecha inicio suministro | Supply Start Date | Fecha | DD/MM/YYYY | 01/01/2024 |
 | Fecha fin suministro | Supply End Date | Fecha | DD/MM/YYYY | 31/01/2024 |
 | Consumo (kWh) | Consumption (kWh) | Numérico| Decimal | 1250.75 |
-| Tipo de gas | Gas Type | Texto | Enums | GAS NATURAL |
+| Tipo de gas | Gas Type | Texto | Alfanumérico | GAS NATURAL |
 | Centro | Center Name | Texto | Cualquiera | Building A |
 | Sociedad emisora | Emission Entity | Texto | Cualquiera | Company XYZ |
 
 **Datos de Muestra (Formato de Proveedor de Gas):**
 
 ```
-CUPS                    Nº  Fecha inicio   Fecha fin      Consumo      Tipo de       Centro      Sociedad
-                        factura    suministro     suministro     (kWh)         gas                       emisora
-ES0031406123456789JK0F  ACC020211     01/01/2024     31/01/2024     1250.75    GAS NATURAL   Building A  Company XYZ
-ES0031406987654321AB0C  ACC904234     01/01/2024     31/01/2024     2340.50    GAS NATURAL   Building B  Company XYZ
+CUPS                    Nº         Fecha Inicio   Fecha Fin      Consumo      Tipo de       Nombre del      Sociedad
+                        Factura    Suministro     Suministro     (kWh)        Gas           Centro          Emisora
+ES0031406123456789JK0F  GAS-2024-001  01/01/2024  31/01/2024     3450.50   GAS NATURAL   Building A      Company XYZ
+ES0031406987654321AB0C  GAS-2024-002  01/01/2024  31/01/2024     4120.25   GAS NATURAL   Building B      Company XYZ
 ```
 
 **Nota:** El consumo de gas se proporciona típicamente en kWh (contenido de energía) en lugar de m³ (volumen). Los proveedores de gas convierten el volumen a energía utilizando el valor calorífico del gas.
@@ -1046,7 +1047,7 @@ Workflows | Last Modified
 | Tipo de combustible | Fuel Type | Texto | Cualquiera | Diesel |
 | Tipo de vehículo | Vehicle Type | Texto | Cualquiera | Truck |
 | Importe (€) | Amount (€) | Numérico | Decimal | 50.5 |
-| Created By | Completion Time | DateTime | Marca de tiempo Excel | 05/03/2024 10:30 |
+| Last Modified | Last Modified | DateTime | Marca de tiempo Excel | 05/03/2024 10:30 |
 
 **Columnas de Metadatos No Requeridas:**
 - Id, #, Title, Form Version, Adjuntar factura, Collaborators, Workflows, Last Modified
@@ -1076,7 +1077,7 @@ Tipo de refrigerante: | Cantidad (ud): | Collaborators | Workflows | Last Modifi
 | Fecha de la factura: | Invoice Date | Fecha | DD/MM/YYYY | 10/03/2024 |
 | Tipo de refrigerante: | Refrigerant Type | Texto | Designación específica | R-410A |
 | Cantidad (ud): | Quantity (units) | Numérico | Decimal (kg) | 2.5 |
-| Created By | Completion Time | DateTime | Marca de tiempo Excel | 10/03/2024 14:00 |
+| Last Modified | Last Modified | DateTime | Marca de tiempo Excel | 10/03/2024 14:00 |
 
 **Columnas de Metadatos No Requeridas:**
 - Id, #, Title, Form Version, Adjuntar factura:, Collaborators, Workflows, Last Modified

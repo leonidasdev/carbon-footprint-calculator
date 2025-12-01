@@ -105,7 +105,7 @@ public class GasExcelExporter {
             String sheetMode, Set<String> validInvoices) throws IOException {
         boolean isXlsx = filePath.toLowerCase().endsWith(".xlsx");
         try (Workbook workbook = isXlsx ? new XSSFWorkbook() : new HSSFWorkbook()) {
-            ResourceBundle spanish = ResourceBundle.getBundle("Messages", Locale.getDefault());
+            ResourceBundle spanish = ResourceBundle.getBundle("Messages", new Locale("es"));
             String moduleLabel = spanish.containsKey("module.gas") ? spanish.getString("module.gas") : "Gas";
             if ("extended".equalsIgnoreCase(sheetMode)) {
                 String sheetExtended = moduleLabel + " - "

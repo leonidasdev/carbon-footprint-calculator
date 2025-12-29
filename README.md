@@ -17,7 +17,7 @@ This repository contains the source code, CSV data for emission factors (per yea
 
 ## Demo
 
-**Demo video: [Carbon Footprint Calculator](https://youtu.be/97nk-wCfyPk)**
+[Carbon Footprint Calculator](https://youtu.be/97nk-wCfyPk) — Watch a demonstration of the application features and workflows.
 
 ## Documentation
 

@@ -15,6 +15,10 @@ This repository contains the source code, CSV data for emission factors (per yea
 - **Localization Support**: Full English and Spanish interface (Messages.properties / Messages_es.properties)
 - **Modern UI**: FlatLaf-themed Swing interface with modular panel architecture
 
+## Demo
+
+**Demo video: [Carbon Footprint Calculator](https://youtu.be/97nk-wCfyPk)**
+
 ## Documentation
 
 **Comprehensive User Manuals Available:**

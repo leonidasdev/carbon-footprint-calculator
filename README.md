@@ -236,7 +236,7 @@ When contributing to this repository:
 
 ## License
 
-This project is covered by the repository LICENSE file.
+This project is licensed under the Apache 2.0 License. See the [LICENSE](./LICENSE) file for details.
 
 ## Support
 
